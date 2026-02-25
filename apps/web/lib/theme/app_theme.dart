@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared/shared.dart' show AppColors;
 
 export 'package:shared/shared.dart' show AppColors;
 

@@ -1,0 +1,45 @@
+# Build Flutter web and deploy to Vercel (fixes 404 when Vercel has no Flutter)
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Get shared deps
+        run: flutter pub get
+        working-directory: packages/shared
+
+      - name: Get web deps
+        run: flutter pub get
+        working-directory: apps/web
+
+      - name: Build web
+        run: flutter build web --release
+        working-directory: apps/web
+
+      - name: Copy vercel.json and api into build output
+        run: |
+          cp apps/web/vercel.json apps/web/build/web/vercel.json
+          cp -r apps/web/api apps/web/build/web/
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: apps/web/build/web
+          vercel-args: '--prod'
