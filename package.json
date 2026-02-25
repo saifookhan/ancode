@@ -1,0 +1,24 @@
+{
+  "name": "ancode",
+  "private": true,
+  "scripts": {
+    "supabase": "supabase",
+    "db:push": "supabase db push",
+    "db:reset": "supabase db reset",
+    "db:diff": "supabase db diff",
+    "db:seed": "supabase db execute -f supabase/seed.sql",
+    "db:setup": "supabase db push && supabase db execute -f supabase/seed.sql",
+    "start": "supabase start",
+    "stop": "supabase stop",
+    "studio": "supabase db studio",
+    "dev": "cd apps/web && flutter run -d chrome",
+    "run:web": "cd apps/web && flutter run -d chrome",
+    "run:mobile": "cd apps/mobile && flutter run",
+    "get:web": "cd apps/web && flutter pub get",
+    "get:mobile": "cd apps/mobile && flutter pub get",
+    "get:all": "cd packages/shared && flutter pub get && cd ../../apps/web && flutter pub get && cd ../mobile && flutter pub get"
+  },
+  "devDependencies": {
+    "supabase": "^2.75.0"
+  }
+}

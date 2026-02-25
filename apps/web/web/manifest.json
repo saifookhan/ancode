@@ -1,0 +1,7 @@
+{
+  "name": "*ANCODE",
+  "short_name": "ANCODE",
+  "description": "Short alphanumeric codes for URLs and notes",
+  "start_url": "/",
+  "display": "standalone"
+}

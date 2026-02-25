@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.dart_tool/
+.packages
+build/
+*.iml
+.idea/
+*.ipr
+*.iws
+
+# Flutter
+apps/*/build/
+apps/*/.dart_tool/
+apps/*/.packages
+
+# Environment
+.env
+.env.local
+*.env
+
+# Supabase
+supabase/.branches
+supabase/.temp
+
+# IDE
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+**/secrets/
+**/*secret*

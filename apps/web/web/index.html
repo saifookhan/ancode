@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="*ANCODE - Short alphanumeric codes for URLs and notes">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>*ANCODE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Outfit: KIT-style geometric sans (replace with KIT font files when available) -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+  <script src="flutter_bootstrap.js" async></script>
+</head>
+<body>
+  <script>
+    if (window.location.pathname.match(/^\/c\/[A-Za-z0-9]+\/?$/)) {
+      const m = window.location.pathname.match(/^\/c\/([A-Za-z0-9]+)/);
+      if (m) window.__ANCODE_RESOLVE_CODE__ = m[1].toUpperCase();
+    }
+  </script>
+</body>
+</html>
