@@ -1,6 +1,6 @@
 # ANCODE
 
-Short, memorable alphanumeric codes (*ANCODEs) that redirect to URLs or display notes. Typable, readable, speakable—no QR required (but QR supported).
+Short, memorable alphanumeric codes (*ANCODEs) that redirect to URLs or display notes. Typable, readable, speakable—no QR required (but QR supported)..
 
 ## Project Structure
 
