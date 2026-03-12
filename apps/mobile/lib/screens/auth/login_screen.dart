@@ -26,7 +26,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    setState(() => _error = null; _isLoading = true);
+    setState(() {
+      _error = null;
+      _isLoading = true;
+    });
     try {
       if (_isSignUp) {
         await Supabase.instance.client.auth.signUp(

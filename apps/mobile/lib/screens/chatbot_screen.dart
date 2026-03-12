@@ -6,8 +6,10 @@ class ChatbotScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Chatbot')),
-      body: const Center(child: Text('Chatbot - Prossimamente')),
+      body: SafeArea(
+        top: false,
+        child: const Center(child: Text('Chatbot - Prossimamente')),
+      ),
     );
   }
 }

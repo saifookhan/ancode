@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'package:shared/shared.dart';
+
+/// Same as mobile: curved pill, margin 10, labels History, Create, Search, Codes, Chatbot.
 class NavBar extends StatelessWidget implements PreferredSizeWidget {
   const NavBar({
     super.key,
@@ -11,43 +14,41 @@ class NavBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<int> onTap;
 
   static const _items = [
-    (icon: Icons.search, label: 'Cerca o Crea'),
-    (icon: Icons.history, label: 'Cronologia'),
-    (icon: Icons.add_circle_outline, label: 'Crea'),
-    (icon: Icons.dashboard_outlined, label: 'I miei codici'),
+    (icon: Icons.history, label: 'History'),
+    (icon: Icons.add_circle_outline, label: 'Create'),
+    (icon: Icons.search, label: 'Search'),
+    (icon: Icons.dashboard_outlined, label: 'Codes'),
     (icon: Icons.chat_bubble_outline, label: 'Chatbot'),
   ];
 
   @override
-  Size get preferredSize => const Size.fromHeight(64);
+  Size get preferredSize => const Size.fromHeight(80);
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      margin: const EdgeInsets.all(10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: AppColors.biancoOttico,
+        borderRadius: BorderRadius.circular(1000),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: 8,
-            offset: const Offset(0, -2),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(
-              _items.length,
-              (i) => _NavItem(
-                icon: _items[i].icon,
-                label: _items[i].label,
-                isSelected: currentIndex == i,
-                onTap: () => onTap(i),
-              ),
-            ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(
+          _items.length,
+          (i) => _NavItem(
+            icon: _items[i].icon,
+            label: _items[i].label,
+            isSelected: currentIndex == i,
+            onTap: () => onTap(i),
           ),
         ),
       ),
@@ -75,28 +76,34 @@ class _NavItem extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(28),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  icon,
-                  size: 24,
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.bluUniverso : AppColors.biancoOttico,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: AppColors.verdeCosmico, width: 2),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 22,
+                    color: isSelected ? AppColors.biancoOttico : AppColors.bluPolvere,
+                  ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   label,
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontWeight: isSelected ? FontWeight.w600 : null,
-                      ),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                    color: isSelected ? AppColors.bluPolvere : AppColors.bluPolvere,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,

@@ -15,12 +15,12 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _currentIndex = 0;
+  int _currentIndex = 2; // Search (same order as mobile: History, Create, Search, Codes, Chatbot)
 
   final _screens = <Widget>[
-    const HomeScreen(),
     const HistoryScreen(),
     const CreateScreen(),
+    const HomeScreen(),
     const MyCodesScreen(),
     const ChatbotScreen(),
   ];

@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import 'package:shared/shared.dart';
 
-import '../services/auth_service.dart';
 import '../services/ancode_service.dart';
-import 'auth/login_screen.dart';
 import 'code_resolve_screen.dart';
 import 'create_screen.dart';
 
@@ -73,96 +70,58 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  static const double _radius = 28;
+  static const double _greenOutlineWidth = 2.5;
+
   @override
   Widget build(BuildContext context) {
     final hasUniqueMatch = _lastResult?.uniqueMatch != null;
-    final showGoToContent = _isCodeFormatValid && (hasUniqueMatch || _lastResult == null);
 
     return Scaffold(
       backgroundColor: AppColors.biancoOttico,
-      appBar: AppBar(
-        backgroundColor: AppColors.biancoOttico,
-        elevation: 0,
-        title: Row(
-          children: [
-            const Text('*', style: TextStyle(color: AppColors.azzurroCiano, fontSize: 22)),
-            const SizedBox(width: 6),
-            Text('ANCODE', style: TextStyle(color: AppColors.bluUniverso, fontWeight: FontWeight.bold, fontSize: 18)),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () {}, child: Text('FAQ', style: TextStyle(color: AppColors.bluPolvere, fontSize: 13))),
-          TextButton(onPressed: () {}, child: Text('Idee di utilizzo', style: TextStyle(color: AppColors.bluPolvere, fontSize: 13))),
-          Consumer<AuthService>(
-            builder: (context, auth, _) {
-              if (!auth.isLoggedIn) {
-                return TextButton(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen())),
-                  child: Text('Accedi', style: TextStyle(color: AppColors.bluPolvere, fontSize: 13)),
-                );
-              }
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextButton(onPressed: () {}, child: Text('Dashboard', style: TextStyle(color: AppColors.bluPolvere, fontSize: 13))),
-                  TextButton(onPressed: () {}, child: Text('Profilo', style: TextStyle(color: AppColors.bluPolvere, fontSize: 13))),
-                  TextButton(
-                    onPressed: () => auth.signOut(),
-                    child: Text('Logout', style: TextStyle(color: AppColors.bluPolvere, fontSize: 13)),
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
+              const SizedBox(height: 48),
+              const AncodeLogo(size: 120, showName: true, logoAssetPath: 'assets/logo.png'),
               const SizedBox(height: 32),
-              const AncodeLogo(size: 64, showName: true),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _controller,
-                decoration: InputDecoration(
-                  hintText: 'CASA20',
-                  hintStyle: TextStyle(color: AppColors.bluPolvere.withOpacity(0.6)),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28),
-                    borderSide: const BorderSide(color: AppColors.bluPolvere),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28),
-                    borderSide: const BorderSide(color: AppColors.bluPolvere, width: 1.5),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(28),
-                    borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+              // One column: input, then CERCA, then CREA
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.biancoOttico,
+                  borderRadius: BorderRadius.circular(_radius),
+                  border: Border.all(color: AppColors.verdeCosmico, width: _greenOutlineWidth),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.verdeCosmico.withOpacity(0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
-                style: const TextStyle(color: AppColors.bluUniverso, fontSize: 18),
-                textCapitalization: TextCapitalization.characters,
-                autocorrect: false,
-                onSubmitted: _onSearchSubmitted,
+                child: TextField(
+                  controller: _controller,
+                  decoration: InputDecoration(
+                    hintText: 'Inserisci ANCODE',
+                    hintStyle: const TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                  ),
+                  style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
+                  textCapitalization: TextCapitalization.characters,
+                  autocorrect: false,
+                  onSubmitted: _onSearchSubmitted,
+                ),
               ),
-              const SizedBox(height: 8),
-              if (_controller.text.isNotEmpty)
-                Text(
-                  _isCodeFormatValid ? 'codice valido ✔' : 'codice non valido',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: _isCodeFormatValid ? AppColors.bluUniverso : Theme.of(context).colorScheme.error,
-                  ),
-                ),
-              const SizedBox(height: 24),
-              if (showGoToContent || hasUniqueMatch)
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _isSearching ? null : () => hasUniqueMatch
+              const SizedBox(height: 16),
+              // CERCA – full width, white with green border
+              _outlinedButton(
+                onPressed: _isSearching
+                    ? null
+                    : () => hasUniqueMatch
                         ? Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -173,55 +132,22 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ).then((_) => setState(() => _lastResult = null))
                         : _onSearchSubmitted(_controller.text),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.verdeCosmico,
-                      foregroundColor: AppColors.bluUniverso,
-                      side: const BorderSide(color: AppColors.bluPolvere),
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                child: _isSearching
+                    ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Text('CERCA', style: TextStyle(color: AppColors.bluPolvere, fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+              const SizedBox(height: 12),
+              // CREA – full width, dark fill
+              _filledButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateScreen(
+                      prefillCode: _controller.text.replaceAll(RegExp(r'[\s*]'), '').toUpperCase(),
                     ),
-                    child: _isSearching
-                        ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Vai al contenuto'),
                   ),
                 ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _isSearching ? null : () => _onSearchSubmitted(_controller.text),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.bluUniverso,
-                        side: const BorderSide(color: AppColors.bluPolvere),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                      ),
-                      child: const Text('CERCA'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CreateScreen(
-                            prefillCode: _controller.text.replaceAll(RegExp(r'[\s*]'), '').toUpperCase(),
-                          ),
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.bluUniverso,
-                        foregroundColor: AppColors.biancoOttico,
-                        side: const BorderSide(color: AppColors.verdeCosmico),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                      ),
-                      child: const Text('CREA'),
-                    ),
-                  ),
-                ],
+                child: const Text('CREA', style: TextStyle(color: AppColors.biancoOttico, fontWeight: FontWeight.bold, fontSize: 16)),
               ),
               if (_lastResult?.error != null) ...[
                 const SizedBox(height: 24),
@@ -230,8 +156,8 @@ class _HomeScreenState extends State<HomeScreen> {
               if (_lastResult?.multipleMatches != null && _lastResult!.multipleMatches!.isNotEmpty) ...[
                 const SizedBox(height: 24),
                 ..._lastResult!.multipleMatches!.map((a) => ListTile(
-                      title: Text(a.code, style: const TextStyle(color: AppColors.bluUniverso)),
-                      subtitle: Text(a.municipality?.name ?? '', style: const TextStyle(color: AppColors.bluPolvere)),
+                      title: Text(a.code, style: const TextStyle(color: AppColors.bluPolvere)),
+                      subtitle: Text(a.municipality?.name ?? '', style: const TextStyle(color: AppColors.placeholderGrey)),
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -240,7 +166,64 @@ class _HomeScreenState extends State<HomeScreen> {
                       ).then((_) => setState(() => _lastResult = null)),
                     )),
               ],
+              const SizedBox(height: 100),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _outlinedButton({VoidCallback? onPressed, required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.biancoOttico,
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: AppColors.verdeCosmico, width: _greenOutlineWidth),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.verdeCosmico.withOpacity(0.35),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(_radius),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: child),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _filledButton({VoidCallback? onPressed, required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.bluUniverso,
+        borderRadius: BorderRadius.circular(_radius),
+        border: Border.all(color: AppColors.verdeCosmico, width: _greenOutlineWidth),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.verdeCosmico.withOpacity(0.4),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(_radius),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(child: child),
           ),
         ),
       ),

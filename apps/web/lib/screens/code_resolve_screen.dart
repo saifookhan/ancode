@@ -4,8 +4,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:shared/shared.dart';
 
-import '../services/app_config.dart';
-
 class CodeResolveScreen extends StatelessWidget {
   const CodeResolveScreen({
     super.key,

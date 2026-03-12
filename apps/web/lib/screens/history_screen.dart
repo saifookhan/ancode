@@ -64,8 +64,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
     return Scaffold(
-      appBar: AppBar(title: const Text('Cronologia')),
-      body: user == null
+      body: SafeArea(
+        top: false,
+        child: user == null
           ? Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -117,7 +118,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           ),
                         );
                       },
-                    ),
+                    )
+      ),
     );
   }
 }

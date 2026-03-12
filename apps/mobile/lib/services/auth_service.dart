@@ -11,7 +11,9 @@ class AuthState {
 }
 
 class AuthService extends ChangeNotifier {
-  AuthService() => _init();
+  AuthService() {
+    _init();
+  }
 
   AuthState _state = AuthState();
   AuthState get state => _state;
@@ -36,7 +38,7 @@ class AuthService extends ChangeNotifier {
           .maybeSingle();
       if (res != null) {
         _state = AuthState(
-          profile: Profile.fromJson(res as Map<String, dynamic>),
+          profile: Profile.fromJson(res),
           isLoading: false,
         );
       } else {

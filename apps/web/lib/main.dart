@@ -33,9 +33,10 @@ Future<void> main() async {
   String supabaseUrl = '';
   String supabaseAnonKey = '';
   bool loaded = false;
+  // On web, flutter_dotenv loads from asset bundle (path is relative to assets/); use '.env' so it requests assets/.env not assets/assets/.env
   if (kIsWeb) {
     try {
-      await dotenv.load(fileName: 'assets/.env');
+      await dotenv.load(fileName: '.env');
       supabaseUrl = dotenv.env['SUPABASE_URL']?.trim() ?? '';
       supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']?.trim() ?? '';
       loaded = true;

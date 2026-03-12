@@ -1,12 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:shared/shared.dart';
 
-import '../services/auth_service.dart';
 import '../services/app_config.dart';
 import 'create_screen.dart';
 
@@ -65,19 +63,15 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('I miei codici'),
-        actions: [
-          if (user != null)
-            IconButton(
-              icon: const Icon(Icons.add),
+      floatingActionButton: user != null
+          ? FloatingActionButton(
               onPressed: () => Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const CreateScreen()),
               ).then((_) => _load()),
-            ),
-        ],
-      ),
+              child: const Icon(Icons.add),
+            )
+          : null,
       body: user == null
           ? Center(
               child: Column(

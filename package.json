@@ -12,6 +12,7 @@
     "stop": "supabase stop",
     "studio": "supabase db studio",
     "dev": "cd apps/web && flutter run -d chrome",
+    "dev:fresh": "npm run get:all && npm run dev",
     "run:web": "cd apps/web && flutter run -d chrome",
     "run:mobile": "cd apps/mobile && flutter run",
     "get:web": "cd apps/web && flutter pub get",

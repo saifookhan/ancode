@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import 'package:shared/shared.dart' hide AppTheme;
 
 import '../theme/app_theme.dart';
-import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
 import '../services/ancode_service.dart';
 import '../services/app_config.dart';
@@ -81,7 +78,9 @@ class _CreateScreenState extends State<CreateScreen> {
   Future<void> _commit() async {
     // If no drafts, add current form as one and then commit
     if (_drafts.isEmpty) {
-      if (!_formKey.currentState!.validate() || _selectedComune == null || !_acceptedTerms) return;
+      if (!_formKey.currentState!.validate() ||
+          _selectedComune == null ||
+          !_acceptedTerms) return;
       _addCode();
       if (_drafts.isEmpty) return; // e.g. validation failed
     }
@@ -114,7 +113,8 @@ class _CreateScreenState extends State<CreateScreen> {
       }
       if (mounted) {
         setState(() {
-          _createdAncode = _drafts.isNotEmpty ? _drafts.first.toAncodePlaceholder() : null;
+          _createdAncode =
+              _drafts.isNotEmpty ? _drafts.first.toAncodePlaceholder() : null;
           _drafts = [];
           _isCreating = false;
         });
@@ -165,12 +165,14 @@ class _CreateScreenState extends State<CreateScreen> {
           backgroundColor: AppColors.bluUniverso,
           elevation: 0,
           leading: IconButton(
-            icon: const Text('*', style: TextStyle(color: AppColors.azzurroCiano, fontSize: 28)),
+            icon: const Text('*',
+                style: TextStyle(color: AppColors.azzurroCiano, fontSize: 28)),
             onPressed: () => Navigator.of(context).pop(),
           ),
           title: const Text(
             'ANCODE',
-            style: TextStyle(color: AppColors.biancoOttico, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: AppColors.biancoOttico, fontWeight: FontWeight.bold),
           ),
         ),
         body: SafeArea(
@@ -202,16 +204,21 @@ class _CreateScreenState extends State<CreateScreen> {
                     controller: _codeController,
                     decoration: InputDecoration(
                       labelText: 'CODICE Ancode',
-                      labelStyle: const TextStyle(color: AppColors.biancoOttico),
+                      labelStyle:
+                          const TextStyle(color: AppColors.biancoOttico),
                       hintText: 'ES: CASA20',
-                      hintStyle: TextStyle(color: AppColors.bluPolvere.withOpacity(0.8)),
+                      hintStyle: TextStyle(
+                          color: AppColors.bluPolvere.withOpacity(0.8)),
                       helperText: 'max. 30 caratteri, solo lettere maiuscole.',
-                      helperStyle: TextStyle(color: AppColors.biancoOttico.withOpacity(0.7), fontSize: 12),
+                      helperStyle: TextStyle(
+                          color: AppColors.biancoOttico.withOpacity(0.7),
+                          fontSize: 12),
                     ),
                     style: const TextStyle(color: AppColors.bluUniverso),
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9*]')),
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'[A-Za-z0-9*]')),
                     ],
                     onChanged: (_) => setState(() {}),
                     validator: (v) => validateCode(v ?? ''),
@@ -219,7 +226,9 @@ class _CreateScreenState extends State<CreateScreen> {
                   const SizedBox(height: 20),
                   const Text(
                     'Tipo di contenuto',
-                    style: TextStyle(color: AppColors.biancoOttico, fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                        color: AppColors.biancoOttico,
+                        fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -228,18 +237,22 @@ class _CreateScreenState extends State<CreateScreen> {
                         child: SegmentedButton<bool>(
                           segments: const [
                             ButtonSegment(value: true, label: Text('Link/URL')),
-                            ButtonSegment(value: false, label: Text('Nota/Testo')),
+                            ButtonSegment(
+                                value: false, label: Text('Nota/Testo')),
                           ],
                           selected: {_isLink},
-                          onSelectionChanged: (s) => setState(() => _isLink = s.first),
+                          onSelectionChanged: (s) =>
+                              setState(() => _isLink = s.first),
                           style: ButtonStyle(
-                            backgroundColor: WidgetStateProperty.resolveWith((states) {
+                            backgroundColor:
+                                WidgetStateProperty.resolveWith((states) {
                               if (states.contains(WidgetState.selected)) {
                                 return AppColors.biancoOttico;
                               }
                               return AppColors.bluPolvere.withOpacity(0.3);
                             }),
-                            foregroundColor: WidgetStateProperty.all(AppColors.bluUniverso),
+                            foregroundColor:
+                                WidgetStateProperty.all(AppColors.bluUniverso),
                           ),
                         ),
                       ),
@@ -250,10 +263,13 @@ class _CreateScreenState extends State<CreateScreen> {
                     TextFormField(
                       controller: _urlController,
                       decoration: InputDecoration(
-                        labelText: 'Inserisci il link a cui vuoi collegare questo ANCODE',
-                        labelStyle: const TextStyle(color: AppColors.biancoOttico),
+                        labelText:
+                            'Inserisci il link a cui vuoi collegare questo ANCODE',
+                        labelStyle:
+                            const TextStyle(color: AppColors.biancoOttico),
                         hintText: 'https://esempio.com',
-                        hintStyle: TextStyle(color: AppColors.bluPolvere.withOpacity(0.8)),
+                        hintStyle: TextStyle(
+                            color: AppColors.bluPolvere.withOpacity(0.8)),
                       ),
                       style: const TextStyle(color: AppColors.bluUniverso),
                       keyboardType: TextInputType.url,
@@ -267,7 +283,8 @@ class _CreateScreenState extends State<CreateScreen> {
                       controller: _noteController,
                       decoration: InputDecoration(
                         labelText: 'Testo nota',
-                        labelStyle: const TextStyle(color: AppColors.biancoOttico),
+                        labelStyle:
+                            const TextStyle(color: AppColors.biancoOttico),
                       ),
                       style: const TextStyle(color: AppColors.bluUniverso),
                       maxLines: 4,
@@ -284,10 +301,12 @@ class _CreateScreenState extends State<CreateScreen> {
                   const SizedBox(height: 20),
                   CheckboxListTile(
                     value: _acceptedTerms,
-                    onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
+                    onChanged: (v) =>
+                        setState(() => _acceptedTerms = v ?? false),
                     title: RichText(
                       text: TextSpan(
-                        style: const TextStyle(color: AppColors.biancoOttico, fontSize: 14),
+                        style: const TextStyle(
+                            color: AppColors.biancoOttico, fontSize: 14),
                         children: [
                           const TextSpan(text: 'Accetto i '),
                           WidgetSpan(
@@ -321,14 +340,17 @@ class _CreateScreenState extends State<CreateScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: _isCreating ? null : () {
-                            if (_formKey.currentState!.validate() &&
-                                _selectedComune != null &&
-                                _acceptedTerms) _addCode();
-                          },
+                          onPressed: _isCreating
+                              ? null
+                              : () {
+                                  if (_formKey.currentState!.validate() &&
+                                      _selectedComune != null &&
+                                      _acceptedTerms) _addCode();
+                                },
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.biancoOttico,
-                            side: const BorderSide(color: AppColors.verdeCosmico),
+                            side:
+                                const BorderSide(color: AppColors.verdeCosmico),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: const Text('Crea pacchetto'),
@@ -347,7 +369,8 @@ class _CreateScreenState extends State<CreateScreen> {
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
                                 )
                               : const Text('Procedi con il pagamento'),
                         ),
@@ -358,13 +381,21 @@ class _CreateScreenState extends State<CreateScreen> {
                     const SizedBox(height: 24),
                     Text(
                       'Codici da creare: ${_drafts.length}',
-                      style: const TextStyle(color: AppColors.biancoOttico, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                          color: AppColors.biancoOttico,
+                          fontWeight: FontWeight.w600),
                     ),
                     ..._drafts.map((d) => ListTile(
-                          title: Text(d.code, style: const TextStyle(color: AppColors.biancoOttico)),
-                          subtitle: Text(d.municipalityId, style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.7))),
+                          title: Text(d.code,
+                              style: const TextStyle(
+                                  color: AppColors.biancoOttico)),
+                          subtitle: Text(d.municipalityId,
+                              style: TextStyle(
+                                  color:
+                                      AppColors.biancoOttico.withOpacity(0.7))),
                           trailing: IconButton(
-                            icon: const Icon(Icons.close, color: AppColors.biancoOttico),
+                            icon: const Icon(Icons.close,
+                                color: AppColors.biancoOttico),
                             onPressed: () => setState(() => _drafts.remove(d)),
                           ),
                         )),
@@ -445,10 +476,11 @@ class _ComunePickerState extends State<_ComunePicker> {
     }
     setState(() => _searching = true);
     final list = await AncodeService.searchMunicipalities(q);
-    if (mounted) setState(() {
-      _results = list;
-      _searching = false;
-    });
+    if (mounted)
+      setState(() {
+        _results = list;
+        _searching = false;
+      });
   }
 
   @override
@@ -484,7 +516,8 @@ class _ComunePickerState extends State<_ComunePicker> {
         if (widget.selected != null) ...[
           const SizedBox(height: 8),
           Chip(
-            label: Text(widget.selected!.name, style: const TextStyle(color: AppColors.bluUniverso)),
+            label: Text(widget.selected!.name,
+                style: const TextStyle(color: AppColors.bluUniverso)),
             backgroundColor: AppColors.verdeCosmico,
             onDeleted: () => widget.onSelected(null),
           ),
@@ -500,8 +533,12 @@ class _ComunePickerState extends State<_ComunePicker> {
                 itemBuilder: (_, i) {
                   final m = _results[i];
                   return ListTile(
-                    title: Text(m.name, style: const TextStyle(color: AppColors.bluUniverso)),
-                    subtitle: m.province != null ? Text(m.province!, style: const TextStyle(color: AppColors.bluPolvere)) : null,
+                    title: Text(m.name,
+                        style: const TextStyle(color: AppColors.bluUniverso)),
+                    subtitle: m.province != null
+                        ? Text(m.province!,
+                            style: const TextStyle(color: AppColors.bluPolvere))
+                        : null,
                     onTap: () {
                       widget.onSelected(m);
                       _queryController.clear();
@@ -537,14 +574,16 @@ class _OutputScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Link breve:', style: Theme.of(context).textTheme.titleMedium),
+              Text('Link breve:',
+                  style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               SelectableText(shortlink),
               const SizedBox(height: 16),
               Row(
                 children: [
                   FilledButton.icon(
-                    onPressed: () => Clipboard.setData(ClipboardData(text: shortlink)),
+                    onPressed: () =>
+                        Clipboard.setData(ClipboardData(text: shortlink)),
                     icon: const Icon(Icons.copy),
                     label: const Text('Copia'),
                   ),
@@ -577,9 +616,11 @@ class _OutputScreen extends StatelessWidget {
                           build: (ctx) => pw.Column(
                             crossAxisAlignment: pw.CrossAxisAlignment.start,
                             children: [
-                              pw.Text('*${ancode.code}', style: pw.TextStyle(fontSize: 24)),
+                              pw.Text('*${ancode.code}',
+                                  style: pw.TextStyle(fontSize: 24)),
                               pw.SizedBox(height: 16),
-                              pw.Text(shortlink, style: const pw.TextStyle(fontSize: 12)),
+                              pw.Text(shortlink,
+                                  style: const pw.TextStyle(fontSize: 12)),
                             ],
                           ),
                         ),
@@ -608,5 +649,4 @@ class _OutputScreen extends StatelessWidget {
       ),
     );
   }
-
 }
