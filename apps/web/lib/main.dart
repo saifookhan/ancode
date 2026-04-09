@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -8,7 +9,6 @@ import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
-import 'screens/config_error_screen.dart';
 import 'theme/app_theme.dart';
 import 'screens/code_resolve_screen.dart';
 import 'services/auth_service.dart';
@@ -27,9 +27,7 @@ Future<Map<String, dynamic>?> _fetchConfig(Uri uri) async {
   return map;
 }
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
+Future<bool> _prepareApp() async {
   String supabaseUrl = '';
   String supabaseAnonKey = '';
   bool loaded = false;
@@ -71,30 +69,103 @@ Future<void> main() async {
     } catch (_) {}
   }
 
-  if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
-    runApp(const ConfigErrorScreen());
-    return;
-  }
-
   if (apiConfig != null) {
     final stripe = apiConfig['stripePublishableKey']?.toString();
     if (stripe != null && stripe.isNotEmpty) {
       AppConfig.setFromApi(stripePublishableKey: stripe);
     }
   }
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  var supabaseConfigured = supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
+  if (supabaseConfigured) {
+    try {
+      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey).timeout(
+        const Duration(seconds: 25),
+        onTimeout: () => throw TimeoutException('Supabase.initialize'),
+      );
+    } catch (_) {
+      // Network/project misconfig: still bring up the UI (search-only mode).
+      supabaseConfigured = false;
+    }
+  }
   await AppConfig.initialize();
-  runApp(const AncodeApp());
+  return supabaseConfigured;
+}
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const _AncodeBootstrap());
+}
+
+class _AncodeBootstrap extends StatefulWidget {
+  const _AncodeBootstrap();
+
+  @override
+  State<_AncodeBootstrap> createState() => _AncodeBootstrapState();
+}
+
+class _AncodeBootstrapState extends State<_AncodeBootstrap> {
+  Widget _app = MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: AppTheme.light,
+    darkTheme: AppTheme.dark,
+    themeMode: ThemeMode.system,
+    home: const Scaffold(
+      body: Center(child: CircularProgressIndicator()),
+    ),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _start();
+  }
+
+  Future<void> _start() async {
+    try {
+      final supabaseConfigured = await _prepareApp();
+      if (!mounted) return;
+      setState(() {
+        _app = AncodeApp(supabaseConfigured: supabaseConfigured);
+      });
+    } catch (e, st) {
+      debugPrint('Startup failed: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _app = MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light,
+          home: Scaffold(
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text('Avvio non riuscito: $e', textAlign: TextAlign.center),
+              ),
+            ),
+          ),
+        );
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => _app;
 }
 
 class AncodeApp extends StatelessWidget {
-  const AncodeApp({super.key});
+  const AncodeApp({
+    super.key,
+    required this.supabaseConfigured,
+  });
+
+  final bool supabaseConfigured;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(
+          create: (_) => AuthService(backendEnabled: supabaseConfigured),
+        ),
       ],
       child: MaterialApp(
         title: '*ANCODE',

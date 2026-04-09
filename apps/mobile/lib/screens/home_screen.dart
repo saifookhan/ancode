@@ -18,24 +18,19 @@ class _HomeScreenState extends State<HomeScreen> {
   AncodeSearchResult? _lastResult;
   bool _isSearching = false;
 
+  void _onControllerChanged() => setState(() {});
+
   @override
   void initState() {
     super.initState();
-    _controller.addListener(() => setState(() {}));
+    _controller.addListener(_onControllerChanged);
   }
 
   @override
   void dispose() {
-    _controller.removeListener(() => setState(() {}));
+    _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     super.dispose();
-  }
-
-  bool get _isCodeFormatValid {
-    final t = _controller.text.replaceAll(RegExp(r'[\s*]'), '').toUpperCase();
-    if (t.isEmpty) return false;
-    if (t.length > 30) return false;
-    return RegExp(r'^[A-Z0-9]+$').hasMatch(t);
   }
 
   void _onSearchSubmitted(String value) async {
@@ -71,7 +66,82 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   static const double _radius = 28;
-  static const double _greenOutlineWidth = 2.5;
+  static const double _logoSize = 200;
+  static const double _limeShadowDy = 6;
+
+  BoxDecoration _limeDropShadowDecoration({
+    required Color fill,
+    Border? border,
+  }) {
+    return BoxDecoration(
+      color: fill,
+      borderRadius: BorderRadius.circular(_radius),
+      border: border,
+      boxShadow: [
+        BoxShadow(
+          color: AppColors.limeNeobrut,
+          blurRadius: 0,
+          offset: Offset(0, _limeShadowDy),
+        ),
+      ],
+    );
+  }
+
+  Widget _navyPillButton({
+    VoidCallback? onPressed,
+    required IconData icon,
+    required String label,
+    Widget? child,
+  }) {
+    final disabled = onPressed == null;
+    return Opacity(
+      opacity: disabled ? 0.55 : 1,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(_radius),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.limeNeobrut,
+              blurRadius: 0,
+              offset: Offset(0, _limeShadowDy),
+            ),
+          ],
+        ),
+        child: Material(
+          color: AppColors.bluUniversoDeep,
+          borderRadius: BorderRadius.circular(_radius),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onPressed,
+            borderRadius: BorderRadius.circular(_radius),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: child ??
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(icon, color: AppColors.biancoOttico, size: 22),
+                        const SizedBox(width: 10),
+                        Text(
+                          label,
+                          style: const TextStyle(
+                            color: AppColors.biancoOttico,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                            letterSpacing: 2,
+                            height: 1,
+                          ),
+                        ),
+                      ],
+                    ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,74 +150,100 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.biancoOttico,
       body: SafeArea(
-        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
-              const SizedBox(height: 48),
-              const AncodeLogo(size: 120, showName: true, logoAssetPath: 'assets/logo.png'),
-              const SizedBox(height: 32),
-              // One column: input, then CERCA, then CREA
+              const SizedBox(height: 36),
+              const AncodeLogo(
+                size: _logoSize,
+                showName: true,
+                logoAssetPath: 'assets/logo.png',
+                subtitle: 'CERCA O CREA',
+                subtitleFontSize: 22,
+                nameColor: AppColors.lavanda,
+                nameFontSize: 44,
+              ),
+              const SizedBox(height: 28),
               Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
                 decoration: BoxDecoration(
                   color: AppColors.biancoOttico,
-                  borderRadius: BorderRadius.circular(_radius),
-                  border: Border.all(color: AppColors.verdeCosmico, width: _greenOutlineWidth),
+                  borderRadius: BorderRadius.circular(26),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.verdeCosmico.withOpacity(0.4),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                      color: Colors.black.withOpacity(0.07),
+                      blurRadius: 24,
+                      offset: const Offset(0, 10),
                     ),
                   ],
                 ),
-                child: TextField(
-                  controller: _controller,
-                  decoration: InputDecoration(
-                    hintText: 'Inserisci ANCODE',
-                    hintStyle: const TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                  ),
-                  style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
-                  textCapitalization: TextCapitalization.characters,
-                  autocorrect: false,
-                  onSubmitted: _onSearchSubmitted,
-                ),
-              ),
-              const SizedBox(height: 16),
-              // CERCA – full width, white with green border
-              _outlinedButton(
-                onPressed: _isSearching
-                    ? null
-                    : () => hasUniqueMatch
-                        ? Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CodeResolveScreen(
-                                code: _lastResult!.uniqueMatch!.normalizedCode,
-                                ancode: _lastResult!.uniqueMatch,
-                              ),
-                            ),
-                          ).then((_) => setState(() => _lastResult = null))
-                        : _onSearchSubmitted(_controller.text),
-                child: _isSearching
-                    ? const SizedBox(height: 22, width: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                    : const Text('CERCA', style: TextStyle(color: AppColors.bluPolvere, fontWeight: FontWeight.bold, fontSize: 16)),
-              ),
-              const SizedBox(height: 12),
-              // CREA – full width, dark fill
-              _filledButton(
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreateScreen(
-                      prefillCode: _controller.text.replaceAll(RegExp(r'[\s*]'), '').toUpperCase(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    DecoratedBox(
+                      decoration: _limeDropShadowDecoration(
+                        fill: AppColors.biancoOttico,
+                        border: Border.all(color: const Color(0xFFD8D8D8)),
+                      ),
+                      child: TextField(
+                        controller: _controller,
+                        decoration: const InputDecoration(
+                          hintText: 'Inserisci ANCODE',
+                          hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                        ),
+                        style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
+                        textCapitalization: TextCapitalization.characters,
+                        autocorrect: false,
+                        onSubmitted: _onSearchSubmitted,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 16),
+                    _navyPillButton(
+                      onPressed: _isSearching
+                          ? null
+                          : () => hasUniqueMatch
+                              ? Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CodeResolveScreen(
+                                      code: _lastResult!.uniqueMatch!.normalizedCode,
+                                      ancode: _lastResult!.uniqueMatch,
+                                    ),
+                                  ),
+                                ).then((_) => setState(() => _lastResult = null))
+                              : _onSearchSubmitted(_controller.text),
+                      icon: Icons.search,
+                      label: 'CERCA',
+                      child: _isSearching
+                          ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.biancoOttico,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                    _navyPillButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => CreateScreen(
+                            prefillCode: _controller.text.replaceAll(RegExp(r'[\s*]'), '').toUpperCase(),
+                          ),
+                        ),
+                      ),
+                      icon: Icons.add,
+                      label: 'CREA',
+                    ),
+                  ],
                 ),
-                child: const Text('CREA', style: TextStyle(color: AppColors.biancoOttico, fontWeight: FontWeight.bold, fontSize: 16)),
               ),
               if (_lastResult?.error != null) ...[
                 const SizedBox(height: 24),
@@ -168,62 +264,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
               const SizedBox(height: 100),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _outlinedButton({VoidCallback? onPressed, required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.biancoOttico,
-        borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: AppColors.verdeCosmico, width: _greenOutlineWidth),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.verdeCosmico.withOpacity(0.35),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(_radius),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: child),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _filledButton({VoidCallback? onPressed, required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.bluUniverso,
-        borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: AppColors.verdeCosmico, width: _greenOutlineWidth),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.verdeCosmico.withOpacity(0.4),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(_radius),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Center(child: child),
           ),
         ),
       ),

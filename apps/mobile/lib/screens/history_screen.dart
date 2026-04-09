@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../services/auth_service.dart';
 import '../services/ancode_service.dart';
+import 'auth/login_screen.dart';
 import 'code_resolve_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -111,8 +110,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ),
                     const SizedBox(height: 16),
                     FilledButton(
-                      onPressed: () =>
-                          Provider.of<AuthService>(context, listen: false).signOut(),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+                      ),
                       child: const Text('Accedi'),
                     ),
                   ],

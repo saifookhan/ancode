@@ -18,20 +18,42 @@ class AuthService extends ChangeNotifier {
   AuthState _state = AuthState();
   AuthState get state => _state;
 
-  bool get isLoggedIn => _state.profile != null;
+  bool get isLoggedIn {
+    final client = _client;
+    if (client == null) return false;
+    return client.auth.currentUser != null;
+  }
   Profile? get profile => _state.profile;
 
   Future<void> refreshProfile() => _loadProfile();
 
+  SupabaseClient? get _client {
+    try {
+      return Supabase.instance.client;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<void> _loadProfile() async {
-    final user = Supabase.instance.client.auth.currentUser;
+    final client = _client;
+    if (client == null) {
+      _state = AuthState(
+        profile: null,
+        isLoading: false,
+        error: 'Servizio non configurato',
+      );
+      notifyListeners();
+      return;
+    }
+    final user = client.auth.currentUser;
     if (user == null) {
       _state = AuthState(profile: null, isLoading: false);
       notifyListeners();
       return;
     }
     try {
-      final res = await Supabase.instance.client
+      final res = await client
           .from('profiles')
           .select()
           .eq('user_id', user.id)
@@ -52,7 +74,7 @@ class AuthService extends ChangeNotifier {
 
   void _init() {
     _loadProfile();
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+    _client?.auth.onAuthStateChange.listen((data) {
       if (data.event == AuthChangeEvent.signedIn ||
           data.event == AuthChangeEvent.userUpdated) {
         _loadProfile();
@@ -64,6 +86,6 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
-    await Supabase.instance.client.auth.signOut();
+    await _client?.auth.signOut();
   }
 }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:shared/shared.dart';
 
-import 'home_screen.dart';
-import 'history_screen.dart';
+import '../services/auth_service.dart';
+import 'auth/login_screen.dart';
 import 'create_screen.dart';
+import 'home_screen.dart';
 import 'my_codes_screen.dart';
-import 'chatbot_screen.dart';
-import '../widgets/nav_bar.dart';
+import 'profile_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -15,26 +17,43 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _currentIndex = 2; // Search (same order as mobile: History, Create, Search, Codes, Chatbot)
+  int _currentIndex = 2; // Search (Dashboard, Create, Search, Profile)
 
   final _screens = <Widget>[
-    const HistoryScreen(),
+    const MyCodesScreen(),
     const CreateScreen(),
     const HomeScreen(),
-    const MyCodesScreen(),
-    const ChatbotScreen(),
+    const ProfileScreen(),
   ];
+
+  static const int _searchIndex = 2;
+
+  void _onBottomNavTap(int i) {
+    if (i == _searchIndex) {
+      setState(() => _currentIndex = _searchIndex);
+      return;
+    }
+    final auth = context.read<AuthService>();
+    if (!auth.isLoggedIn) {
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+      );
+      return;
+    }
+    setState(() => _currentIndex = i);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.biancoOttico,
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
       ),
-      bottomNavigationBar: NavBar(
+      bottomNavigationBar: AncodeBottomNavBar(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: _onBottomNavTap,
       ),
     );
   }

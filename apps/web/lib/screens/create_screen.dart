@@ -29,8 +29,13 @@ class _CreateScreenState extends State<CreateScreen> {
   final _urlController = TextEditingController();
   final _noteController = TextEditingController();
   bool _isLink = true;
-  Municipality? _selectedComune;
+  Municipality? _selectedComune = const Municipality(
+    istatCode: 'ALL',
+    name: 'All',
+  );
   bool _acceptedTerms = false;
+  bool _isExclusive = false;
+  int _termMonths = 1;
   bool _isCreating = false;
   String? _error;
   List<_DraftCode> _drafts = [];
@@ -130,23 +135,14 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Future<void> _createOne(_DraftCode d) async {
-    final bl = await Supabase.instance.client
-        .from('blacklist')
-        .select('id')
-        .eq('normalized_code', d.code)
-        .maybeSingle();
-    if (bl != null) throw Exception('Codice non disponibile (blacklist)');
-
-    await Supabase.instance.client.from('ancodes').insert({
-      'code': d.code,
-      'normalized_code': d.code,
-      'type': d.type.name,
-      'url': d.url,
-      'note_text': d.noteText,
-      'municipality_id': d.municipalityId,
-      'owner_user_id': Supabase.instance.client.auth.currentUser!.id,
-      'status': 'active',
-    });
+    await AncodeService.createAncode(
+      code: d.code,
+      type: d.type,
+      municipalityId: d.municipalityId,
+      isExclusiveItaly: _isExclusive,
+      url: d.url,
+      noteText: d.noteText,
+    );
   }
 
   @override
@@ -161,20 +157,6 @@ class _CreateScreenState extends State<CreateScreen> {
       data: AppTheme.dark,
       child: Scaffold(
         backgroundColor: AppColors.bluUniverso,
-        appBar: AppBar(
-          backgroundColor: AppColors.bluUniverso,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Text('*',
-                style: TextStyle(color: AppColors.azzurroCiano, fontSize: 28)),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: const Text(
-            'ANCODE',
-            style: TextStyle(
-                color: AppColors.biancoOttico, fontWeight: FontWeight.bold),
-          ),
-        ),
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
@@ -183,38 +165,58 @@ class _CreateScreenState extends State<CreateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const SizedBox(height: 8),
                   const Text(
                     'CREA un nuovo ANCODE',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.biancoOttico,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                      fontSize: 42,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Personalizza il tuo codice: collega un link o una nota, scegli il comune e la durata',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
                       color: AppColors.biancoOttico.withOpacity(0.9),
-                      fontSize: 14,
+                      fontSize: 16,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 36),
+                  const Text(
+                    'INSERISCI IL TUO ANCODE',
+                    style: TextStyle(
+                      color: AppColors.biancoOttico,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   TextFormField(
                     controller: _codeController,
                     decoration: InputDecoration(
-                      labelText: 'CODICE Ancode',
-                      labelStyle:
-                          const TextStyle(color: AppColors.biancoOttico),
                       hintText: 'ES: CASA20',
-                      hintStyle: TextStyle(
-                          color: AppColors.bluPolvere.withOpacity(0.8)),
+                      hintStyle: const TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
+                      filled: true,
+                      fillColor: AppColors.biancoOttico,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(40),
+                        borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(40),
+                        borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
+                      ),
                       helperText: 'max. 30 caratteri, solo lettere maiuscole.',
                       helperStyle: TextStyle(
                           color: AppColors.biancoOttico.withOpacity(0.7),
                           fontSize: 12),
                     ),
-                    style: const TextStyle(color: AppColors.bluUniverso),
+                    style: const TextStyle(color: AppColors.bluUniverso, fontSize: 18),
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(
@@ -225,7 +227,7 @@ class _CreateScreenState extends State<CreateScreen> {
                   ),
                   const SizedBox(height: 20),
                   const Text(
-                    'Tipo di contenuto',
+                    'Content type *',
                     style: TextStyle(
                         color: AppColors.biancoOttico,
                         fontWeight: FontWeight.w500),
@@ -234,26 +236,23 @@ class _CreateScreenState extends State<CreateScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: SegmentedButton<bool>(
-                          segments: const [
-                            ButtonSegment(value: true, label: Text('Link/URL')),
-                            ButtonSegment(
-                                value: false, label: Text('Nota/Testo')),
-                          ],
-                          selected: {_isLink},
-                          onSelectionChanged: (s) =>
-                              setState(() => _isLink = s.first),
-                          style: ButtonStyle(
-                            backgroundColor:
-                                WidgetStateProperty.resolveWith((states) {
-                              if (states.contains(WidgetState.selected)) {
-                                return AppColors.biancoOttico;
-                              }
-                              return AppColors.bluPolvere.withOpacity(0.3);
-                            }),
-                            foregroundColor:
-                                WidgetStateProperty.all(AppColors.bluUniverso),
-                          ),
+                        child: RadioListTile<bool>(
+                          value: true,
+                          groupValue: _isLink,
+                          onChanged: (_) => setState(() => _isLink = true),
+                          contentPadding: EdgeInsets.zero,
+                          activeColor: AppColors.lavanda,
+                          title: const Text('Link / URL', style: TextStyle(color: AppColors.biancoOttico)),
+                        ),
+                      ),
+                      Expanded(
+                        child: RadioListTile<bool>(
+                          value: false,
+                          groupValue: _isLink,
+                          onChanged: (_) => setState(() => _isLink = false),
+                          contentPadding: EdgeInsets.zero,
+                          activeColor: AppColors.lavanda,
+                          title: Text('Note / Text', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.8))),
                         ),
                       ),
                     ],
@@ -263,15 +262,21 @@ class _CreateScreenState extends State<CreateScreen> {
                     TextFormField(
                       controller: _urlController,
                       decoration: InputDecoration(
-                        labelText:
-                            'Inserisci il link a cui vuoi collegare questo ANCODE',
-                        labelStyle:
-                            const TextStyle(color: AppColors.biancoOttico),
-                        hintText: 'https://esempio.com',
-                        hintStyle: TextStyle(
-                            color: AppColors.bluPolvere.withOpacity(0.8)),
+                        hintText: 'https://espenp.io',
+                        hintStyle: TextStyle(color: AppColors.placeholderGrey.withOpacity(0.9), fontSize: 16),
+                        filled: true,
+                        fillColor: AppColors.biancoOttico,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(40),
+                          borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(40),
+                          borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
+                        ),
                       ),
-                      style: const TextStyle(color: AppColors.bluUniverso),
+                      style: const TextStyle(color: AppColors.bluUniverso, fontSize: 18),
                       keyboardType: TextInputType.url,
                       validator: (v) =>
                           _isLink && (v == null || v.trim().isEmpty)
@@ -282,11 +287,21 @@ class _CreateScreenState extends State<CreateScreen> {
                     TextFormField(
                       controller: _noteController,
                       decoration: InputDecoration(
-                        labelText: 'Testo nota',
-                        labelStyle:
-                            const TextStyle(color: AppColors.biancoOttico),
+                        hintText: 'Scrivi qui...',
+                        hintStyle: TextStyle(color: AppColors.placeholderGrey.withOpacity(0.9), fontSize: 24),
+                        filled: true,
+                        fillColor: AppColors.biancoOttico,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(28),
+                          borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(28),
+                          borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
+                        ),
                       ),
-                      style: const TextStyle(color: AppColors.bluUniverso),
+                      style: const TextStyle(color: AppColors.bluUniverso, fontSize: 24),
                       maxLines: 4,
                       validator: (v) =>
                           !_isLink && (v == null || v.trim().isEmpty)
@@ -294,15 +309,66 @@ class _CreateScreenState extends State<CreateScreen> {
                               : null,
                     ),
                   const SizedBox(height: 20),
+                  Text(
+                    'Region of Area',
+                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.95), fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
                   _ComunePicker(
                     selected: _selectedComune,
                     onSelected: (m) => setState(() => _selectedComune = m),
                   ),
                   const SizedBox(height: 20),
+                  Text(
+                    'Term',
+                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.95), fontSize: 14),
+                  ),
+                  const SizedBox(height: 8),
+                  RadioListTile<int>(
+                    value: 1,
+                    groupValue: _termMonths,
+                    onChanged: (v) => setState(() => _termMonths = v ?? 1),
+                    contentPadding: EdgeInsets.zero,
+                    activeColor: const Color(0xFF3B59FF),
+                    title: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.biancoOttico,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Text('1 Month', style: TextStyle(color: AppColors.bluUniverso)),
+                    ),
+                  ),
+                  RadioListTile<int>(
+                    value: 12,
+                    groupValue: _termMonths,
+                    onChanged: (v) => setState(() => _termMonths = v ?? 12),
+                    contentPadding: EdgeInsets.zero,
+                    activeColor: const Color(0xFF3B59FF),
+                    title: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.verdeCosmicoSoft,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Text('12 Month (Yearly)', style: TextStyle(color: AppColors.bluUniverso)),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  CheckboxListTile(
+                    value: _isExclusive,
+                    onChanged: (v) => setState(() => _isExclusive = v ?? false),
+                    title: const Text(
+                      'Make this code exclusive (prevents use in other municipalities)',
+                      style: TextStyle(color: AppColors.biancoOttico, fontSize: 14),
+                    ),
+                    activeColor: AppColors.verdeCosmico,
+                    checkColor: AppColors.bluUniverso,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
                   CheckboxListTile(
                     value: _acceptedTerms,
-                    onChanged: (v) =>
-                        setState(() => _acceptedTerms = v ?? false),
+                    onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
                     title: RichText(
                       text: TextSpan(
                         style: const TextStyle(
@@ -336,83 +402,71 @@ class _CreateScreenState extends State<CreateScreen> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: _isCreating
-                              ? null
-                              : () {
-                                  if (_formKey.currentState!.validate() &&
-                                      _selectedComune != null &&
-                                      _acceptedTerms) _addCode();
-                                },
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: AppColors.biancoOttico,
-                            side:
-                                const BorderSide(color: AppColors.verdeCosmico),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: const Text('Crea pacchetto'),
-                        ),
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: const [
+                        BoxShadow(color: AppColors.limeNeobrut, blurRadius: 0, offset: Offset(0, 6)),
+                      ],
+                    ),
+                    child: FilledButton(
+                      onPressed: _isCreating
+                          ? null
+                          : () {
+                              if (_formKey.currentState!.validate() &&
+                                  _selectedComune != null &&
+                                  _acceptedTerms) {
+                                _commit();
+                              }
+                            },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.bluUniversoDeep,
+                        foregroundColor: AppColors.biancoOttico,
+                        minimumSize: const Size.fromHeight(58),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _isCreating ? null : _commit,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.verdeCosmico,
-                            foregroundColor: AppColors.bluUniverso,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: _isCreating
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child:
-                                      CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Text('Procedi con il pagamento'),
-                        ),
-                      ),
-                    ],
+                      child: _isCreating
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.biancoOttico),
+                            )
+                          : const Text('Generate Code', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    ),
                   ),
-                  if (_drafts.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    Text(
-                      'Codici da creare: ${_drafts.length}',
-                      style: const TextStyle(
-                          color: AppColors.biancoOttico,
-                          fontWeight: FontWeight.w600),
-                    ),
-                    ..._drafts.map((d) => ListTile(
-                          title: Text(d.code,
-                              style: const TextStyle(
-                                  color: AppColors.biancoOttico)),
-                          subtitle: Text(d.municipalityId,
-                              style: TextStyle(
-                                  color:
-                                      AppColors.biancoOttico.withOpacity(0.7))),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.close,
-                                color: AppColors.biancoOttico),
-                            onPressed: () => setState(() => _drafts.remove(d)),
-                          ),
-                        )),
-                    ElevatedButton(
-                      onPressed: _isCreating ? null : _commit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.verdeCosmico,
-                        foregroundColor: AppColors.bluUniverso,
-                      ),
-                      child: const Text('Crea tutti'),
-                    ),
-                  ],
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Package Benifits',
+                    style: TextStyle(color: AppColors.biancoOttico, fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 10),
+                  _benefitRow('15 % percent discount on total price'),
+                  _benefitRow('Centralized managment of all codes'),
+                  _benefitRow('Aggregated package statistics'),
+                  const SizedBox(height: 80),
                 ],
               ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _benefitRow(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: AppColors.lavanda, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.95), fontSize: 14),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -462,6 +516,7 @@ class _ComunePickerState extends State<_ComunePicker> {
   final _queryController = TextEditingController();
   List<Municipality> _results = [];
   bool _searching = false;
+  bool _isOpen = false;
 
   @override
   void dispose() {
@@ -485,70 +540,125 @@ class _ComunePickerState extends State<_ComunePicker> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final labelColor = isDark ? AppColors.biancoOttico : AppColors.bluUniverso;
+    final selectedText = widget.selected?.name ?? '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         TextFormField(
-          controller: _queryController,
+          readOnly: true,
+          controller: TextEditingController(text: selectedText),
+          style: const TextStyle(color: AppColors.bluUniverso, fontSize: 18),
           decoration: InputDecoration(
-            labelText: 'Comune',
-            labelStyle: TextStyle(color: labelColor),
-            hintText: 'Digita per cercare il Comune',
-            hintStyle: TextStyle(color: AppColors.bluPolvere.withOpacity(0.8)),
-            suffixIcon: _searching
-                ? const Padding(
-                    padding: EdgeInsets.all(12),
-                    child: SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : null,
-          ),
-          style: const TextStyle(color: AppColors.bluUniverso),
-          onChanged: _search,
-          validator: (_) =>
-              widget.selected == null ? 'Seleziona un Comune' : null,
-        ),
-        if (widget.selected != null) ...[
-          const SizedBox(height: 8),
-          Chip(
-            label: Text(widget.selected!.name,
-                style: const TextStyle(color: AppColors.bluUniverso)),
-            backgroundColor: AppColors.verdeCosmico,
-            onDeleted: () => widget.onSelected(null),
-          ),
-        ],
-        if (_results.isNotEmpty)
-          Card(
-            color: AppColors.biancoOttico,
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 200),
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: _results.length,
-                itemBuilder: (_, i) {
-                  final m = _results[i];
-                  return ListTile(
-                    title: Text(m.name,
-                        style: const TextStyle(color: AppColors.bluUniverso)),
-                    subtitle: m.province != null
-                        ? Text(m.province!,
-                            style: const TextStyle(color: AppColors.bluPolvere))
-                        : null,
-                    onTap: () {
-                      widget.onSelected(m);
-                      _queryController.clear();
-                      setState(() => _results = []);
-                    },
-                  );
-                },
+            hintText: '^',
+            hintStyle: const TextStyle(color: AppColors.placeholderGrey, fontSize: 18),
+            filled: true,
+            fillColor: AppColors.biancoOttico,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: AppColors.biancoOttico.withOpacity(0.7)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: BorderSide(color: AppColors.biancoOttico.withOpacity(0.9)),
+            ),
+            suffixIcon: IconButton(
+              onPressed: () => setState(() => _isOpen = !_isOpen),
+              icon: Icon(
+                _isOpen ? Icons.close : Icons.keyboard_arrow_down_rounded,
+                color: const Color(0xFF6C7280),
               ),
             ),
           ),
+          onTap: () => setState(() => _isOpen = !_isOpen),
+          validator: (_) => widget.selected == null ? 'Seleziona un Comune' : null,
+        ),
+        if (_isOpen) ...[
+          const SizedBox(height: 8),
+          Card(
+            color: AppColors.biancoOttico,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 200),
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                    child: TextField(
+                      controller: _queryController,
+                      onChanged: _search,
+                      style: const TextStyle(color: AppColors.bluUniverso),
+                      decoration: InputDecoration(
+                        hintText: 'Search',
+                        hintStyle: const TextStyle(color: AppColors.placeholderGrey),
+                        prefixIcon: const Icon(Icons.search, color: AppColors.placeholderGrey),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        filled: true,
+                        fillColor: AppColors.biancoOttico,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFB8BEC8)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1, color: Color(0xFFE6E6E6)),
+                  Expanded(
+                    child: _searching
+                        ? const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : _results.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No record',
+                                  style: TextStyle(color: AppColors.bluPolvere, fontSize: 16),
+                                ),
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: _results.length,
+                                itemBuilder: (_, i) {
+                                  final m = _results[i];
+                                  return ListTile(
+                                    dense: true,
+                                    title: Text(
+                                      m.name,
+                                      style: const TextStyle(color: AppColors.bluUniverso),
+                                    ),
+                                    subtitle: m.province != null
+                                        ? Text(
+                                            m.province!,
+                                            style: const TextStyle(color: AppColors.bluPolvere),
+                                          )
+                                        : null,
+                                    onTap: () {
+                                      widget.onSelected(m);
+                                      _queryController.clear();
+                                      setState(() {
+                                        _results = [];
+                                        _isOpen = false;
+                                      });
+                                    },
+                                  );
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -566,6 +676,7 @@ class _OutputScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final shortlink = AppConfig.shortlinkFor(ancode.normalizedCode);
+    final directTarget = ancode.type == AncodeType.link ? (ancode.url ?? shortlink) : shortlink;
     return Scaffold(
       appBar: AppBar(title: Text('*${ancode.code}')),
       body: SafeArea(
@@ -574,67 +685,117 @@ class _OutputScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Link breve:',
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Link breve:',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
-              SelectableText(shortlink),
+              SelectableText(
+                shortlink,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 16),
               Row(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   FilledButton.icon(
-                    onPressed: () =>
-                        Clipboard.setData(ClipboardData(text: shortlink)),
+                    onPressed: () async {
+                      await Clipboard.setData(ClipboardData(text: shortlink));
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Link copiato')),
+                        );
+                      }
+                    },
                     icon: const Icon(Icons.copy),
                     label: const Text('Copia'),
                   ),
                   const SizedBox(width: 8),
                   FilledButton.icon(
-                    onPressed: () => Share.share(shortlink),
+                    onPressed: () async {
+                      try {
+                        await Share.share(shortlink);
+                      } catch (_) {
+                        await Clipboard.setData(ClipboardData(text: shortlink));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Condivisione non disponibile: link copiato')),
+                          );
+                        }
+                      }
+                    },
                     icon: const Icon(Icons.share),
                     label: const Text('Condividi'),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              RepaintBoundary(
-                key: GlobalKey(),
-                child: QrImageView(
-                  data: shortlink,
-                  version: QrVersions.auto,
-                  size: 200,
+              Center(
+                child: RepaintBoundary(
+                  key: GlobalKey(),
+                  child: QrImageView(
+                    data: shortlink,
+                    version: QrVersions.auto,
+                    size: 200,
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: () async {
-                  await Printing.layoutPdf(
-                    onLayout: (format) async {
-                      final pdf = pw.Document();
-                      pdf.addPage(
-                        pw.Page(
-                          pageFormat: format,
-                          build: (ctx) => pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text('*${ancode.code}',
-                                  style: pw.TextStyle(fontSize: 24)),
-                              pw.SizedBox(height: 16),
-                              pw.Text(shortlink,
-                                  style: const pw.TextStyle(fontSize: 12)),
-                            ],
+                  try {
+                    await Printing.layoutPdf(
+                      onLayout: (format) async {
+                        final pdf = pw.Document();
+                        pdf.addPage(
+                          pw.Page(
+                            pageFormat: format,
+                            build: (ctx) => pw.Column(
+                              crossAxisAlignment: pw.CrossAxisAlignment.start,
+                              children: [
+                                pw.Text('*${ancode.code}',
+                                    style: pw.TextStyle(fontSize: 24)),
+                                pw.SizedBox(height: 16),
+                                pw.Text(shortlink,
+                                    style: const pw.TextStyle(fontSize: 12)),
+                              ],
+                            ),
                           ),
-                        ),
+                        );
+                        return pdf.save();
+                      },
+                    );
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('PDF export error: $e')),
                       );
-                      return pdf.save();
-                    },
-                  );
+                    }
+                  }
                 },
                 icon: const Icon(Icons.print),
                 label: const Text('Esporta PDF'),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () => launchUrl(Uri.parse(shortlink)),
+                onPressed: () async {
+                  final uri = Uri.tryParse(directTarget);
+                  if (uri == null) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Link non valido')),
+                      );
+                    }
+                    return;
+                  }
+                  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  if (!ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Impossibile aprire il link')),
+                    );
+                  }
+                },
                 icon: const Icon(Icons.open_in_new),
                 label: const Text('Testa link'),
               ),

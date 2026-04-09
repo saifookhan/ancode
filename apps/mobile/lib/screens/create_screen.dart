@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:shared/shared.dart';
+
+import '../services/ancode_service.dart';
+import 'auth/login_screen.dart';
 
 class CreateScreen extends StatefulWidget {
   const CreateScreen({super.key, this.prefillCode});
@@ -16,8 +20,11 @@ class _CreateScreenState extends State<CreateScreen> {
   final _codeController = TextEditingController();
   final _urlController = TextEditingController();
   final _noteController = TextEditingController();
+  final _comuneQueryController = TextEditingController();
   bool _isLink = true;
-  String _region = 'All';
+  Municipality? _selectedComune;
+  List<Municipality> _comuneResults = [];
+  bool _isSearchingComuni = false;
   bool _isExclusive = false;
   bool _isSubmitting = false;
 
@@ -34,6 +41,7 @@ class _CreateScreenState extends State<CreateScreen> {
     _codeController.dispose();
     _urlController.dispose();
     _noteController.dispose();
+    _comuneQueryController.dispose();
     super.dispose();
   }
 
@@ -132,7 +140,7 @@ class _CreateScreenState extends State<CreateScreen> {
               ),
               const SizedBox(height: 24),
               const Text(
-                'Region of Area',
+                'Comune',
                 style: TextStyle(
                   color: AppColors.biancoOttico,
                   fontSize: 14,
@@ -140,11 +148,66 @@ class _CreateScreenState extends State<CreateScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              _darkDropdown(
-                value: _region,
-                items: const ['All'],
-                onChanged: (v) => setState(() => _region = v ?? 'All'),
+              _darkField(
+                controller: _comuneQueryController,
+                hint: 'Digita per cercare il Comune',
+                keyboardType: TextInputType.text,
+                onChanged: _searchComune,
               ),
+              if (_isSearchingComuni)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.biancoOttico),
+                    ),
+                  ),
+                ),
+              if (_selectedComune != null) ...[
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Chip(
+                    label: Text(_selectedComune!.name, style: const TextStyle(color: AppColors.bluUniverso)),
+                    backgroundColor: AppColors.verdeCosmico,
+                    onDeleted: () => setState(() => _selectedComune = null),
+                  ),
+                ),
+              ],
+              if (_comuneResults.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 200),
+                  decoration: BoxDecoration(
+                    color: AppColors.biancoOttico,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.verdeCosmico, width: _greenBorder),
+                  ),
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _comuneResults.length,
+                    itemBuilder: (context, index) {
+                      final comune = _comuneResults[index];
+                      return ListTile(
+                        title: Text(comune.name, style: const TextStyle(color: AppColors.bluPolvere)),
+                        subtitle: comune.province != null
+                            ? Text(comune.province!, style: const TextStyle(color: AppColors.placeholderGrey))
+                            : null,
+                        onTap: () {
+                          setState(() {
+                            _selectedComune = comune;
+                            _comuneQueryController.clear();
+                            _comuneResults = [];
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,6 +255,7 @@ class _CreateScreenState extends State<CreateScreen> {
     int maxLines = 1,
     bool isCodeField = false,
     TextInputType? keyboardType,
+    ValueChanged<String>? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,6 +286,7 @@ class _CreateScreenState extends State<CreateScreen> {
             inputFormatters: isCodeField ? [FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9*]'))] : null,
             textCapitalization: isCodeField ? TextCapitalization.characters : TextCapitalization.none,
             keyboardType: keyboardType,
+            onChanged: onChanged,
           ),
         ),
         if (helper != null) ...[
@@ -273,36 +338,6 @@ class _CreateScreenState extends State<CreateScreen> {
     );
   }
 
-  Widget _darkDropdown({
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      decoration: BoxDecoration(
-        color: AppColors.biancoOttico,
-        borderRadius: BorderRadius.circular(_radius),
-        border: Border.all(color: AppColors.verdeCosmico, width: _greenBorder),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.verdeCosmico.withOpacity(0.25),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: DropdownButton<String>(
-        value: value,
-        isExpanded: true,
-        underline: const SizedBox(),
-        icon: const Icon(Icons.arrow_drop_down, color: AppColors.bluPolvere),
-        items: items.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(color: AppColors.bluPolvere)))).toList(),
-        onChanged: onChanged,
-      ),
-    );
-  }
-
   Widget _generateCodeButton() {
     return Container(
       decoration: BoxDecoration(
@@ -346,7 +381,26 @@ class _CreateScreenState extends State<CreateScreen> {
     );
   }
 
-  void _onGenerateCode() {
+  Future<void> _searchComune(String q) async {
+    if (q.trim().length < 2) {
+      if (mounted) {
+        setState(() {
+          _comuneResults = [];
+          _isSearchingComuni = false;
+        });
+      }
+      return;
+    }
+    setState(() => _isSearchingComuni = true);
+    final result = await AncodeService.searchMunicipalities(q.trim());
+    if (!mounted) return;
+    setState(() {
+      _comuneResults = result;
+      _isSearchingComuni = false;
+    });
+  }
+
+  Future<void> _onGenerateCode() async {
     final code = _codeController.text.replaceAll(RegExp(r'[\s*]'), '').toUpperCase();
     if (code.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -372,15 +426,52 @@ class _CreateScreenState extends State<CreateScreen> {
       );
       return;
     }
+    if (_selectedComune == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Seleziona un Comune')),
+      );
+      return;
+    }
+
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Accedi per creare codici'),
+          action: SnackBarAction(
+            label: 'Accedi',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
+            ),
+          ),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
-    // TODO: call create API (Supabase) when wired
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Creazione codice in arrivo – connetti l’API')),
-        );
-      }
-    });
+    try {
+      await AncodeService.createAncode(
+        code: code,
+        type: _isLink ? AncodeType.link : AncodeType.note,
+        municipalityId: _selectedComune!.istatCode,
+        isExclusiveItaly: _isExclusive,
+        url: _isLink ? _urlController.text.trim() : null,
+        noteText: !_isLink ? _noteController.text.trim() : null,
+      );
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ANCODE creato con successo')),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
   }
 }

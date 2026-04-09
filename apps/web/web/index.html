@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <div id="loading" style="display:flex;align-items:center;justify-content:center;height:100vh;margin:0;font-family:Outfit,sans-serif;font-size:18px;color:#1a237e;">
+  <div id="loading" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#f7f7f7;margin:0;font-family:Outfit,sans-serif;font-size:18px;color:#1a237e;">
     Caricamento…
   </div>
   <script>
@@ -22,6 +22,11 @@
       const m = window.location.pathname.match(/^\/c\/([A-Za-z0-9]+)/);
       if (m) window.__ANCODE_RESOLVE_CODE__ = m[1].toUpperCase();
     }
+
+    window.addEventListener('flutter-first-frame', function () {
+      const loading = document.getElementById('loading');
+      if (loading) loading.remove();
+    });
   </script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
