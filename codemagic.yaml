@@ -17,9 +17,10 @@ workflows:
       # "Alternative code signing methods iOS" / CERTIFICATE_PRIVATE_KEY. Not the same as the .p8 API key.
       groups:
         - app_store_credentials
-        # Also add to the same group in Codemagic (Application → Environment variables):
-        #   SUPABASE_URL, SUPABASE_ANON_KEY  (required — build will fail if missing)
-        # Optional: ANCODE_DOMAIN
+        # Create this group in Codemagic (Application settings → Environment variables):
+        #   Group name must be exactly: supabase
+        #   SUPABASE_URL, SUPABASE_ANON_KEY (mark anon key as Secret). Optional: ANCODE_DOMAIN
+        - supabase
       vars:
         FLUTTER_PROJECT_DIR: apps/mobile
         BUNDLE_ID: com.mycompany.ancodefirebase
@@ -81,9 +82,15 @@ workflows:
             fi
           else
             echo "----------------------------------------------------------------"
-            echo "ERROR: SUPABASE_URL and SUPABASE_ANON_KEY are not set for this workflow."
-            echo "In Codemagic: Application → Environment variables → add both to group"
-            echo "app_store_credentials (Secret for the anon key). Aliases: SUPABASE_PROJECT_URL, SUPABASE_KEY"
+            echo "ERROR: SUPABASE_URL and SUPABASE_ANON_KEY are not visible to this build."
+            echo "Codemagic only passes variables that belong to a group listed in codemagic.yaml."
+            echo "Fix: Application (ancode) → Settings → Environment variables"
+            echo "  1) Add variable SUPABASE_URL — in 'Group', choose or type: supabase"
+            echo "  2) Add variable SUPABASE_ANON_KEY (Secret) — same group: supabase"
+            echo "  (Aliases: SUPABASE_PROJECT_URL, SUPABASE_KEY — same group.)"
+            echo "  Or put both in group app_store_credentials instead (already imported)."
+            if [ -z "${SUPABASE_URL:-}" ]; then echo "Debug: SUPABASE_URL is unset in build env."; fi
+            if [ -z "${SUPABASE_ANON_KEY:-}" ]; then echo "Debug: SUPABASE_ANON_KEY is unset in build env."; fi
             echo "----------------------------------------------------------------"
             exit 1
           fi
