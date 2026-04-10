@@ -6,8 +6,11 @@ class AppConfig {
   static String? _domain;
 
   static Future<void> initialize() async {
-    // Optional: only set if you need a custom shortlink domain (e.g. custom domain)
-    _domain = dotenv.env['ANCODE_DOMAIN'] ?? 'ancode.vercel.app';
+    const fromDefine =
+        String.fromEnvironment('ANCODE_DOMAIN', defaultValue: '').trim();
+    _domain = fromDefine.isNotEmpty
+        ? fromDefine
+        : (dotenv.env['ANCODE_DOMAIN'] ?? 'ancode.vercel.app');
   }
 
   static String shortlinkFor(String code) =>

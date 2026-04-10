@@ -13,23 +13,33 @@ import 'services/app_config.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  try {
-    await dotenv.load(fileName: '.env');
-  } catch (_) {
-    // .env missing (e.g. not in assets for release) – will use dart-define or show config screen
-  }
+  // Bundled env: must match a path declared under flutter.assets (see pubspec assets/).
+  await dotenv.load(fileName: 'assets/.env', isOptional: true);
 
-  final supabaseUrl = dotenv.env['SUPABASE_URL']?.trim() ??
-      const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']?.trim() ??
-      const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+  final urlFromDefine =
+      const String.fromEnvironment('SUPABASE_URL', defaultValue: '').trim();
+  final keyFromDefine =
+      const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '').trim();
+  final supabaseUrl = urlFromDefine.isNotEmpty
+      ? urlFromDefine
+      : (dotenv.env['SUPABASE_URL']?.trim() ?? '');
+  final supabaseAnonKey = keyFromDefine.isNotEmpty
+      ? keyFromDefine
+      : (dotenv.env['SUPABASE_ANON_KEY']?.trim() ?? '');
 
   if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
     runApp(const ConfigErrorScreen());
     return;
   }
 
-  await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  try {
+    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+  } catch (e, st) {
+    debugPrint('Supabase.initialize failed: $e\n$st');
+    runApp(ConfigErrorScreen(message: e.toString()));
+    return;
+  }
+
   await AppConfig.initialize();
   runApp(const AncodeMobileApp());
 }

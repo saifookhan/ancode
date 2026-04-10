@@ -17,6 +17,8 @@ workflows:
       # "Alternative code signing methods iOS" / CERTIFICATE_PRIVATE_KEY. Not the same as the .p8 API key.
       groups:
         - app_store_credentials
+        # Must also define SUPABASE_URL and SUPABASE_ANON_KEY (encrypted) on this workflow
+        # or in the same group — same values as apps/mobile/.env.example / local assets/.env.
       vars:
         FLUTTER_PROJECT_DIR: apps/mobile
         BUNDLE_ID: com.mycompany.ancodefirebase
@@ -59,6 +61,10 @@ workflows:
       - name: Build iOS IPA for TestFlight
         script: |
           cd "$FLUTTER_PROJECT_DIR"
+          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
+            echo "Set SUPABASE_URL and SUPABASE_ANON_KEY in Codemagic (Team / Application / Environment variables)."
+            exit 1
+          fi
           # CFBundleVersion must be at most 18 characters (App Store / altool validation).
           # CM_BUILD_ID is often 19+ digits; prefer CM_BUILD_NUMBER (sequential) or truncate.
           if [ -n "${CM_BUILD_NUMBER:-}" ]; then
@@ -69,7 +75,14 @@ workflows:
           while [ "${#BUILD_NUMBER}" -gt 18 ]; do
             BUILD_NUMBER="${BUILD_NUMBER#?}"
           done
-          flutter build ipa --release --build-name=1.0.1 --build-number="$BUILD_NUMBER"
+          DART_DEFINES=(
+            "--dart-define=SUPABASE_URL=$SUPABASE_URL"
+            "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
+          )
+          if [ -n "${ANCODE_DOMAIN:-}" ]; then
+            DART_DEFINES+=("--dart-define=ANCODE_DOMAIN=$ANCODE_DOMAIN")
+          fi
+          flutter build ipa --release --build-name=1.0.1 --build-number="$BUILD_NUMBER" "${DART_DEFINES[@]}"
 
     artifacts:
       - apps/mobile/build/ios/ipa/*.ipa
