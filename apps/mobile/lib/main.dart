@@ -16,10 +16,12 @@ Future<void> main() async {
   // Bundled env: must match a path declared under flutter.assets (see pubspec assets/).
   await dotenv.load(fileName: 'assets/.env', isOptional: true);
 
-  final urlFromDefine =
-      const String.fromEnvironment('SUPABASE_URL', defaultValue: '').trim();
-  final keyFromDefine =
-      const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '').trim();
+  const urlFromDefineRaw =
+      String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  const keyFromDefineRaw =
+      String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+  final urlFromDefine = urlFromDefineRaw.trim();
+  final keyFromDefine = keyFromDefineRaw.trim();
   final supabaseUrl = urlFromDefine.isNotEmpty
       ? urlFromDefine
       : (dotenv.env['SUPABASE_URL']?.trim() ?? '');

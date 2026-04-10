@@ -6,8 +6,9 @@ class AppConfig {
   static String? _domain;
 
   static Future<void> initialize() async {
-    const fromDefine =
-        String.fromEnvironment('ANCODE_DOMAIN', defaultValue: '').trim();
+    const fromDefineRaw =
+        String.fromEnvironment('ANCODE_DOMAIN', defaultValue: '');
+    final fromDefine = fromDefineRaw.trim();
     _domain = fromDefine.isNotEmpty
         ? fromDefine
         : (dotenv.env['ANCODE_DOMAIN'] ?? 'ancode.vercel.app');
