@@ -2,7 +2,7 @@ name: shared
 description: Shared models, API clients, validators, and UI kit for ANCODE
 version: 1.0.0
 environment:
-  sdk: '>=3.2.0 <4.0.0'
+  sdk: '>=3.4.0 <4.0.0'
 
 dependencies:
   flutter:
@@ -12,4 +12,4 @@ dependencies:
   intl: ^0.18.1
   qr_flutter: ^4.1.0
   url_launcher: ^6.2.1
-  share_plus: ^7.2.1
+  share_plus: ^11.1.0

@@ -715,7 +715,9 @@ class _OutputScreen extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: () async {
                       try {
-                        await Share.share(shortlink);
+                        await SharePlus.instance.share(
+                          ShareParams(text: shortlink),
+                        );
                       } catch (_) {
                         await Clipboard.setData(ClipboardData(text: shortlink));
                         if (context.mounted) {
