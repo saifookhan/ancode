@@ -17,11 +17,9 @@ workflows:
       # "Alternative code signing methods iOS" / CERTIFICATE_PRIVATE_KEY. Not the same as the .p8 API key.
       groups:
         - app_store_credentials
-        # For a working app (not only the config error screen), add to this Codemagic *application*
-        # or a linked variable group (mark secure):
-        #   SUPABASE_URL          — https://xxxx.supabase.co
-        #   SUPABASE_ANON_KEY     — anon JWT (aliases: SUPABASE_KEY, SUPABASE_PUBLIC_ANON_KEY)
-        # Optional: ANCODE_DOMAIN — shortlink host for QR/links
+        # Also add to the same group in Codemagic (Application → Environment variables):
+        #   SUPABASE_URL, SUPABASE_ANON_KEY  (required — build will fail if missing)
+        # Optional: ANCODE_DOMAIN
       vars:
         FLUTTER_PROJECT_DIR: apps/mobile
         BUNDLE_ID: com.mycompany.ancodefirebase
@@ -83,11 +81,11 @@ workflows:
             fi
           else
             echo "----------------------------------------------------------------"
-            echo "WARNING: Supabase env not set — build continues, but the app will"
-            echo "show the configuration screen until you add variables in Codemagic:"
-            echo "  Application → Environment variables → SUPABASE_URL + SUPABASE_ANON_KEY"
-            echo "(optional aliases: SUPABASE_PROJECT_URL, SUPABASE_KEY)"
+            echo "ERROR: SUPABASE_URL and SUPABASE_ANON_KEY are not set for this workflow."
+            echo "In Codemagic: Application → Environment variables → add both to group"
+            echo "app_store_credentials (Secret for the anon key). Aliases: SUPABASE_PROJECT_URL, SUPABASE_KEY"
             echo "----------------------------------------------------------------"
+            exit 1
           fi
           # CFBundleVersion must be at most 18 characters (App Store / altool validation).
           # CM_BUILD_ID is often 19+ digits; prefer CM_BUILD_NUMBER (sequential) or truncate.
@@ -109,4 +107,8 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
+        # Uploads the IPA to App Store Connect. Set false to avoid Magic Actions calling
+        # betaAppReviewSubmissions (422 if export compliance isn’t set in ASC for that build).
+        # After compliance is answered once per build (or ITSAppUsesNonExemptEncryption is in the IPA),
+        # you can set this back to true or submit testers from App Store Connect → TestFlight.
+        submit_to_testflight: false
