@@ -11,7 +11,10 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-      # API key vars for app-store-connect CLI (fetch-signing-files). Keep in sync with integration / Apple.
+      # app_store_credentials must include:
+      #   APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID
+      # Plus CERTIFICATE_PRIVATE_KEY (RSA PEM) — required for fetch-signing-files --create; see Codemagic
+      # "Alternative code signing methods iOS" / CERTIFICATE_PRIVATE_KEY. Not the same as the .p8 API key.
       groups:
         - app_store_credentials
       vars:
