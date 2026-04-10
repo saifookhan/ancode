@@ -35,3 +35,5 @@ Thumbs.db
 # Secrets
 **/secrets/
 **/*secret*
+ios_distribution_private_key
+ios_distribution_private_key.pub
