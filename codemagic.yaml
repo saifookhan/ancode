@@ -4,19 +4,16 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
 
-    # Required for ios_signing: Codemagic must load App Store profiles/certs from a
-    # Developer Portal integration (app env vars alone are not enough).
-    # Personal/Team settings → Integrations → Developer Portal → add key.
-    # Use the exact "API key name" you choose there below (example: ancode_asc).
+    # Developer Portal integration name (Teams → Integrations) — must match exactly.
     integrations:
       app_store_connect: ancode_asc
 
     environment:
       flutter: stable
       xcode: latest
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.mycompany.ancodefirebase
+      # API key vars for app-store-connect CLI (fetch-signing-files). Keep in sync with integration / Apple.
+      groups:
+        - app_store_credentials
       vars:
         FLUTTER_PROJECT_DIR: apps/mobile
         BUNDLE_ID: com.mycompany.ancodefirebase
@@ -35,10 +32,26 @@ workflows:
           cd "$FLUTTER_PROJECT_DIR"
           flutter pub get
 
-      - name: Set up code signing on Xcode project
+      # Do NOT use environment.ios_signing with bundle_identifier here — that only matches
+      # profiles already uploaded under Code signing identities and fails with "No matching profiles".
+      # This flow pulls/creates App Store profile + cert from Apple during the build.
+      - name: Set up keychain for code signing
+        script: keychain initialize
+
+      - name: Fetch signing files from Apple (App Store)
         script: |
-          cd "$FLUTTER_PROJECT_DIR/ios"
-          xcode-project use-profiles
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --create
+
+      - name: Add certificates to keychain
+        script: keychain add-certificates
+
+      - name: Apply provisioning profiles to Xcode project
+        script: |
+          xcode-project use-profiles \
+            --project "$FLUTTER_PROJECT_DIR/ios/Runner.xcodeproj" \
+            --archive-method app-store
 
       - name: Build iOS IPA for TestFlight
         script: |
