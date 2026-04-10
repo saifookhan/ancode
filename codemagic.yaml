@@ -4,6 +4,13 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
 
+    # Required for ios_signing: Codemagic must load App Store profiles/certs from a
+    # Developer Portal integration (app env vars alone are not enough).
+    # Personal/Team settings → Integrations → Developer Portal → add key.
+    # Use the exact "API key name" you choose there below (example: ancode_asc).
+    integrations:
+      app_store_connect: ancode_asc
+
     environment:
       flutter: stable
       xcode: latest
@@ -14,8 +21,6 @@ workflows:
         FLUTTER_PROJECT_DIR: apps/mobile
         BUNDLE_ID: com.mycompany.ancodefirebase
         APP_STORE_APPLE_ID: "6757865317"
-      groups:
-        - app_store_credentials
 
     triggering:
       events:
@@ -48,8 +53,5 @@ workflows:
 
     publishing:
       app_store_connect:
-        # Codemagic expects api_key + key_id (not private_key + key_identifier)
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
-        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        auth: integration
         submit_to_testflight: true
