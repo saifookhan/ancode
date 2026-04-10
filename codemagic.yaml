@@ -1,0 +1,54 @@
+workflows:
+  ios_testflight:
+    name: iOS TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    environment:
+      flutter: stable
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.mycompany.ancodefirebase
+      vars:
+        FLUTTER_PROJECT_DIR: apps/mobile
+        BUNDLE_ID: com.mycompany.ancodefirebase
+        APP_STORE_APPLE_ID: "6757865317"
+      groups:
+        - app_store_credentials
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+
+    scripts:
+      - name: Flutter pub get
+        script: |
+          cd "$FLUTTER_PROJECT_DIR"
+          flutter pub get
+
+      - name: Set up code signing on Xcode project
+        script: |
+          cd "$FLUTTER_PROJECT_DIR/ios"
+          xcode-project use-profiles
+
+      - name: Build iOS IPA for TestFlight
+        script: |
+          cd "$FLUTTER_PROJECT_DIR"
+          BUILD_NUMBER="${CM_BUILD_ID:-1}"
+          flutter build ipa --release --build-name=1.0.1 --build-number="$BUILD_NUMBER"
+
+    artifacts:
+      - apps/mobile/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - flutter_drive.log
+
+    publishing:
+      app_store_connect:
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
+        key_identifier: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        private_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        submit_to_testflight: true
