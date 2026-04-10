@@ -17,8 +17,11 @@ workflows:
       # "Alternative code signing methods iOS" / CERTIFICATE_PRIVATE_KEY. Not the same as the .p8 API key.
       groups:
         - app_store_credentials
-        # Must also define SUPABASE_URL and SUPABASE_ANON_KEY (encrypted) on this workflow
-        # or in the same group — same values as apps/mobile/.env.example / local assets/.env.
+        # For a working app (not only the config error screen), add to this Codemagic *application*
+        # or a linked variable group (mark secure):
+        #   SUPABASE_URL          — https://xxxx.supabase.co
+        #   SUPABASE_ANON_KEY     — anon JWT (aliases: SUPABASE_KEY, SUPABASE_PUBLIC_ANON_KEY)
+        # Optional: ANCODE_DOMAIN — shortlink host for QR/links
       vars:
         FLUTTER_PROJECT_DIR: apps/mobile
         BUNDLE_ID: com.mycompany.ancodefirebase
@@ -61,9 +64,30 @@ workflows:
       - name: Build iOS IPA for TestFlight
         script: |
           cd "$FLUTTER_PROJECT_DIR"
-          if [ -z "${SUPABASE_URL:-}" ] || [ -z "${SUPABASE_ANON_KEY:-}" ]; then
-            echo "Set SUPABASE_URL and SUPABASE_ANON_KEY in Codemagic (Team / Application / Environment variables)."
-            exit 1
+          # Resolve common alternate variable names (Codemagic / other tooling).
+          SUPABASE_URL_RESOLVED="${SUPABASE_URL:-${SUPABASE_PROJECT_URL:-}}"
+          SUPABASE_KEY_RESOLVED="${SUPABASE_ANON_KEY:-${SUPABASE_KEY:-${SUPABASE_PUBLIC_ANON_KEY:-}}}"
+          DART_DEFINES=()
+          if [ -n "$SUPABASE_URL_RESOLVED" ] && [ -n "$SUPABASE_KEY_RESOLVED" ]; then
+            umask 077
+            printf '%s\n' "SUPABASE_URL=$SUPABASE_URL_RESOLVED" "SUPABASE_ANON_KEY=$SUPABASE_KEY_RESOLVED" > assets/.env
+            if [ -n "${ANCODE_DOMAIN:-}" ]; then
+              printf '%s\n' "ANCODE_DOMAIN=$ANCODE_DOMAIN" >> assets/.env
+            fi
+            DART_DEFINES+=(
+              "--dart-define=SUPABASE_URL=$SUPABASE_URL_RESOLVED"
+              "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_KEY_RESOLVED"
+            )
+            if [ -n "${ANCODE_DOMAIN:-}" ]; then
+              DART_DEFINES+=("--dart-define=ANCODE_DOMAIN=$ANCODE_DOMAIN")
+            fi
+          else
+            echo "----------------------------------------------------------------"
+            echo "WARNING: Supabase env not set — build continues, but the app will"
+            echo "show the configuration screen until you add variables in Codemagic:"
+            echo "  Application → Environment variables → SUPABASE_URL + SUPABASE_ANON_KEY"
+            echo "(optional aliases: SUPABASE_PROJECT_URL, SUPABASE_KEY)"
+            echo "----------------------------------------------------------------"
           fi
           # CFBundleVersion must be at most 18 characters (App Store / altool validation).
           # CM_BUILD_ID is often 19+ digits; prefer CM_BUILD_NUMBER (sequential) or truncate.
@@ -75,13 +99,6 @@ workflows:
           while [ "${#BUILD_NUMBER}" -gt 18 ]; do
             BUILD_NUMBER="${BUILD_NUMBER#?}"
           done
-          DART_DEFINES=(
-            "--dart-define=SUPABASE_URL=$SUPABASE_URL"
-            "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY"
-          )
-          if [ -n "${ANCODE_DOMAIN:-}" ]; then
-            DART_DEFINES+=("--dart-define=ANCODE_DOMAIN=$ANCODE_DOMAIN")
-          fi
           flutter build ipa --release --build-name=1.0.1 --build-number="$BUILD_NUMBER" "${DART_DEFINES[@]}"
 
     artifacts:
