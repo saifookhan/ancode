@@ -59,7 +59,16 @@ workflows:
       - name: Build iOS IPA for TestFlight
         script: |
           cd "$FLUTTER_PROJECT_DIR"
-          BUILD_NUMBER="${CM_BUILD_ID:-1}"
+          # CFBundleVersion must be at most 18 characters (App Store / altool validation).
+          # CM_BUILD_ID is often 19+ digits; prefer CM_BUILD_NUMBER (sequential) or truncate.
+          if [ -n "${CM_BUILD_NUMBER:-}" ]; then
+            BUILD_NUMBER="$CM_BUILD_NUMBER"
+          else
+            BUILD_NUMBER="${CM_BUILD_ID:-1}"
+          fi
+          while [ "${#BUILD_NUMBER}" -gt 18 ]; do
+            BUILD_NUMBER="${BUILD_NUMBER#?}"
+          done
           flutter build ipa --release --build-name=1.0.1 --build-number="$BUILD_NUMBER"
 
     artifacts:
