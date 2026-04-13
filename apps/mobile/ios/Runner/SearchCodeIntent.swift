@@ -27,12 +27,12 @@ struct AncodeShortcutsProvider: AppShortcutsProvider {
     AppShortcut(
       intent: SearchCodeIntent(),
       phrases: [
-        "Search code \(\.$code) in \(.applicationName)",
-        "Find code \(\.$code) in \(.applicationName)",
-        "Look up code \(\.$code) in \(.applicationName)",
-        "Cerca codice \(\.$code) in \(.applicationName)",
-        "Trova codice \(\.$code) in \(.applicationName)",
-        "Cerca il codice \(\.$code) su \(.applicationName)",
+        "Search code in \(.applicationName)",
+        "Find a code in \(.applicationName)",
+        "Look up a code in \(.applicationName)",
+        "Cerca un codice in \(.applicationName)",
+        "Trova un codice in \(.applicationName)",
+        "Cerca codice su \(.applicationName)",
       ],
       shortTitle: "Search Code",
       systemImageName: "magnifyingglass"
