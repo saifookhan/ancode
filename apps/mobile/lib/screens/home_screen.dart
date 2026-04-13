@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:shared/shared.dart';
 
 import '../services/ancode_service.dart';
+import '../services/siri_shortcut_service.dart';
 import 'code_resolve_screen.dart';
 import 'create_screen.dart';
 
@@ -17,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _controller = TextEditingController();
   AncodeSearchResult? _lastResult;
   bool _isSearching = false;
+  StreamSubscription<String>? _siriSubscription;
 
   void _onControllerChanged() => setState(() {});
 
@@ -24,13 +27,22 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _controller.addListener(_onControllerChanged);
+    _siriSubscription = SiriShortcutService.instance.searchCodeStream.listen(_onSiriSearchCode);
   }
 
   @override
   void dispose() {
+    _siriSubscription?.cancel();
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
     super.dispose();
+  }
+
+  void _onSiriSearchCode(String code) {
+    final cleanedCode = code.trim();
+    if (cleanedCode.isEmpty || !mounted) return;
+    _controller.text = cleanedCode;
+    _onSearchSubmitted(cleanedCode);
   }
 
   void _onSearchSubmitted(String value) async {

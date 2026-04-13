@@ -9,6 +9,7 @@ import 'app.dart';
 import 'screens/config_error_screen.dart';
 import 'services/auth_service.dart';
 import 'services/app_config.dart';
+import 'services/siri_shortcut_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -43,6 +44,7 @@ Future<void> main() async {
   }
 
   await AppConfig.initialize();
+  await SiriShortcutService.instance.initialize();
   runApp(const AncodeMobileApp());
 }
 

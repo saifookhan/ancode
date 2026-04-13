@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared/shared.dart';
 
 import '../services/auth_service.dart';
+import '../services/siri_shortcut_service.dart';
 import 'auth/login_screen.dart';
 import 'create_screen.dart';
 import 'home_screen.dart';
@@ -18,6 +21,7 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 2; // Search (Dashboard, Create, Search, Profile)
+  StreamSubscription<String>? _siriSubscription;
   final _screens = const [
     MyCodesScreen(),
     CreateScreen(),
@@ -40,6 +44,21 @@ class _MainShellState extends State<MainShell> {
       return;
     }
     setState(() => _currentIndex = i);
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _siriSubscription = SiriShortcutService.instance.searchCodeStream.listen((_) {
+      if (!mounted || _currentIndex == _searchIndex) return;
+      setState(() => _currentIndex = _searchIndex);
+    });
+  }
+
+  @override
+  void dispose() {
+    _siriSubscription?.cancel();
+    super.dispose();
   }
 
   @override
