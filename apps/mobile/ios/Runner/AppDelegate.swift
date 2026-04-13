@@ -12,8 +12,9 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SiriBridge")
-    SiriBridge.configure(binaryMessenger: registrar.messenger())
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "SiriBridge") {
+      SiriBridge.configure(binaryMessenger: registrar.messenger())
+    }
   }
 
   override func application(

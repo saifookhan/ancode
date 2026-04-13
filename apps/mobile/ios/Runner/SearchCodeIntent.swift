@@ -10,18 +10,14 @@ struct SearchCodeIntent: AppIntent {
   @Parameter(title: "Code")
   var code: String
 
-  func perform() async throws -> some IntentResult & OpensIntent {
+  func perform() async throws -> some IntentResult {
     let cleanedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !cleanedCode.isEmpty else {
       throw $code.needsValueError("Please provide a code to search.")
     }
 
-    let encoded = cleanedCode.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cleanedCode
-    guard let url = URL(string: "ancode://search?code=\(encoded)") else {
-      throw NSError(domain: "SearchCodeIntent", code: 1, userInfo: [NSLocalizedDescriptionKey: "Unable to create search URL."])
-    }
-
-    return .result(opensIntent: OpenURLIntent(url))
+    UserDefaults.standard.set(cleanedCode, forKey: SiriBridge.persistedCodeKey)
+    return .result()
   }
 }
 

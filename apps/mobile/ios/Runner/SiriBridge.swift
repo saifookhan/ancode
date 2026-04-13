@@ -3,12 +3,20 @@ import Foundation
 
 enum SiriBridge {
   static let channelName = "ancode/siri"
+  static let persistedCodeKey = "siri_search_code"
   private static let searchHost = "search"
   private static let searchCodeQuery = "code"
   private static var pendingCode: String?
   private static weak var methodChannel: FlutterMethodChannel?
 
   static func configure(binaryMessenger: FlutterBinaryMessenger) {
+    if pendingCode == nil {
+      pendingCode = UserDefaults.standard.string(forKey: persistedCodeKey)
+      if pendingCode != nil {
+        UserDefaults.standard.removeObject(forKey: persistedCodeKey)
+      }
+    }
+
     let channel = FlutterMethodChannel(name: channelName, binaryMessenger: binaryMessenger)
     methodChannel = channel
     channel.setMethodCallHandler { call, result in
@@ -40,6 +48,7 @@ enum SiriBridge {
     }
 
     pendingCode = code
+    UserDefaults.standard.removeObject(forKey: persistedCodeKey)
     methodChannel?.invokeMethod("onSiriSearch", arguments: code)
     return true
   }
