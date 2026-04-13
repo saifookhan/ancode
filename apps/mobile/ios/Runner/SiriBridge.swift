@@ -22,6 +22,12 @@ enum SiriBridge {
     channel.setMethodCallHandler { call, result in
       switch call.method {
       case "getInitialSiriCode":
+        if pendingCode == nil {
+          pendingCode = UserDefaults.standard.string(forKey: persistedCodeKey)
+          if pendingCode != nil {
+            UserDefaults.standard.removeObject(forKey: persistedCodeKey)
+          }
+        }
         let value = pendingCode
         pendingCode = nil
         result(value)

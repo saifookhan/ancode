@@ -1,8 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter/services.dart';
 
-class SiriShortcutService {
+class SiriShortcutService with WidgetsBindingObserver {
   SiriShortcutService._();
 
   static final SiriShortcutService instance = SiriShortcutService._();
@@ -17,6 +18,7 @@ class SiriShortcutService {
   Future<void> initialize() async {
     if (_isInitialized) return;
     _isInitialized = true;
+    WidgetsBinding.instance.addObserver(this);
 
     _channel.setMethodCallHandler((call) async {
       if (call.method != 'onSiriSearch') return;
@@ -25,9 +27,20 @@ class SiriShortcutService {
       _searchCodeController.add(raw);
     });
 
+    await _pullPendingSiriCode();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_pullPendingSiriCode());
+    }
+  }
+
+  Future<void> _pullPendingSiriCode() async {
     try {
-      final initialCode = await _channel.invokeMethod<String>('getInitialSiriCode');
-      final raw = initialCode?.trim();
+      final pendingCode = await _channel.invokeMethod<String>('getInitialSiriCode');
+      final raw = pendingCode?.trim();
       if (raw != null && raw.isNotEmpty) {
         _searchCodeController.add(raw);
       }
