@@ -1,12 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:shared/shared.dart';
 
 import '../services/ancode_service.dart';
+import '../services/auth_service.dart';
 import '../services/siri_shortcut_service.dart';
 import 'code_resolve_screen.dart';
 import 'create_screen.dart';
+import 'history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,12 +20,27 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _codeInputFormatter = _UppercaseAlnumFormatter(maxLength: 30);
   final _controller = TextEditingController();
   AncodeSearchResult? _lastResult;
   bool _isSearching = false;
   StreamSubscription<String>? _siriSubscription;
 
   void _onControllerChanged() => setState(() {});
+
+  String _normalizeCodeInput(String value) {
+    final cleaned = value.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    return cleaned.length > 30 ? cleaned.substring(0, 30) : cleaned;
+  }
+
+  void _onCodeChanged(String value) {
+    final normalized = _normalizeCodeInput(value);
+    if (normalized == value) return;
+    _controller.value = TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+    );
+  }
 
   @override
   void initState() {
@@ -39,17 +58,23 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onSiriSearchCode(String code) {
-    final cleanedCode = code.trim();
+    final cleanedCode = _normalizeCodeInput(code);
     if (cleanedCode.isEmpty || !mounted) return;
     _controller.text = cleanedCode;
+    _controller.selection = TextSelection.collapsed(offset: cleanedCode.length);
     _onSearchSubmitted(cleanedCode);
   }
 
   void _onSearchSubmitted(String value) async {
-    if (value.trim().isEmpty) return;
+    final normalized = _normalizeCodeInput(value);
+    if (normalized.isEmpty) return;
+    if (_controller.text != normalized) {
+      _controller.text = normalized;
+      _controller.selection = TextSelection.collapsed(offset: normalized.length);
+    }
     setState(() => _isSearching = true);
     try {
-      final result = await AncodeService.search(value.trim());
+      final result = await AncodeService.search(normalized);
       if (mounted) {
         setState(() {
           _lastResult = result;
@@ -78,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   static const double _radius = 28;
-  static const double _logoSize = 200;
+  static const double _logoSize = 220;
   static const double _limeShadowDy = 6;
 
   BoxDecoration _limeDropShadowDecoration({
@@ -155,108 +180,154 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _outlinePillButton({
+    required VoidCallback onPressed,
+    required String label,
+    IconData? icon,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(_radius),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.limeNeobrut,
+            blurRadius: 0,
+            offset: Offset(0, _limeShadowDy),
+          ),
+        ],
+      ),
+      child: Material(
+        color: AppColors.biancoOttico,
+        borderRadius: BorderRadius.circular(_radius),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(_radius),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(_radius),
+              border: Border.all(color: const Color(0xFFD8D8D8)),
+            ),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, color: AppColors.bluUniverso, size: 21),
+                    const SizedBox(width: 10),
+                  ],
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: AppColors.bluUniverso,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 17,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final hasUniqueMatch = _lastResult?.uniqueMatch != null;
+    final auth = context.watch<AuthService>();
 
     return Scaffold(
       backgroundColor: AppColors.biancoOttico,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
           child: Column(
             children: [
-              const SizedBox(height: 36),
               const AncodeLogo(
                 size: _logoSize,
                 showName: true,
                 logoAssetPath: 'assets/logo.png',
-                subtitle: 'CERCA O CREA',
-                subtitleFontSize: 22,
-                nameColor: AppColors.lavanda,
-                nameFontSize: 44,
+                nameColor: AppColors.bluPolvere,
+                nameFontSize: 62,
               ),
-              const SizedBox(height: 28),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-                decoration: BoxDecoration(
-                  color: AppColors.biancoOttico,
-                  borderRadius: BorderRadius.circular(26),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.07),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+              const SizedBox(height: 24),
+              DecoratedBox(
+                decoration: _limeDropShadowDecoration(
+                  fill: AppColors.biancoOttico,
+                  border: Border.all(color: const Color(0xFFD8D8D8)),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    DecoratedBox(
-                      decoration: _limeDropShadowDecoration(
-                        fill: AppColors.biancoOttico,
-                        border: Border.all(color: const Color(0xFFD8D8D8)),
-                      ),
-                      child: TextField(
-                        controller: _controller,
-                        decoration: const InputDecoration(
-                          hintText: 'Inserisci ANCODE',
-                          hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 18),
-                        ),
-                        style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
-                        textCapitalization: TextCapitalization.characters,
-                        autocorrect: false,
-                        onSubmitted: _onSearchSubmitted,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _navyPillButton(
-                      onPressed: _isSearching
-                          ? null
-                          : () => hasUniqueMatch
-                              ? Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => CodeResolveScreen(
-                                      code: _lastResult!.uniqueMatch!.normalizedCode,
-                                      ancode: _lastResult!.uniqueMatch,
-                                    ),
-                                  ),
-                                ).then((_) => setState(() => _lastResult = null))
-                              : _onSearchSubmitted(_controller.text),
-                      icon: Icons.search,
-                      label: 'CERCA',
-                      child: _isSearching
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.biancoOttico,
+                child: TextField(
+                  controller: _controller,
+                  decoration: const InputDecoration(
+                    hintText: 'INSERISCI ANCODE',
+                    hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                  ),
+                  style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
+                  textCapitalization: TextCapitalization.characters,
+                  autocorrect: false,
+                  inputFormatters: const [_codeInputFormatter],
+                  onChanged: _onCodeChanged,
+                  onSubmitted: _onSearchSubmitted,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _navyPillButton(
+                onPressed: _isSearching
+                    ? null
+                    : () => hasUniqueMatch
+                        ? Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CodeResolveScreen(
+                                code: _lastResult!.uniqueMatch!.normalizedCode,
+                                ancode: _lastResult!.uniqueMatch,
                               ),
-                            )
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    _navyPillButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CreateScreen(
-                            prefillCode: _controller.text.replaceAll(RegExp(r'[\s*]'), '').toUpperCase(),
-                          ),
+                            ),
+                          ).then((_) => setState(() => _lastResult = null))
+                        : _onSearchSubmitted(_controller.text),
+                icon: Icons.search,
+                label: 'CERCA',
+                child: _isSearching
+                    ? const SizedBox(
+                        height: 22,
+                        width: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.biancoOttico,
                         ),
-                      ),
-                      icon: Icons.add,
-                      label: 'CREA',
-                    ),
-                  ],
-                ),
+                      )
+                    : null,
               ),
+              const SizedBox(height: 14),
+              _outlinePillButton(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateScreen(
+                      prefillCode: _normalizeCodeInput(_controller.text),
+                    ),
+                  ),
+                ),
+                icon: Icons.add,
+                label: 'CREA',
+              ),
+              if (auth.isLoggedIn) ...[
+                const SizedBox(height: 14),
+                _outlinePillButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HistoryScreen()),
+                  ),
+                  icon: Icons.history_rounded,
+                  label: 'CRONOLOGIA',
+                ),
+              ],
               if (_lastResult?.error != null) ...[
                 const SizedBox(height: 24),
                 Text(_lastResult!.error!, style: const TextStyle(color: AppColors.bluPolvere)),
@@ -279,6 +350,24 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _UppercaseAlnumFormatter extends TextInputFormatter {
+  const _UppercaseAlnumFormatter({required this.maxLength});
+
+  final int maxLength;
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    var normalized = newValue.text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (normalized.length > maxLength) {
+      normalized = normalized.substring(0, maxLength);
+    }
+    return TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
     );
   }
 }

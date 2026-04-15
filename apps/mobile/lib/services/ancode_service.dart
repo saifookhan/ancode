@@ -28,7 +28,12 @@ class AncodeService {
     }
     final userId = _client.auth.currentUser?.id;
     if (userId != null) {
-      _client.from('search_history').insert({'user_id': userId, 'code': normalized});
+      try {
+        await _client.from('search_history').delete().eq('user_id', userId).eq('code', normalized);
+        await _client.from('search_history').insert({'user_id': userId, 'code': normalized});
+      } catch (_) {
+        // Search should continue even if history tracking fails.
+      }
     }
 
     final rawRows = await _searchRows(normalized);

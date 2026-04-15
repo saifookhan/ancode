@@ -8,9 +8,9 @@ import '../services/auth_service.dart';
 import '../services/siri_shortcut_service.dart';
 import 'auth/login_screen.dart';
 import 'create_screen.dart';
+import 'history_screen.dart';
 import 'home_screen.dart';
 import 'my_codes_screen.dart';
-import 'profile_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -20,16 +20,16 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _currentIndex = 2; // Search (Dashboard, Create, Search, Profile)
+  int _currentIndex = 1; // History, Search, Create, Dashboard
   StreamSubscription<String>? _siriSubscription;
   final _screens = const [
-    MyCodesScreen(),
-    CreateScreen(),
+    HistoryScreen(),
     HomeScreen(),
-    ProfileScreen(),
+    CreateScreen(),
+    MyCodesScreen(),
   ];
 
-  static const int _searchIndex = 2;
+  static const int _searchIndex = 1;
 
   void _onBottomNavTap(int i) {
     if (i == _searchIndex) {

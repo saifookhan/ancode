@@ -25,6 +25,7 @@ class Ancode extends Equatable {
     this.priorityRank,
     this.createdAt,
     this.updatedAt,
+    this.expiresAt,
   });
 
   final String id;
@@ -44,6 +45,7 @@ class Ancode extends Equatable {
   final int? priorityRank;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final DateTime? expiresAt;
 
   bool get isLink => type == AncodeType.link;
   bool get isNote => type == AncodeType.note;
@@ -86,6 +88,9 @@ class Ancode extends Equatable {
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'] as String)
           : null,
+      expiresAt: json['expires_at'] != null
+          ? DateTime.parse(json['expires_at'] as String)
+          : null,
     );
   }
 
@@ -104,6 +109,7 @@ class Ancode extends Equatable {
         'owner_user_id': ownerUserId,
         'click_count': clickCount,
         'priority_rank': priorityRank,
+        'expires_at': expiresAt?.toIso8601String(),
       };
 
   @override

@@ -74,6 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         data: {
           'name': _nameController.text.trim(),
           'surname': _surnameController.text.trim(),
+          'plan': 'free',
         },
       );
       final newUser = authRes.user;
@@ -83,6 +84,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             'user_id': newUser.id,
             'email': _emailController.text.trim(),
             'name': '${_nameController.text.trim()} ${_surnameController.text.trim()}'.trim(),
+            'plan': 'free',
+          }, onConflict: 'user_id');
+        } catch (_) {
+          // Trigger-based setups may already create this row.
+        }
+        try {
+          await client.from('subscriptions').upsert({
+            'user_id': newUser.id,
+            'plan': 'free',
+            'status': 'canceled',
           }, onConflict: 'user_id');
         } catch (_) {
           // Trigger-based setups may already create this row.

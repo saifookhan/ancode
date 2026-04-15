@@ -32,7 +32,7 @@ class _CreateScreenState extends State<CreateScreen> {
   void initState() {
     super.initState();
     if (widget.prefillCode != null && widget.prefillCode!.isNotEmpty) {
-      _codeController.text = widget.prefillCode!;
+      _codeController.text = _normalizeCodeInput(widget.prefillCode!);
     }
   }
 
@@ -47,200 +47,227 @@ class _CreateScreenState extends State<CreateScreen> {
 
   static const double _radius = 24;
   static const double _greenBorder = 2;
+  static const _codeInputFormatter = _UppercaseAlnumFormatter(maxLength: 30);
+
+  String _normalizeCodeInput(String value) {
+    final cleaned = value.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    return cleaned.length > 30 ? cleaned.substring(0, 30) : cleaned;
+  }
+
+  void _onCodeChanged(String value) {
+    final normalized = _normalizeCodeInput(value);
+    if (normalized == value) return;
+    _codeController.value = TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bluUniverso,
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Text(
+                'Crea nuovo ANCODE',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.biancoOttico,
+                  fontSize: 44,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Genera il tuo codice personalizzato',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.biancoOttico.withOpacity(0.9),
+                  fontSize: 20,
+                ),
+              ),
               const SizedBox(height: 16),
-              const Text(
-                'CREA un nuovo ANCODE',
-                style: TextStyle(
-                  color: AppColors.biancoOttico,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Personalizza il tuo codice: collega un link o una nota, scegli il comune e la durata',
-                style: TextStyle(
-                  color: AppColors.biancoOttico.withOpacity(0.9),
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 28),
-              const Text(
-                'INSERISCI IL TUO ANCODE',
-                style: TextStyle(
-                  color: AppColors.biancoOttico,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _darkField(
-                controller: _codeController,
-                hint: 'es. CASA20',
-                helper: 'max. 30 caratteri, solo lettere maiuscole.',
-                isCodeField: true,
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Content type *',
-                style: TextStyle(
-                  color: AppColors.biancoOttico,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: _segmentButton(
-                      label: 'Link / URL',
-                      selected: _isLink,
-                      onTap: () => setState(() => _isLink = true),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _segmentButton(
-                      label: 'Note / Text',
-                      selected: !_isLink,
-                      onTap: () => setState(() => _isLink = false),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Text(
-                _isLink
-                    ? 'Enter the link you want to connect this ANCODE to'
-                    : 'Enter your note text',
-                style: TextStyle(
-                  color: AppColors.biancoOttico.withOpacity(0.9),
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _darkField(
-                controller: _isLink ? _urlController : _noteController,
-                hint: _isLink ? 'https://espenp.io' : 'Scrivi qui...',
-                maxLines: _isLink ? 1 : 4,
-                keyboardType: _isLink ? TextInputType.url : null,
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Comune',
-                style: TextStyle(
-                  color: AppColors.biancoOttico,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              _darkField(
-                controller: _comuneQueryController,
-                hint: 'Digita per cercare il Comune',
-                keyboardType: TextInputType.text,
-                onChanged: _searchComune,
-              ),
-              if (_isSearchingComuni)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.biancoOttico),
-                    ),
-                  ),
-                ),
-              if (_selectedComune != null) ...[
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Chip(
-                    label: Text(_selectedComune!.name, style: const TextStyle(color: AppColors.bluUniverso)),
-                    backgroundColor: AppColors.verdeCosmico,
-                    onDeleted: () => setState(() => _selectedComune = null),
-                  ),
-                ),
-              ],
-              if (_comuneResults.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Container(
-                  constraints: const BoxConstraints(maxHeight: 200),
-                  decoration: BoxDecoration(
-                    color: AppColors.biancoOttico,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.verdeCosmico, width: _greenBorder),
-                  ),
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _comuneResults.length,
-                    itemBuilder: (context, index) {
-                      final comune = _comuneResults[index];
-                      return ListTile(
-                        title: Text(comune.name, style: const TextStyle(color: AppColors.bluPolvere)),
-                        subtitle: comune.province != null
-                            ? Text(comune.province!, style: const TextStyle(color: AppColors.placeholderGrey))
-                            : null,
-                        onTap: () {
-                          setState(() {
-                            _selectedComune = comune;
-                            _comuneQueryController.clear();
-                            _comuneResults = [];
-                          });
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-              const SizedBox(height: 20),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Checkbox(
-                      value: _isExclusive,
-                      onChanged: (v) => setState(() => _isExclusive = v ?? false),
-                      activeColor: AppColors.verdeCosmico,
-                      checkColor: AppColors.bluUniverso,
-                      side: const BorderSide(color: AppColors.biancoOttico),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(
-                        'Make this code exclusive (prevents use in other municipalities)',
+              Expanded(
+                child: SingleChildScrollView(
+                  keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Inserisci il tuo ANCODE',
                         style: TextStyle(
-                          color: AppColors.biancoOttico.withOpacity(0.95),
+                          color: AppColors.biancoOttico,
+                          fontSize: 30,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _darkField(
+                        controller: _codeController,
+                        hint: 'es. Sito Web Personale',
+                        helper: 'Max 30 caratteri, solo lettere maiuscole e numeri, simboli e spazi non ammessi.',
+                        isCodeField: true,
+                        onChanged: _onCodeChanged,
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Tipo di contenuto',
+                        style: TextStyle(
+                          color: AppColors.biancoOttico,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _segmentButton(
+                              label: 'Link / URL',
+                              selected: _isLink,
+                              onTap: () => setState(() => _isLink = true),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _segmentButton(
+                              label: 'Note / Text',
+                              selected: !_isLink,
+                              onTap: () => setState(() => _isLink = false),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        _isLink
+                            ? 'Inserisci il link che vuoi connettere all\'ANCODE'
+                            : 'Inserisci la tua nota',
+                        style: TextStyle(
+                          color: AppColors.biancoOttico.withOpacity(0.9),
                           fontSize: 14,
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      _darkField(
+                        controller: _isLink ? _urlController : _noteController,
+                        hint: _isLink ? 'https://espenp.io' : 'Scrivi qui...',
+                        maxLines: _isLink ? 1 : 4,
+                        keyboardType: _isLink ? TextInputType.url : null,
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Comune',
+                        style: TextStyle(
+                          color: AppColors.biancoOttico,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _darkField(
+                        controller: _comuneQueryController,
+                        hint: 'Digita per cercare il Comune',
+                        keyboardType: TextInputType.text,
+                        onChanged: _searchComune,
+                      ),
+                      if (_isSearchingComuni)
+                        const Padding(
+                          padding: EdgeInsets.only(top: 8),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.biancoOttico),
+                            ),
+                          ),
+                        ),
+                      if (_selectedComune != null) ...[
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Chip(
+                            label: Text(_selectedComune!.name, style: const TextStyle(color: AppColors.bluUniverso)),
+                            backgroundColor: AppColors.verdeCosmico,
+                            onDeleted: () => setState(() => _selectedComune = null),
+                          ),
+                        ),
+                      ],
+                      if (_comuneResults.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Container(
+                          constraints: const BoxConstraints(maxHeight: 200),
+                          decoration: BoxDecoration(
+                            color: AppColors.biancoOttico,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppColors.verdeCosmico, width: _greenBorder),
+                          ),
+                          child: ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: _comuneResults.length,
+                            itemBuilder: (context, index) {
+                              final comune = _comuneResults[index];
+                              return ListTile(
+                                title: Text(comune.name, style: const TextStyle(color: AppColors.bluPolvere)),
+                                subtitle: comune.province != null
+                                    ? Text(comune.province!, style: const TextStyle(color: AppColors.placeholderGrey))
+                                    : null,
+                                onTap: () {
+                                  setState(() {
+                                    _selectedComune = comune;
+                                    _comuneQueryController.clear();
+                                    _comuneResults = [];
+                                  });
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: _isExclusive,
+                              onChanged: (v) => setState(() => _isExclusive = v ?? false),
+                              activeColor: AppColors.verdeCosmico,
+                              checkColor: AppColors.bluUniverso,
+                              side: const BorderSide(color: AppColors.biancoOttico),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                'Rendi questo codice esclusivo (previeni che venga usato in altre localita)',
+                                style: TextStyle(
+                                  color: AppColors.biancoOttico.withOpacity(0.95),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      _generateCodeButton(),
+                      SizedBox(height: MediaQuery.of(context).viewInsets.bottom > 0 ? 16 : 100),
+                    ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 32),
-              _generateCodeButton(),
-              const SizedBox(height: 100),
             ],
           ),
         ),
@@ -283,7 +310,7 @@ class _CreateScreenState extends State<CreateScreen> {
               contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             ),
             style: const TextStyle(color: AppColors.bluPolvere),
-            inputFormatters: isCodeField ? [FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9*]'))] : null,
+            inputFormatters: isCodeField ? const [_codeInputFormatter] : null,
             textCapitalization: isCodeField ? TextCapitalization.characters : TextCapitalization.none,
             keyboardType: keyboardType,
             onChanged: onChanged,
@@ -367,7 +394,7 @@ class _CreateScreenState extends State<CreateScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bluUniverso),
                     )
                   : const Text(
-                      'Generate Code',
+                      'Genera codice',
                       style: TextStyle(
                         color: AppColors.bluUniverso,
                         fontWeight: FontWeight.bold,
@@ -401,7 +428,7 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Future<void> _onGenerateCode() async {
-    final code = _codeController.text.replaceAll(RegExp(r'[\s*]'), '').toUpperCase();
+    final code = _normalizeCodeInput(_codeController.text);
     if (code.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Inserisci un codice ANCODE')),
@@ -473,5 +500,23 @@ class _CreateScreenState extends State<CreateScreen> {
         SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
       );
     }
+  }
+}
+
+class _UppercaseAlnumFormatter extends TextInputFormatter {
+  const _UppercaseAlnumFormatter({required this.maxLength});
+
+  final int maxLength;
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    var normalized = newValue.text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (normalized.length > maxLength) {
+      normalized = normalized.substring(0, maxLength);
+    }
+    return TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+    );
   }
 }

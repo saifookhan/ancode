@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import 'auth/login_screen.dart';
 import '../services/ancode_service.dart';
 import '../services/app_config.dart';
+import '../services/plan_mode_service.dart';
 
 class CreateScreen extends StatefulWidget {
   const CreateScreen({super.key, this.prefillCode});
@@ -24,18 +25,16 @@ class CreateScreen extends StatefulWidget {
 }
 
 class _CreateScreenState extends State<CreateScreen> {
+  static const _codeInputFormatter = _UppercaseAlnumFormatter(maxLength: 30);
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
   final _urlController = TextEditingController();
   final _noteController = TextEditingController();
   bool _isLink = true;
-  Municipality? _selectedComune = const Municipality(
-    istatCode: 'ALL',
-    name: 'All',
-  );
-  bool _acceptedTerms = false;
+  Municipality? _selectedComune = const Municipality(istatCode: 'ALL', name: 'All');
   bool _isExclusive = false;
-  int _termMonths = 1;
+  DateTime? _scheduleStart;
+  DateTime? _scheduleEnd;
   bool _isCreating = false;
   String? _error;
   List<_DraftCode> _drafts = [];
@@ -45,7 +44,7 @@ class _CreateScreenState extends State<CreateScreen> {
   void initState() {
     super.initState();
     if (widget.prefillCode != null && widget.prefillCode!.isNotEmpty) {
-      _codeController.text = widget.prefillCode!;
+      _codeController.text = _normalizeCodeInput(widget.prefillCode!);
     }
   }
 
@@ -58,13 +57,12 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   void _addCode() {
-    final code = normalizeCodeInput(_codeController.text);
+    final code = _normalizeCodeInput(_codeController.text);
     if (code.isEmpty) return;
     if (!isValidCodeFormat(code)) return;
     if (_isLink && _urlController.text.trim().isEmpty) return;
     if (!_isLink && _noteController.text.trim().isEmpty) return;
     if (_selectedComune == null) return;
-    if (!_acceptedTerms) return;
 
     setState(() {
       _drafts.add(_DraftCode(
@@ -83,9 +81,11 @@ class _CreateScreenState extends State<CreateScreen> {
   Future<void> _commit() async {
     // If no drafts, add current form as one and then commit
     if (_drafts.isEmpty) {
-      if (!_formKey.currentState!.validate() ||
-          _selectedComune == null ||
-          !_acceptedTerms) return;
+      if (!_formKey.currentState!.validate()) return;
+      if (_selectedComune == null) {
+        setState(() => _error = 'Seleziona un Comune');
+        return;
+      }
       _addCode();
       if (_drafts.isEmpty) return; // e.g. validation failed
     }
@@ -134,7 +134,23 @@ class _CreateScreenState extends State<CreateScreen> {
     }
   }
 
+  String _normalizeCodeInput(String value) {
+    final cleaned = value.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    return cleaned.length > 30 ? cleaned.substring(0, 30) : cleaned;
+  }
+
+  void _onCodeChanged(String value) {
+    final normalized = _normalizeCodeInput(value);
+    if (normalized == value) return;
+    _codeController.value = TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+    );
+  }
+
   Future<void> _createOne(_DraftCode d) async {
+    final plan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
+    final isBusinessPlan = plan == PlanModeService.business;
     await AncodeService.createAncode(
       code: d.code,
       type: d.type,
@@ -142,11 +158,71 @@ class _CreateScreenState extends State<CreateScreen> {
       isExclusiveItaly: _isExclusive,
       url: d.url,
       noteText: d.noteText,
+      scheduleStart: isBusinessPlan ? _scheduleStart : null,
+      scheduleEnd: isBusinessPlan ? _scheduleEnd : null,
+    );
+  }
+
+  Future<void> _pickScheduleDate({
+    required bool isStart,
+  }) async {
+    final now = DateTime.now();
+    final initial = isStart ? (_scheduleStart ?? now) : (_scheduleEnd ?? _scheduleStart ?? now);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 10),
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      if (isStart) {
+        _scheduleStart = DateTime(picked.year, picked.month, picked.day);
+        if (_scheduleEnd != null && _scheduleEnd!.isBefore(_scheduleStart!)) {
+          _scheduleEnd = _scheduleStart;
+        }
+      } else {
+        _scheduleEnd = DateTime(picked.year, picked.month, picked.day, 23, 59, 59);
+      }
+    });
+  }
+
+  static const double _radius = 24;
+  static const double _greenBorder = 1.5;
+
+  BoxDecoration _fieldDecoration() {
+    return BoxDecoration(
+      color: AppColors.biancoOttico,
+      borderRadius: BorderRadius.circular(_radius),
+      border: Border.all(color: AppColors.verdeCosmico, width: _greenBorder),
+      boxShadow: const [
+        BoxShadow(
+          color: AppColors.limeNeobrut,
+          blurRadius: 0,
+          offset: Offset(0, 6),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isPhone = screenWidth < 600;
+    final titleSize = isPhone ? 44.0 : 50.0;
+    final subtitleSize = isPhone ? 17.0 : 30.0;
+    final sectionTitleSize = isPhone ? 36.0 : 34.0;
+    final labelSize = isPhone ? 14.0 : 33.0;
+    final fieldTextSize = isPhone ? 16.0 : 34.0;
+    final fieldHintSize = isPhone ? 15.0 : 32.0;
+    final fieldVerticalPadding = isPhone ? 14.0 : 22.0;
+    final typeButtonTextSize = isPhone ? 16.0 : 32.0;
+    final typeButtonVerticalPadding = isPhone ? 14.0 : 20.0;
+    final buttonTextSize = isPhone ? 20.0 : 34.0;
+    final currentPlan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
+    final isFreePlan = currentPlan == PlanModeService.free;
+    final isBusinessPlan = currentPlan == PlanModeService.business;
+
     if (_createdAncode != null) {
       return _OutputScreen(
         ancode: _createdAncode!,
@@ -165,232 +241,207 @@ class _CreateScreenState extends State<CreateScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 8),
-                  const Text(
-                    'CREA un nuovo ANCODE',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.biancoOttico,
-                      fontSize: 42,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Text(
-                    'Personalizza il tuo codice: collega un link o una nota, scegli il comune e la durata',
+                    'Crea nuovo ANCODE',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: AppColors.biancoOttico.withOpacity(0.9),
-                      fontSize: 16,
+                      color: AppColors.biancoOttico,
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  const SizedBox(height: 36),
-                  const Text(
-                    'INSERISCI IL TUO ANCODE',
+                  const SizedBox(height: 2),
+                  Text(
+                    'Genera il tuo codice personalizzato',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: AppColors.biancoOttico,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.6,
+                      color: AppColors.biancoOttico.withOpacity(0.75),
+                      fontSize: subtitleSize,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+                  Text(
+                    'Inserisci il tuo ANCODE',
+                    style: TextStyle(
+                      color: AppColors.biancoOttico.withOpacity(0.92),
+                      fontSize: sectionTitleSize,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  TextFormField(
-                    controller: _codeController,
-                    decoration: InputDecoration(
-                      hintText: 'ES: CASA20',
-                      hintStyle: const TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
-                      filled: true,
-                      fillColor: AppColors.biancoOttico,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(40),
-                        borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
+                  Container(
+                    decoration: _fieldDecoration(),
+                    child: TextFormField(
+                      controller: _codeController,
+                      style: TextStyle(color: AppColors.bluUniverso, fontSize: fieldTextSize),
+                      decoration: InputDecoration(
+                        hintText: 'es. Sito Web Personale',
+                        hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: fieldHintSize),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: fieldVerticalPadding),
                       ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(40),
-                        borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
-                      ),
-                      helperText: 'max. 30 caratteri, solo lettere maiuscole.',
-                      helperStyle: TextStyle(
-                          color: AppColors.biancoOttico.withOpacity(0.7),
-                          fontSize: 12),
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: const [_codeInputFormatter],
+                      onChanged: (value) {
+                        _onCodeChanged(value);
+                        setState(() {});
+                      },
+                      validator: (v) => validateCode(v ?? ''),
                     ),
-                    style: const TextStyle(color: AppColors.bluUniverso, fontSize: 18),
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'[A-Za-z0-9*]')),
-                    ],
-                    onChanged: (_) => setState(() {}),
-                    validator: (v) => validateCode(v ?? ''),
                   ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Content type *',
+                  const SizedBox(height: 10),
+                  Text(
+                    'Max 30 caratteri, solo lettere maiuscole e numeri, simboli e spazi non ammessi.',
+                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.72), fontSize: isPhone ? 12 : 18),
+                  ),
+                  const SizedBox(height: 22),
+                  Text(
+                    'Tipo di contenuto',
                     style: TextStyle(
-                        color: AppColors.biancoOttico,
-                        fontWeight: FontWeight.w500),
+                      color: AppColors.biancoOttico.withOpacity(0.9),
+                      fontWeight: FontWeight.w500,
+                      fontSize: labelSize,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: RadioListTile<bool>(
-                          value: true,
-                          groupValue: _isLink,
-                          onChanged: (_) => setState(() => _isLink = true),
-                          contentPadding: EdgeInsets.zero,
-                          activeColor: AppColors.lavanda,
-                          title: const Text('Link / URL', style: TextStyle(color: AppColors.biancoOttico)),
+                        child: _typeButton(
+                          label: 'Link / URL',
+                          selected: _isLink,
+                          onTap: () => setState(() => _isLink = true),
+                          textSize: typeButtonTextSize,
+                          verticalPadding: typeButtonVerticalPadding,
                         ),
                       ),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: RadioListTile<bool>(
-                          value: false,
-                          groupValue: _isLink,
-                          onChanged: (_) => setState(() => _isLink = false),
-                          contentPadding: EdgeInsets.zero,
-                          activeColor: AppColors.lavanda,
-                          title: Text('Note / Text', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.8))),
+                        child: _typeButton(
+                          label: 'Nota/Testo',
+                          selected: !_isLink,
+                          onTap: () => setState(() => _isLink = false),
+                          textSize: typeButtonTextSize,
+                          verticalPadding: typeButtonVerticalPadding,
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
+                  Text(
+                    _isLink
+                        ? 'Inserisci il link che vuoi connettere all\'ANCODE'
+                        : 'Inserisci la tua nota',
+                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.85), fontSize: labelSize),
+                  ),
+                  const SizedBox(height: 8),
                   if (_isLink)
-                    TextFormField(
-                      controller: _urlController,
-                      decoration: InputDecoration(
-                        hintText: 'https://espenp.io',
-                        hintStyle: TextStyle(color: AppColors.placeholderGrey.withOpacity(0.9), fontSize: 16),
-                        filled: true,
-                        fillColor: AppColors.biancoOttico,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(40),
-                          borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
+                    Container(
+                      decoration: _fieldDecoration(),
+                      child: TextFormField(
+                        controller: _urlController,
+                        decoration: InputDecoration(
+                          hintText: 'https://espenp.io',
+                          hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: fieldHintSize),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: fieldVerticalPadding),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(40),
-                          borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
-                        ),
+                        style: TextStyle(color: AppColors.bluUniverso, fontSize: fieldTextSize),
+                        keyboardType: TextInputType.url,
+                        validator: (v) => _isLink && (v == null || v.trim().isEmpty) ? 'Inserisci URL' : null,
                       ),
-                      style: const TextStyle(color: AppColors.bluUniverso, fontSize: 18),
-                      keyboardType: TextInputType.url,
-                      validator: (v) =>
-                          _isLink && (v == null || v.trim().isEmpty)
-                              ? 'Inserisci URL'
-                              : null,
                     )
                   else
-                    TextFormField(
-                      controller: _noteController,
-                      decoration: InputDecoration(
-                        hintText: 'Scrivi qui...',
-                        hintStyle: TextStyle(color: AppColors.placeholderGrey.withOpacity(0.9), fontSize: 24),
-                        filled: true,
-                        fillColor: AppColors.biancoOttico,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(28),
-                          borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
+                    Container(
+                      decoration: _fieldDecoration(),
+                      child: TextFormField(
+                        controller: _noteController,
+                        decoration: InputDecoration(
+                          hintText: 'Scrivi qui...',
+                          hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: fieldHintSize),
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: fieldVerticalPadding),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(28),
-                          borderSide: const BorderSide(color: AppColors.verdeCosmico, width: 2),
-                        ),
+                        style: TextStyle(color: AppColors.bluUniverso, fontSize: fieldTextSize),
+                        maxLines: 4,
+                        validator: (v) => !_isLink && (v == null || v.trim().isEmpty) ? 'Inserisci testo' : null,
                       ),
-                      style: const TextStyle(color: AppColors.bluUniverso, fontSize: 24),
-                      maxLines: 4,
-                      validator: (v) =>
-                          !_isLink && (v == null || v.trim().isEmpty)
-                              ? 'Inserisci testo'
-                              : null,
                     ),
                   const SizedBox(height: 20),
                   Text(
-                    'Region of Area',
-                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.95), fontSize: 14),
+                    'Comune',
+                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: labelSize),
                   ),
                   const SizedBox(height: 8),
                   _ComunePicker(
                     selected: _selectedComune,
                     onSelected: (m) => setState(() => _selectedComune = m),
                   ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Term',
-                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.95), fontSize: 14),
-                  ),
-                  const SizedBox(height: 8),
-                  RadioListTile<int>(
-                    value: 1,
-                    groupValue: _termMonths,
-                    onChanged: (v) => setState(() => _termMonths = v ?? 1),
-                    contentPadding: EdgeInsets.zero,
-                    activeColor: const Color(0xFF3B59FF),
-                    title: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.biancoOttico,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Text('1 Month', style: TextStyle(color: AppColors.bluUniverso)),
+                  if (isBusinessPlan) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      'Schedule start/end (opzionale)',
+                      style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: labelSize),
                     ),
-                  ),
-                  RadioListTile<int>(
-                    value: 12,
-                    groupValue: _termMonths,
-                    onChanged: (v) => setState(() => _termMonths = v ?? 12),
-                    contentPadding: EdgeInsets.zero,
-                    activeColor: const Color(0xFF3B59FF),
-                    title: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: AppColors.verdeCosmicoSoft,
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Text('12 Month (Yearly)', style: TextStyle(color: AppColors.bluUniverso)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _pickScheduleDate(isStart: true),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.biancoOttico,
+                              side: BorderSide(color: AppColors.biancoOttico.withOpacity(0.5)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+                            ),
+                            child: Text(
+                              _scheduleStart == null
+                                  ? 'Start Date'
+                                  : _scheduleStart!.toLocal().toIso8601String().split('T').first,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _pickScheduleDate(isStart: false),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.biancoOttico,
+                              side: BorderSide(color: AppColors.biancoOttico.withOpacity(0.5)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
+                            ),
+                            child: Text(
+                              _scheduleEnd == null
+                                  ? 'End Date'
+                                  : _scheduleEnd!.toLocal().toIso8601String().split('T').first,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Se non impostato: attivo subito fino alla scadenza abbonamento.',
+                        style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.72), fontSize: isPhone ? 11 : 14),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
                   CheckboxListTile(
                     value: _isExclusive,
                     onChanged: (v) => setState(() => _isExclusive = v ?? false),
-                    title: const Text(
-                      'Make this code exclusive (prevents use in other municipalities)',
-                      style: TextStyle(color: AppColors.biancoOttico, fontSize: 14),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Rendi questo codice esclusivo (previeni che venga usato in altre localita)',
+                      style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.86), fontSize: isPhone ? 12 : 28),
                     ),
-                    activeColor: AppColors.verdeCosmico,
-                    checkColor: AppColors.bluUniverso,
-                    controlAffinity: ListTileControlAffinity.leading,
-                  ),
-                  CheckboxListTile(
-                    value: _acceptedTerms,
-                    onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
-                    title: RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                            color: AppColors.biancoOttico, fontSize: 14),
-                        children: [
-                          const TextSpan(text: 'Accetto i '),
-                          WidgetSpan(
-                            child: GestureDetector(
-                              onTap: () {},
-                              child: const Text(
-                                'termini e condizioni',
-                                style: TextStyle(
-                                  color: AppColors.azzurroCiano,
-                                  decoration: TextDecoration.underline,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    activeColor: AppColors.verdeCosmico,
+                    activeColor: AppColors.biancoOttico,
                     checkColor: AppColors.bluUniverso,
                     controlAffinity: ListTileControlAffinity.leading,
                   ),
@@ -404,7 +455,7 @@ class _CreateScreenState extends State<CreateScreen> {
                   const SizedBox(height: 24),
                   Container(
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(30),
+                      borderRadius: BorderRadius.circular(_radius),
                       boxShadow: const [
                         BoxShadow(color: AppColors.limeNeobrut, blurRadius: 0, offset: Offset(0, 6)),
                       ],
@@ -414,35 +465,27 @@ class _CreateScreenState extends State<CreateScreen> {
                           ? null
                           : () {
                               if (_formKey.currentState!.validate() &&
-                                  _selectedComune != null &&
-                                  _acceptedTerms) {
+                                  _selectedComune != null) {
                                 _commit();
+                              } else if (_selectedComune == null) {
+                                setState(() => _error = 'Seleziona un Comune');
                               }
                             },
                       style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.bluUniversoDeep,
-                        foregroundColor: AppColors.biancoOttico,
-                        minimumSize: const Size.fromHeight(58),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                        backgroundColor: AppColors.biancoOttico,
+                        foregroundColor: AppColors.bluUniverso,
+                        minimumSize: Size.fromHeight(isPhone ? 58 : 74),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius)),
                       ),
                       child: _isCreating
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.biancoOttico),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bluUniverso),
                             )
-                          : const Text('Generate Code', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                          : Text('Genera codice', style: TextStyle(fontSize: buttonTextSize, fontWeight: FontWeight.w700)),
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Package Benifits',
-                    style: TextStyle(color: AppColors.biancoOttico, fontSize: 16, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 10),
-                  _benefitRow('15 % percent discount on total price'),
-                  _benefitRow('Centralized managment of all codes'),
-                  _benefitRow('Aggregated package statistics'),
                   const SizedBox(height: 80),
                 ],
               ),
@@ -453,20 +496,42 @@ class _CreateScreenState extends State<CreateScreen> {
     );
   }
 
-  Widget _benefitRow(String text) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle, color: AppColors.lavanda, size: 20),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.95), fontSize: 14),
+  Widget _typeButton({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    required double textSize,
+    required double verticalPadding,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(_radius),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: verticalPadding),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.biancoOttico : AppColors.bluUniversoLight,
+          borderRadius: BorderRadius.circular(_radius),
+          border: Border.all(color: AppColors.biancoOttico.withOpacity(selected ? 0.0 : 0.2)),
+          boxShadow: selected
+              ? const [
+                  BoxShadow(
+                    color: AppColors.limeNeobrut,
+                    blurRadius: 0,
+                    offset: Offset(0, 6),
+                  ),
+                ]
+              : const [],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: selected ? AppColors.bluUniverso : AppColors.biancoOttico.withOpacity(0.7),
+              fontSize: textSize,
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -524,54 +589,81 @@ class _ComunePickerState extends State<_ComunePicker> {
     super.dispose();
   }
 
-  void _search(String q) async {
-    if (q.length < 2) {
-      setState(() => _results = []);
+  Future<void> _search(String q) async {
+    if (q.trim().length < 2) {
+      await _loadDefaultOptions();
       return;
     }
     setState(() => _searching = true);
     final list = await AncodeService.searchMunicipalities(q);
     if (mounted)
       setState(() {
-        _results = list;
+        _results = [const Municipality(istatCode: 'ALL', name: 'All'), ...list];
         _searching = false;
       });
   }
 
+  Future<void> _loadDefaultOptions() async {
+    setState(() => _searching = true);
+    final list = await AncodeService.listMunicipalities(limit: 20);
+    if (!mounted) return;
+    setState(() {
+      _results = [const Municipality(istatCode: 'ALL', name: 'All'), ...list];
+      _searching = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final selectedText = widget.selected?.name ?? '';
+    final selectedText = widget.selected?.name ?? 'All';
+    final isPhone = MediaQuery.of(context).size.width < 600;
+    final pickerTextSize = isPhone ? 16.0 : 34.0;
+    final pickerVerticalPadding = isPhone ? 14.0 : 22.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextFormField(
-          readOnly: true,
-          controller: TextEditingController(text: selectedText),
-          style: const TextStyle(color: AppColors.bluUniverso, fontSize: 18),
-          decoration: InputDecoration(
-            hintText: '^',
-            hintStyle: const TextStyle(color: AppColors.placeholderGrey, fontSize: 18),
-            filled: true,
-            fillColor: AppColors.biancoOttico,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: AppColors.biancoOttico.withOpacity(0.7)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: BorderSide(color: AppColors.biancoOttico.withOpacity(0.9)),
-            ),
-            suffixIcon: IconButton(
-              onPressed: () => setState(() => _isOpen = !_isOpen),
-              icon: Icon(
-                _isOpen ? Icons.close : Icons.keyboard_arrow_down_rounded,
-                color: const Color(0xFF6C7280),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.biancoOttico,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppColors.verdeCosmico, width: 1.5),
+            boxShadow: const [
+              BoxShadow(
+                color: AppColors.limeNeobrut,
+                blurRadius: 0,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: TextFormField(
+            readOnly: true,
+            controller: TextEditingController(text: selectedText),
+            style: TextStyle(color: AppColors.bluUniverso, fontSize: pickerTextSize),
+            decoration: InputDecoration(
+              hintText: '',
+              hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: pickerTextSize),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: pickerVerticalPadding),
+              suffixIcon: IconButton(
+                onPressed: () async {
+                  final next = !_isOpen;
+                  setState(() => _isOpen = next);
+                  if (next) await _loadDefaultOptions();
+                },
+                icon: Icon(
+                  _isOpen ? Icons.close : Icons.keyboard_arrow_down_rounded,
+                  color: const Color(0xFF6C7280),
+                  size: isPhone ? 22 : 30,
+                ),
               ),
             ),
+            onTap: () async {
+              final next = !_isOpen;
+              setState(() => _isOpen = next);
+              if (next) await _loadDefaultOptions();
+            },
+            validator: (_) => widget.selected == null ? 'Seleziona un Comune' : null,
           ),
-          onTap: () => setState(() => _isOpen = !_isOpen),
-          validator: (_) => widget.selected == null ? 'Seleziona un Comune' : null,
         ),
         if (_isOpen) ...[
           const SizedBox(height: 8),
@@ -810,6 +902,24 @@ class _OutputScreen extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _UppercaseAlnumFormatter extends TextInputFormatter {
+  const _UppercaseAlnumFormatter({required this.maxLength});
+
+  final int maxLength;
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    var normalized = newValue.text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (normalized.length > maxLength) {
+      normalized = normalized.substring(0, maxLength);
+    }
+    return TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
     );
   }
 }

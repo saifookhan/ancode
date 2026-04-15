@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 
 import 'package:shared/shared.dart';
 
 import '../services/ancode_service.dart' show AncodeService, AncodeSearchResult;
+import '../services/auth_service.dart';
+import 'auth/login_screen.dart';
 import 'code_resolve_screen.dart';
 import 'create_screen.dart';
+import 'main_shell.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,10 +19,25 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  static const _codeInputFormatter = _UppercaseAlnumFormatter(maxLength: 30);
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   AncodeSearchResult? _lastResult;
   bool _isSearching = false;
+
+  String _normalizeCodeInput(String value) {
+    final cleaned = value.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    return cleaned.length > 30 ? cleaned.substring(0, 30) : cleaned;
+  }
+
+  void _onCodeChanged(String value) {
+    final normalized = _normalizeCodeInput(value);
+    if (normalized == value) return;
+    _controller.value = TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+    );
+  }
 
   @override
   void initState() {
@@ -34,10 +54,17 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onSearchSubmitted(String value) async {
-    if (value.trim().isEmpty) return;
+    final normalized = _normalizeCodeInput(value);
+    if (normalized.isEmpty) return;
+    if (_controller.text != normalized) {
+      _controller.value = TextEditingValue(
+        text: normalized,
+        selection: TextSelection.collapsed(offset: normalized.length),
+      );
+    }
     setState(() => _isSearching = true);
     try {
-      final result = await AncodeService.search(value.trim());
+      final result = await AncodeService.search(normalized);
       if (mounted) {
         setState(() {
           _lastResult = result;
@@ -213,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         controller: _controller,
                         focusNode: _focusNode,
                         decoration: const InputDecoration(
-                          hintText: 'Inserisci ANCODE',
+                          hintText: 'INSERISCI ANCODE',
                           hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 18),
@@ -221,6 +248,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
                         textCapitalization: TextCapitalization.characters,
                         autocorrect: false,
+                        inputFormatters: const [_codeInputFormatter],
+                        onChanged: _onCodeChanged,
                         onSubmitted: _onSearchSubmitted,
                       ),
                     ),
@@ -244,14 +273,28 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     const SizedBox(height: 12),
                     _navyPillButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => CreateScreen(
-                            prefillCode: _controller.text.replaceAll(RegExp(r'[\s*]'), '').toUpperCase(),
+                      onPressed: () {
+                        final auth = context.read<AuthService>();
+                        if (!auth.isLoggedIn) {
+                          Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+                          );
+                          return;
+                        }
+                        final shell = context.findAncestorStateOfType<MainShellState>();
+                        if (shell != null) {
+                          shell.goToTab(MainShellState.createIndex);
+                          return;
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => CreateScreen(
+                              prefillCode: _normalizeCodeInput(_controller.text),
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                       icon: Icons.add,
                       label: 'CREA',
                     ),
@@ -295,6 +338,24 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _UppercaseAlnumFormatter extends TextInputFormatter {
+  const _UppercaseAlnumFormatter({required this.maxLength});
+
+  final int maxLength;
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    var normalized = newValue.text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (normalized.length > maxLength) {
+      normalized = normalized.substring(0, maxLength);
+    }
+    return TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
     );
   }
 }
