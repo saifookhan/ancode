@@ -25,6 +25,7 @@ class CreateScreen extends StatefulWidget {
 }
 
 class _CreateScreenState extends State<CreateScreen> {
+  static const _fontFamily = 'Outfit';
   static const _codeInputFormatter = _UppercaseAlnumFormatter(maxLength: 30);
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
@@ -209,16 +210,16 @@ class _CreateScreenState extends State<CreateScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isPhone = screenWidth < 600;
-    final titleSize = isPhone ? 44.0 : 50.0;
-    final subtitleSize = isPhone ? 17.0 : 30.0;
-    final sectionTitleSize = isPhone ? 36.0 : 34.0;
-    final labelSize = isPhone ? 14.0 : 33.0;
-    final fieldTextSize = isPhone ? 16.0 : 34.0;
-    final fieldHintSize = isPhone ? 15.0 : 32.0;
-    final fieldVerticalPadding = isPhone ? 14.0 : 22.0;
-    final typeButtonTextSize = isPhone ? 16.0 : 32.0;
-    final typeButtonVerticalPadding = isPhone ? 14.0 : 20.0;
-    final buttonTextSize = isPhone ? 20.0 : 34.0;
+    final titleSize = isPhone ? 40.0 : 44.0;
+    final subtitleSize = isPhone ? 16.0 : 18.0;
+    final sectionTitleSize = isPhone ? 18.0 : 20.0;
+    final labelSize = isPhone ? 14.0 : 16.0;
+    final fieldTextSize = isPhone ? 16.0 : 18.0;
+    final fieldHintSize = isPhone ? 15.0 : 16.0;
+    final fieldVerticalPadding = isPhone ? 14.0 : 16.0;
+    final typeButtonTextSize = isPhone ? 16.0 : 17.0;
+    final typeButtonVerticalPadding = isPhone ? 14.0 : 16.0;
+    final buttonTextSize = isPhone ? 20.0 : 22.0;
     final currentPlan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
     final isFreePlan = currentPlan == PlanModeService.free;
     final isBusinessPlan = currentPlan == PlanModeService.business;
@@ -246,6 +247,7 @@ class _CreateScreenState extends State<CreateScreen> {
                     'Crea nuovo ANCODE',
                     textAlign: TextAlign.center,
                     style: TextStyle(
+                      fontFamily: _fontFamily,
                       color: AppColors.biancoOttico,
                       fontSize: titleSize,
                       fontWeight: FontWeight.w700,
@@ -256,6 +258,7 @@ class _CreateScreenState extends State<CreateScreen> {
                     'Genera il tuo codice personalizzato',
                     textAlign: TextAlign.center,
                     style: TextStyle(
+                      fontFamily: _fontFamily,
                       color: AppColors.biancoOttico.withOpacity(0.75),
                       fontSize: subtitleSize,
                       fontWeight: FontWeight.w600,
@@ -265,6 +268,7 @@ class _CreateScreenState extends State<CreateScreen> {
                   Text(
                     'Inserisci il tuo ANCODE',
                     style: TextStyle(
+                      fontFamily: _fontFamily,
                       color: AppColors.biancoOttico.withOpacity(0.92),
                       fontSize: sectionTitleSize,
                       fontWeight: FontWeight.w500,
@@ -275,10 +279,10 @@ class _CreateScreenState extends State<CreateScreen> {
                     decoration: _fieldDecoration(),
                     child: TextFormField(
                       controller: _codeController,
-                      style: TextStyle(color: AppColors.bluUniverso, fontSize: fieldTextSize),
+                      style: TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: fieldTextSize),
                       decoration: InputDecoration(
                         hintText: 'es. Sito Web Personale',
-                        hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: fieldHintSize),
+                        hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: fieldHintSize),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: fieldVerticalPadding),
                       ),
@@ -294,12 +298,17 @@ class _CreateScreenState extends State<CreateScreen> {
                   const SizedBox(height: 10),
                   Text(
                     'Max 30 caratteri, solo lettere maiuscole e numeri, simboli e spazi non ammessi.',
-                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.72), fontSize: isPhone ? 12 : 18),
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico.withOpacity(0.72),
+                      fontSize: isPhone ? 12 : 14,
+                    ),
                   ),
                   const SizedBox(height: 22),
                   Text(
                     'Tipo di contenuto',
                     style: TextStyle(
+                      fontFamily: _fontFamily,
                       color: AppColors.biancoOttico.withOpacity(0.9),
                       fontWeight: FontWeight.w500,
                       fontSize: labelSize,
@@ -334,7 +343,11 @@ class _CreateScreenState extends State<CreateScreen> {
                     _isLink
                         ? 'Inserisci il link che vuoi connettere all\'ANCODE'
                         : 'Inserisci la tua nota',
-                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.85), fontSize: labelSize),
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico.withOpacity(0.85),
+                      fontSize: labelSize,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (_isLink)
@@ -344,11 +357,11 @@ class _CreateScreenState extends State<CreateScreen> {
                         controller: _urlController,
                         decoration: InputDecoration(
                           hintText: 'https://espenp.io',
-                          hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: fieldHintSize),
+                          hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: fieldHintSize),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: fieldVerticalPadding),
                         ),
-                        style: TextStyle(color: AppColors.bluUniverso, fontSize: fieldTextSize),
+                        style: TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: fieldTextSize),
                         keyboardType: TextInputType.url,
                         validator: (v) => _isLink && (v == null || v.trim().isEmpty) ? 'Inserisci URL' : null,
                       ),
@@ -360,11 +373,11 @@ class _CreateScreenState extends State<CreateScreen> {
                         controller: _noteController,
                         decoration: InputDecoration(
                           hintText: 'Scrivi qui...',
-                          hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: fieldHintSize),
+                          hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: fieldHintSize),
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: fieldVerticalPadding),
                         ),
-                        style: TextStyle(color: AppColors.bluUniverso, fontSize: fieldTextSize),
+                        style: TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: fieldTextSize),
                         maxLines: 4,
                         validator: (v) => !_isLink && (v == null || v.trim().isEmpty) ? 'Inserisci testo' : null,
                       ),
@@ -372,7 +385,11 @@ class _CreateScreenState extends State<CreateScreen> {
                   const SizedBox(height: 20),
                   Text(
                     'Comune',
-                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: labelSize),
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico.withOpacity(0.9),
+                      fontSize: labelSize,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   _ComunePicker(
@@ -383,7 +400,11 @@ class _CreateScreenState extends State<CreateScreen> {
                     const SizedBox(height: 20),
                     Text(
                       'Schedule start/end (opzionale)',
-                      style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: labelSize),
+                      style: TextStyle(
+                        fontFamily: _fontFamily,
+                        color: AppColors.biancoOttico.withOpacity(0.9),
+                        fontSize: labelSize,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Row(
@@ -428,7 +449,11 @@ class _CreateScreenState extends State<CreateScreen> {
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Se non impostato: attivo subito fino alla scadenza abbonamento.',
-                        style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.72), fontSize: isPhone ? 11 : 14),
+                        style: TextStyle(
+                          fontFamily: _fontFamily,
+                          color: AppColors.biancoOttico.withOpacity(0.72),
+                          fontSize: isPhone ? 11 : 13,
+                        ),
                       ),
                     ),
                   ],
@@ -439,7 +464,11 @@ class _CreateScreenState extends State<CreateScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(
                       'Rendi questo codice esclusivo (previeni che venga usato in altre localita)',
-                      style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.86), fontSize: isPhone ? 12 : 28),
+                      style: TextStyle(
+                        fontFamily: _fontFamily,
+                        color: AppColors.biancoOttico.withOpacity(0.86),
+                        fontSize: isPhone ? 12 : 16,
+                      ),
                     ),
                     activeColor: AppColors.biancoOttico,
                     checkColor: AppColors.bluUniverso,
@@ -483,7 +512,10 @@ class _CreateScreenState extends State<CreateScreen> {
                               width: 20,
                               child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bluUniverso),
                             )
-                          : Text('Genera codice', style: TextStyle(fontSize: buttonTextSize, fontWeight: FontWeight.w700)),
+                          : Text(
+                              'Genera codice',
+                              style: TextStyle(fontFamily: _fontFamily, fontSize: buttonTextSize, fontWeight: FontWeight.w700),
+                            ),
                     ),
                   ),
                   const SizedBox(height: 80),
@@ -595,7 +627,7 @@ class _ComunePickerState extends State<_ComunePicker> {
       return;
     }
     setState(() => _searching = true);
-    final list = await AncodeService.searchMunicipalities(q);
+    final list = await AncodeService.searchRegionCities(q);
     if (mounted)
       setState(() {
         _results = [const Municipality(istatCode: 'ALL', name: 'All'), ...list];
@@ -605,7 +637,7 @@ class _ComunePickerState extends State<_ComunePicker> {
 
   Future<void> _loadDefaultOptions() async {
     setState(() => _searching = true);
-    final list = await AncodeService.listMunicipalities(limit: 20);
+    final list = await AncodeService.listRegionCities();
     if (!mounted) return;
     setState(() {
       _results = [const Municipality(istatCode: 'ALL', name: 'All'), ...list];
@@ -617,8 +649,8 @@ class _ComunePickerState extends State<_ComunePicker> {
   Widget build(BuildContext context) {
     final selectedText = widget.selected?.name ?? 'All';
     final isPhone = MediaQuery.of(context).size.width < 600;
-    final pickerTextSize = isPhone ? 16.0 : 34.0;
-    final pickerVerticalPadding = isPhone ? 14.0 : 22.0;
+    final pickerTextSize = isPhone ? 16.0 : 18.0;
+    final pickerVerticalPadding = isPhone ? 14.0 : 16.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -638,10 +670,10 @@ class _ComunePickerState extends State<_ComunePicker> {
           child: TextFormField(
             readOnly: true,
             controller: TextEditingController(text: selectedText),
-            style: TextStyle(color: AppColors.bluUniverso, fontSize: pickerTextSize),
+            style: TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluUniverso, fontSize: pickerTextSize),
             decoration: InputDecoration(
               hintText: '',
-              hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: pickerTextSize),
+              hintStyle: TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.placeholderGrey, fontSize: pickerTextSize),
               border: InputBorder.none,
               contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: pickerVerticalPadding),
               suffixIcon: IconButton(
@@ -681,10 +713,10 @@ class _ComunePickerState extends State<_ComunePicker> {
                     child: TextField(
                       controller: _queryController,
                       onChanged: _search,
-                      style: const TextStyle(color: AppColors.bluUniverso),
+                      style: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluUniverso),
                       decoration: InputDecoration(
-                        hintText: 'Search',
-                        hintStyle: const TextStyle(color: AppColors.placeholderGrey),
+                        hintText: 'Cerca comune',
+                        hintStyle: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.placeholderGrey),
                         prefixIcon: const Icon(Icons.search, color: AppColors.placeholderGrey),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         filled: true,
@@ -714,7 +746,7 @@ class _ComunePickerState extends State<_ComunePicker> {
                             ? const Center(
                                 child: Text(
                                   'No record',
-                                  style: TextStyle(color: AppColors.bluPolvere, fontSize: 16),
+                                  style: TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluPolvere, fontSize: 16),
                                 ),
                               )
                             : ListView.builder(
@@ -726,12 +758,12 @@ class _ComunePickerState extends State<_ComunePicker> {
                                     dense: true,
                                     title: Text(
                                       m.name,
-                                      style: const TextStyle(color: AppColors.bluUniverso),
+                                      style: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluUniverso),
                                     ),
                                     subtitle: m.province != null
                                         ? Text(
                                             m.province!,
-                                            style: const TextStyle(color: AppColors.bluPolvere),
+                                            style: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluPolvere),
                                           )
                                         : null,
                                     onTap: () {

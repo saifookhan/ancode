@@ -24,6 +24,7 @@ class CreateScreen extends StatefulWidget {
 }
 
 class _CreateScreenState extends State<CreateScreen> {
+  static const _fontFamily = 'Outfit';
   static const _codeInputFormatter = _UppercaseAlnumFormatter(maxLength: 30);
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
@@ -201,6 +202,13 @@ class _CreateScreenState extends State<CreateScreen> {
     final isPhone = MediaQuery.of(context).size.width < 600;
     final currentPlan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
     final isBusinessPlan = currentPlan == PlanModeService.business;
+    const titleStyle = TextStyle(
+      fontFamily: _fontFamily,
+      color: AppColors.biancoOttico,
+      fontSize: 40,
+      fontWeight: FontWeight.w700,
+      height: 1.05,
+    );
 
     if (_createdAncode != null) {
       return _OutputScreen(
@@ -222,28 +230,38 @@ class _CreateScreenState extends State<CreateScreen> {
                 const Text(
                   'Crea nuovo ANCODE',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.biancoOttico, fontSize: 44, fontWeight: FontWeight.w700),
+                  style: titleStyle,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   'Genera il tuo codice personalizzato',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.75), fontSize: 17, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontFamily: _fontFamily,
+                    color: AppColors.biancoOttico.withOpacity(0.75),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 30),
                 Text(
                   'Inserisci il tuo ANCODE',
-                  style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.92), fontSize: 36, fontWeight: FontWeight.w500),
+                  style: TextStyle(
+                    fontFamily: _fontFamily,
+                    color: AppColors.biancoOttico.withOpacity(0.92),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Container(
                   decoration: _fieldDecoration(),
                   child: TextFormField(
                     controller: _codeController,
-                    style: const TextStyle(color: AppColors.bluUniverso, fontSize: 16),
+                    style: const TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: 16),
                     decoration: const InputDecoration(
                       hintText: 'es. Sito Web Personale',
-                      hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 15),
+                      hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: 15),
                       border: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
                     ),
@@ -259,10 +277,22 @@ class _CreateScreenState extends State<CreateScreen> {
                 const SizedBox(height: 10),
                 Text(
                   'Max 30 caratteri, solo lettere maiuscole e numeri, simboli e spazi non ammessi.',
-                  style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.72), fontSize: 12),
+                  style: TextStyle(
+                    fontFamily: _fontFamily,
+                    color: AppColors.biancoOttico.withOpacity(0.72),
+                    fontSize: 12,
+                  ),
                 ),
                 const SizedBox(height: 22),
-                Text('Tipo di contenuto', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontWeight: FontWeight.w500, fontSize: 14)),
+                Text(
+                  'Tipo di contenuto',
+                  style: TextStyle(
+                    fontFamily: _fontFamily,
+                    color: AppColors.biancoOttico.withOpacity(0.9),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 14,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
@@ -272,7 +302,14 @@ class _CreateScreenState extends State<CreateScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                Text(_isLink ? 'Inserisci il link che vuoi connettere all\'ANCODE' : 'Inserisci la tua nota', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.85), fontSize: 14)),
+                Text(
+                  _isLink ? 'Inserisci il link che vuoi connettere all\'ANCODE' : 'Inserisci la tua nota',
+                  style: TextStyle(
+                    fontFamily: _fontFamily,
+                    color: AppColors.biancoOttico.withOpacity(0.85),
+                    fontSize: 14,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 if (_isLink)
                   Container(
@@ -281,11 +318,11 @@ class _CreateScreenState extends State<CreateScreen> {
                       controller: _urlController,
                       decoration: const InputDecoration(
                         hintText: 'https://espenp.io',
-                        hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 15),
+                        hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: 15),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
                       ),
-                      style: const TextStyle(color: AppColors.bluUniverso, fontSize: 16),
+                      style: const TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: 16),
                       keyboardType: TextInputType.url,
                       validator: (v) => _isLink && (v == null || v.trim().isEmpty) ? 'Inserisci URL' : null,
                     ),
@@ -297,22 +334,36 @@ class _CreateScreenState extends State<CreateScreen> {
                       controller: _noteController,
                       decoration: const InputDecoration(
                         hintText: 'Scrivi qui...',
-                        hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 15),
+                        hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: 15),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
                       ),
-                      style: const TextStyle(color: AppColors.bluUniverso, fontSize: 16),
+                      style: const TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: 16),
                       maxLines: 4,
                       validator: (v) => !_isLink && (v == null || v.trim().isEmpty) ? 'Inserisci testo' : null,
                     ),
                   ),
                 const SizedBox(height: 20),
-                Text('Comune', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: 14)),
+                Text(
+                  'Comune',
+                  style: TextStyle(
+                    fontFamily: _fontFamily,
+                    color: AppColors.biancoOttico.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                ),
                 const SizedBox(height: 8),
                 _ComunePicker(selected: _selectedComune, onSelected: (m) => setState(() => _selectedComune = m)),
                 if (isBusinessPlan) ...[
                   const SizedBox(height: 20),
-                  Text('Schedule start/end (opzionale)', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: 14)),
+                  Text(
+                    'Schedule start/end (opzionale)',
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico.withOpacity(0.9),
+                      fontSize: 14,
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -329,7 +380,11 @@ class _CreateScreenState extends State<CreateScreen> {
                   contentPadding: EdgeInsets.zero,
                   title: Text(
                     'Rendi questo codice esclusivo (previeni che venga usato in altre localita)',
-                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.86), fontSize: isPhone ? 12 : 28),
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico.withOpacity(0.86),
+                      fontSize: isPhone ? 12 : 28,
+                    ),
                   ),
                   activeColor: AppColors.biancoOttico,
                   checkColor: AppColors.bluUniverso,
@@ -358,7 +413,10 @@ class _CreateScreenState extends State<CreateScreen> {
                   ),
                   child: _isCreating
                       ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bluUniverso))
-                      : const Text('Genera codice', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                      : const Text(
+                          'Genera codice',
+                          style: TextStyle(fontFamily: _fontFamily, fontSize: 20, fontWeight: FontWeight.w700),
+                        ),
                 ),
                 const SizedBox(height: 80),
               ],
@@ -384,6 +442,7 @@ class _CreateScreenState extends State<CreateScreen> {
           child: Text(
             label,
             style: TextStyle(
+              fontFamily: _fontFamily,
               color: selected ? AppColors.bluUniverso : AppColors.biancoOttico.withOpacity(0.7),
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -449,7 +508,7 @@ class _ComunePickerState extends State<_ComunePicker> {
       return;
     }
     setState(() => _searching = true);
-    final list = await AncodeService.searchMunicipalities(q);
+    final list = await AncodeService.searchRegionCities(q);
     if (mounted) {
       setState(() {
         _results = [const Municipality(istatCode: 'ALL', name: 'All'), ...list];
@@ -460,7 +519,7 @@ class _ComunePickerState extends State<_ComunePicker> {
 
   Future<void> _loadDefaultOptions() async {
     setState(() => _searching = true);
-    final list = await AncodeService.listMunicipalities(limit: 20);
+    final list = await AncodeService.listRegionCities();
     if (!mounted) return;
     setState(() {
       _results = [const Municipality(istatCode: 'ALL', name: 'All'), ...list];
@@ -504,7 +563,16 @@ class _ComunePickerState extends State<_ComunePicker> {
                 children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-                    child: TextField(controller: _queryController, onChanged: _search, decoration: const InputDecoration(hintText: 'Search', prefixIcon: Icon(Icons.search))),
+                    child: TextField(
+                      controller: _queryController,
+                      onChanged: _search,
+                      style: const TextStyle(fontFamily: _CreateScreenState._fontFamily),
+                      decoration: const InputDecoration(
+                        hintText: 'Cerca comune',
+                        hintStyle: TextStyle(fontFamily: _CreateScreenState._fontFamily),
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                    ),
                   ),
                   const Divider(height: 1),
                   Expanded(
@@ -516,8 +584,16 @@ class _ComunePickerState extends State<_ComunePicker> {
                               final m = _results[i];
                               return ListTile(
                                 dense: true,
-                                title: Text(m.name),
-                                subtitle: m.province != null ? Text(m.province!) : null,
+                                title: Text(
+                                  m.name,
+                                  style: const TextStyle(fontFamily: _CreateScreenState._fontFamily),
+                                ),
+                                subtitle: m.province != null
+                                    ? Text(
+                                        m.province!,
+                                        style: const TextStyle(fontFamily: _CreateScreenState._fontFamily),
+                                      )
+                                    : null,
                                 onTap: () {
                                   widget.onSelected(m);
                                   _queryController.clear();

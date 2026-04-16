@@ -4,17 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:shared/shared.dart';
 
 import '../services/app_config.dart';
 import '../services/ancode_service.dart';
-import 'code_resolve_screen.dart';
 import '../services/auth_service.dart';
 import '../services/plan_mode_service.dart';
-import 'create_screen.dart';
-import 'profile_screen.dart';
 
 class MyCodesScreen extends StatefulWidget {
   const MyCodesScreen({super.key});
@@ -213,7 +209,7 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
                 setStateDialog(() => results = []);
                 return;
               }
-              final list = await AncodeService.searchMunicipalities(q.trim());
+              final list = await AncodeService.searchRegionCities(q.trim());
               if (!mounted) return;
               setStateDialog(() => results = list);
             }
@@ -293,6 +289,314 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
     }
   }
 
+  Future<void> _editCodeDetails(Ancode code, String currentPlan) async {
+    if (currentPlan == PlanModeService.free) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Nel piano FREE i codici non sono modificabili')),
+      );
+      return;
+    }
+
+    final codeController = TextEditingController(text: code.code);
+    final contentController = TextEditingController(text: code.isLink ? (code.url ?? '') : (code.noteText ?? ''));
+    final citySearchController = TextEditingController(text: code.municipalityId);
+    var selectedType = code.type;
+    Municipality? selectedCity = Municipality(istatCode: code.municipalityId, name: code.municipalityId);
+    List<Municipality> results = [];
+    bool saving = false;
+    String? dialogError;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setStateDialog) {
+            Future<void> onSearch(String q) async {
+              final list = q.trim().length < 2
+                  ? await AncodeService.listRegionCities()
+                  : await AncodeService.searchRegionCities(q.trim());
+              if (!mounted) return;
+              setStateDialog(() => results = list);
+            }
+
+            return AlertDialog(
+              backgroundColor: AppColors.biancoOttico,
+              surfaceTintColor: Colors.transparent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              title: const Text(
+                'Edit code details',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              content: SizedBox(
+                width: 420,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Code name',
+                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: codeController,
+                        style: const TextStyle(color: Colors.black),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          hintText: 'Enter code name',
+                          hintStyle: const TextStyle(color: Color(0xFF7C8190)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: Color(0xFFD7D9E0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: Color(0xFFD7D9E0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: AppColors.azzurroCiano, width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      SegmentedButton<AncodeType>(
+                        style: SegmentedButton.styleFrom(
+                          foregroundColor: Colors.black,
+                          selectedForegroundColor: Colors.black,
+                          backgroundColor: Colors.white,
+                          selectedBackgroundColor: const Color(0xFFE7F5FF),
+                          side: const BorderSide(color: AppColors.azzurroCiano),
+                          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        segments: const [
+                          ButtonSegment(value: AncodeType.link, label: Text('Link / URL')),
+                          ButtonSegment(value: AncodeType.note, label: Text('Nota / Testo')),
+                        ],
+                        selected: {selectedType},
+                        onSelectionChanged: (values) {
+                          setStateDialog(() => selectedType = values.first);
+                        },
+                      ),
+                      const SizedBox(height: 18),
+                      Text(
+                        selectedType == AncodeType.link ? 'URL' : 'Text / Note',
+                        style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: contentController,
+                        maxLines: selectedType == AncodeType.note ? 4 : 1,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          hintText: selectedType == AncodeType.link ? 'https://example.com' : 'Write your note here',
+                          hintStyle: const TextStyle(color: Color(0xFF7C8190)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: Color(0xFFD7D9E0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: Color(0xFFD7D9E0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: AppColors.azzurroCiano, width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                        ),
+                        style: const TextStyle(color: Colors.black),
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Comune',
+                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 8),
+                      TextField(
+                        controller: citySearchController,
+                        onChanged: onSearch,
+                        style: const TextStyle(color: Colors.black),
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          hintText: 'Cerca comune',
+                          hintStyle: const TextStyle(color: Color(0xFF7C8190)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: Color(0xFFD7D9E0)),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: Color(0xFFD7D9E0)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(color: AppColors.azzurroCiano, width: 1.5),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      if (selectedCity != null)
+                        Text(
+                          'Selected: ${selectedCity!.name}',
+                          style: const TextStyle(color: Colors.black87, fontWeight: FontWeight.w600),
+                        ),
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 170,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFD7D9E0)),
+                        ),
+                        child: results.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'Digita almeno 2 caratteri',
+                                  style: TextStyle(color: Colors.black87),
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                itemCount: results.length,
+                                itemBuilder: (_, i) {
+                                  final m = results[i];
+                                  final isSelected = selectedCity?.istatCode == m.istatCode;
+                                  return ListTile(
+                                    dense: true,
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 10),
+                                    title: Text(
+                                      m.name,
+                                      style: const TextStyle(color: Colors.black),
+                                    ),
+                                    trailing: isSelected ? const Icon(Icons.check_circle) : null,
+                                    onTap: () => setStateDialog(() {
+                                      selectedCity = m;
+                                      citySearchController.text = m.name;
+                                    }),
+                                  );
+                                },
+                              ),
+                      ),
+                      if (dialogError != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          dialogError!,
+                          style: const TextStyle(
+                            color: Color(0xFFB42318),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving ? null : () => Navigator.of(ctx).pop(false),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.limeNeobrut,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                  ),
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          setStateDialog(() => saving = true);
+                          try {
+                            await AncodeService.updateCodeDetails(
+                              codeId: code.id,
+                              code: codeController.text.trim(),
+                              type: selectedType,
+                              municipalityId: selectedCity?.istatCode ?? '',
+                              url: selectedType == AncodeType.link ? contentController.text.trim() : null,
+                              noteText: selectedType == AncodeType.note ? contentController.text.trim() : null,
+                            );
+                            if (ctx.mounted) Navigator.of(ctx).pop(true);
+                          } catch (e) {
+                            setStateDialog(() {
+                              saving = false;
+                              dialogError = e.toString();
+                            });
+                          }
+                        },
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    codeController.dispose();
+    contentController.dispose();
+    citySearchController.dispose();
+
+    if (confirmed == true) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Code updated')),
+      );
+      await _load();
+    }
+  }
+
+  Future<void> _deleteCode(Ancode code) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete code'),
+        content: Text('Do you want to delete `*${code.code}`?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await Supabase.instance.client.from('codes').delete().eq('id', code.id);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Code deleted')),
+      );
+      await _load();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthService>();
@@ -319,46 +623,32 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.of(context).maybePop(),
+                          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.bluUniverso),
+                        ),
+                        const SizedBox(width: 4),
+                        const Expanded(
+                          child: Text(
+                            'My created codes',
+                            style: TextStyle(
+                              color: Color(0xFF1E2230),
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
                     const Text(
-                      'Personal Area',
+                      'Manage your created ANCODEs',
                       style: TextStyle(
-                        color: Color(0xFF1E2230),
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      height: 56,
-                      child: FilledButton.icon(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const CreateScreen()),
-                        ).then((_) => _load()),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Generate Ancode', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    SizedBox(
-                      height: 56,
-                      child: FilledButton.icon(
-                        onPressed: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => const ProfileScreen()),
-                        ),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: Colors.black,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        icon: const Icon(Icons.edit),
-                        label: const Text('Edit Profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+                        color: Color(0xFF6C7280),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -374,89 +664,127 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
                         ),
                       )
                     else
-                      ReorderableListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _codes.length,
-                        onReorder: (oldIndex, newIndex) async {
-                          setState(() {
-                            if (newIndex > oldIndex) newIndex -= 1;
-                            final item = _codes.removeAt(oldIndex);
-                            _codes.insert(newIndex, item);
-                          });
-                          await _persistPriorityOrder();
-                        },
-                        itemBuilder: (context, index) {
-                          final c = _codes[index];
-                          return Card(
-                            key: ValueKey(c.id),
-                            margin: const EdgeInsets.only(bottom: 10),
-                            child: ListTile(
-                              leading: const Icon(Icons.drag_indicator),
-                              title: Text('*${c.code}'),
-                              subtitle: Text(
-                                '${c.municipalityId}\n${PlanModeService.expirationLabel(code: c, plan: currentPlan, subscriptionEndDate: subscriptionEnd)}',
+                      ..._codes.map((c) {
+                        final canEdit = currentPlan == PlanModeService.pro || currentPlan == PlanModeService.business;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFE5E5E8)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
-                              isThreeLine: true,
-                              onTap: c.status == AncodeStatus.grace
-                                  ? () => ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('Codice in grace period: non cliccabile'),
-                                        ),
-                                      )
-                                  : () => Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => CodeResolveScreen(code: c.normalizedCode, ancode: c),
-                                        ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '*${c.code}',
+                                      style: const TextStyle(
+                                        color: AppColors.bluUniverso,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w800,
                                       ),
-                              trailing: PopupMenuButton<String>(
-                                itemBuilder: (ctx) => [
-                                  const PopupMenuItem(
-                                    value: 'copy',
-                                    child: ListTile(leading: Icon(Icons.copy), title: Text('Copy link')),
-                                  ),
-                                  const PopupMenuItem(
-                                    value: 'test',
-                                    child: ListTile(leading: Icon(Icons.open_in_new), title: Text('Test')),
-                                  ),
-                                  if (c.isExclusiveItaly)
-                                    const PopupMenuItem(
-                                      value: 'remove_exclusive',
-                                      child: ListTile(leading: Icon(Icons.link_off), title: Text('Remove exclusivity')),
                                     ),
-                                  const PopupMenuItem(
-                                    value: 'change_municipality',
-                                    child: ListTile(leading: Icon(Icons.location_city), title: Text('Change municipality')),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      Clipboard.setData(
+                                        ClipboardData(text: AppConfig.shortlinkFor(c.normalizedCode)),
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Link copied')),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.copy_rounded),
                                   ),
                                 ],
-                                onSelected: (v) {
-                                  if (v == 'copy') {
-                                    Clipboard.setData(
-                                      ClipboardData(text: AppConfig.shortlinkFor(c.normalizedCode)),
-                                    );
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Link copied')),
-                                    );
-                                  } else if (v == 'test') {
-                                    final target = c.isLink && c.url != null
-                                        ? c.url!
-                                        : AppConfig.shortlinkFor(c.normalizedCode);
-                                    launchUrl(Uri.parse(target));
-                                  } else if (v == 'remove_exclusive') {
-                                    _removeExclusive(c);
-                                  } else if (v == 'change_municipality') {
-                                    _changeMunicipality(c, currentPlan);
-                                  }
-                                },
                               ),
-                            ),
-                          );
-                        },
-                      ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Comune: ${c.municipalityId}',
+                                style: const TextStyle(color: AppColors.bluPolvere, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                PlanModeService.expirationLabel(code: c, plan: currentPlan, subscriptionEndDate: subscriptionEnd),
+                                style: const TextStyle(color: AppColors.placeholderGrey),
+                              ),
+                              const SizedBox(height: 14),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _CodeActionButton(
+                                      label: 'Edit',
+                                      icon: Icons.edit_rounded,
+                                      onPressed: canEdit ? () => _editCodeDetails(c, currentPlan) : null,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _CodeActionButton(
+                                      label: 'Delete',
+                                      icon: Icons.delete_outline_rounded,
+                                      backgroundColor: const Color(0xFFF16D79),
+                                      onPressed: () => _deleteCode(c),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
                   ],
                 ),
               ),
+      ),
+    );
+  }
+}
+
+class _CodeActionButton extends StatelessWidget {
+  const _CodeActionButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.backgroundColor = AppColors.bluUniversoDeep,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = onPressed == null;
+    return Opacity(
+      opacity: disabled ? 0.55 : 1,
+      child: SizedBox(
+        height: 48,
+        child: FilledButton.icon(
+          onPressed: onPressed,
+          style: FilledButton.styleFrom(
+            backgroundColor: backgroundColor,
+            foregroundColor: AppColors.biancoOttico,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+          ),
+          icon: Icon(icon, size: 18),
+          label: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+        ),
       ),
     );
   }

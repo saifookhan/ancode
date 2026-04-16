@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared/shared.dart';
 
 import 'app_config.dart';
+import 'plan_mode_service.dart';
 
 class AncodeSearchResult {
   AncodeSearchResult({
@@ -114,6 +115,40 @@ class AncodeService {
     return (res as List).map((r) => Municipality.fromJson(r as Map<String, dynamic>)).toList();
   }
 
+  static Future<List<Municipality>> searchRegionCities(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.length < 2) return listRegionCities();
+    final res = await _client
+        .from('Regions')
+        .select('Citta')
+        .ilike('Citta', '%$trimmed%')
+        .order('Citta', ascending: true)
+        .limit(50);
+    return _mapRegionCities(res as List);
+  }
+
+  static Future<List<Municipality>> listRegionCities() async {
+    final res = await _client
+        .from('Regions')
+        .select('Citta')
+        .order('Citta', ascending: true)
+        .limit(200);
+    return _mapRegionCities(res as List);
+  }
+
+  static List<Municipality> _mapRegionCities(List rows) {
+    final seen = <String>{};
+    final mapped = <Municipality>[];
+    for (final row in rows) {
+      final city = (row as Map<String, dynamic>)['Citta']?.toString().trim() ?? '';
+      if (city.isEmpty) continue;
+      final key = city.toUpperCase();
+      if (!seen.add(key)) continue;
+      mapped.add(Municipality(istatCode: key, name: city));
+    }
+    return mapped;
+  }
+
   static Future<void> createAncode({
     required String code,
     required AncodeType type,
@@ -170,6 +205,50 @@ class AncodeService {
 
   static String shortlinkFor(String code) => AppConfig.shortlinkFor(code);
 
+  static Future<void> updateCodeDetails({
+    required String codeId,
+    required String code,
+    required AncodeType type,
+    required String municipalityId,
+    String? url,
+    String? noteText,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('Accedi per modificare il codice');
+    }
+    final plan = PlanModeService.currentPlan(user);
+    if (plan == PlanModeService.free) {
+      throw Exception('Nel piano FREE i codici non sono modificabili');
+    }
+
+    final normalizedCode = normalizeCodeInput(code);
+    if (normalizedCode.isEmpty || !isValidCodeFormat(normalizedCode)) {
+      throw Exception('Codice non valido');
+    }
+    final normalizedMunicipality = municipalityId.trim().toUpperCase();
+    if (normalizedMunicipality.isEmpty) {
+      throw Exception('Seleziona un Comune valido');
+    }
+    if (type == AncodeType.link && (url == null || url.trim().isEmpty)) {
+      throw Exception('Inserisci il link');
+    }
+    if (type == AncodeType.note && (noteText == null || noteText.trim().isEmpty)) {
+      throw Exception('Inserisci il testo della nota');
+    }
+
+    final values = <String, dynamic>{
+      // Keep update payload compatible with minimal/legacy schemas.
+      'title': normalizedCode,
+      'content_type': type == AncodeType.link ? 'link' : 'text',
+      'area': type == AncodeType.link ? url?.trim() : noteText?.trim(),
+      'municipality_id': normalizedMunicipality,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+
+    await _updateCodeFlexible(codeId, values, user.id);
+  }
+
   static Future<List<Map<String, dynamic>>> _searchRows(String normalized) async {
     final res = await _client
         .from('codes')
@@ -184,6 +263,44 @@ class AncodeService {
       try {
         await _client.from('codes').insert(working);
         return;
+      } catch (e) {
+        final msg = e.toString();
+        final match = RegExp(r"Could not find the '([^']+)' column").firstMatch(msg);
+        if (match == null) rethrow;
+        final missing = match.group(1);
+        if (missing == null || !working.containsKey(missing)) rethrow;
+        if (missing == 'title' || missing == 'content_type' || missing == 'area') rethrow;
+        working.remove(missing);
+      }
+    }
+  }
+
+  static Future<void> _updateCodeFlexible(
+    String codeId,
+    Map<String, dynamic> values,
+    String userId,
+  ) async {
+    final working = Map<String, dynamic>.from(values);
+    while (true) {
+      Object? lastError;
+      for (final ownerColumn in const ['owner_user_id', 'owner_user', 'created_by']) {
+        try {
+          await _client
+              .from('codes')
+              .update(working)
+              .eq('id', codeId)
+              .eq(ownerColumn, userId);
+          return;
+        } catch (e) {
+          lastError = e;
+          final msg = e.toString();
+          if (msg.contains("Could not find the '$ownerColumn' column")) {
+            continue;
+          }
+        }
+      }
+      try {
+        if (lastError != null) throw lastError;
       } catch (e) {
         final msg = e.toString();
         final match = RegExp(r"Could not find the '([^']+)' column").firstMatch(msg);

@@ -116,7 +116,6 @@ class HistoryScreenState extends State<HistoryScreen> {
     }
     return Scaffold(
       body: SafeArea(
-        top: false,
         child: (userId == null || userId.isEmpty)
             ? Center(
                 child: Column(
@@ -150,8 +149,9 @@ class HistoryScreenState extends State<HistoryScreen> {
                         ),
                       )
                     : ListView(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(16, 40, 16, 16),
                         children: [
+                          const SizedBox(height: 16),
                           Text(
                             'History:',
                             style: Theme.of(context).textTheme.titleMedium?.copyWith(

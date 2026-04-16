@@ -6,6 +6,7 @@ import 'package:shared/shared.dart';
 
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
+import 'my_codes_screen.dart';
 import 'plan_selection_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -160,44 +161,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(width: 10),
                             SizedBox(
-                              height: 54,
-                              child: FilledButton(
+                              height: 48,
+                              child: _DashboardPillButton(
                                 onPressed: () => Navigator.of(context).push(
                                   MaterialPageRoute<void>(
                                     builder: (_) => const PlanSelectionScreen(),
                                   ),
                                 ),
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF9A80E8),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                                ),
-                                child: const Text(
-                                  'Upgrade',
-                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                                ),
+                                label: 'Upgrade',
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         SizedBox(
-                          height: 58,
-                          child: FilledButton(
+                          height: 48,
+                          child: _DashboardPillButton(
                             onPressed: _isSaving ? null : () => _saveProfile(user),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: const Color(0xFF9A80E8),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            label: _isSaving ? 'Saving...' : 'Save changes',
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          height: 48,
+                          child: _DashboardPillButton(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(builder: (_) => const MyCodesScreen()),
                             ),
-                            child: _isSaving
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : const Text(
-                                    'Save changes',
-                                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700),
-                                  ),
+                            label: 'My created codes',
                           ),
                         ),
                         const SizedBox(height: 26),
@@ -206,23 +197,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Align(
                           alignment: Alignment.center,
                           child: SizedBox(
-                            height: 56,
-                            width: 270,
-                            child: FilledButton(
+                            height: 48,
+                            width: 220,
+                            child: _DashboardPillButton(
                               onPressed: () async {
                                 await context.read<AuthService>().signOut();
                                 if (context.mounted) {
                                   await context.read<AuthService>().refreshProfile();
                                 }
                               },
-                              style: FilledButton.styleFrom(
-                                backgroundColor: const Color(0xFFF16D79),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              ),
-                              child: const Text(
-                                'Logout your account',
-                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
-                              ),
+                              label: 'Logout',
+                              backgroundColor: const Color(0xFFF16D79),
                             ),
                           ),
                         ),
@@ -285,6 +270,34 @@ class _ProfileField extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: Color(0xFFBFAEF5), width: 1.4),
         ),
+      ),
+    );
+  }
+}
+
+class _DashboardPillButton extends StatelessWidget {
+  const _DashboardPillButton({
+    required this.onPressed,
+    required this.label,
+    this.backgroundColor = const Color(0xFF9A80E8),
+  });
+
+  final VoidCallback? onPressed;
+  final String label;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton(
+      onPressed: onPressed,
+      style: FilledButton.styleFrom(
+        backgroundColor: backgroundColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+        padding: const EdgeInsets.symmetric(horizontal: 18),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
       ),
     );
   }

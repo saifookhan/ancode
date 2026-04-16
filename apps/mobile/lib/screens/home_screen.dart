@@ -197,12 +197,11 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.biancoOttico,
       body: SafeArea(
-        top: false,
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
-              const SizedBox(height: 36),
+              const SizedBox(height: 72),
               const AncodeLogo(
                 size: _logoSize,
                 showName: true,
