@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared/shared.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../services/auth_service.dart';
 import 'register_screen.dart';
@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildAuthDrawer(double screenWidth) {
-    final drawerWidth = (screenWidth * 0.82).clamp(280.0, 360.0);
+    final drawerWidth = (screenWidth * 0.82).clamp(300.0, 380.0);
     return Drawer(
       width: drawerWidth,
       shape: const RoundedRectangleBorder(),
@@ -210,201 +210,200 @@ class _LoginScreenState extends State<LoginScreen> {
             constraints: BoxConstraints(maxWidth: contentWidth),
             child: Center(
               child: Column(
-            children: [
-              const SizedBox(height: 10),
-              Text(
-                'ANCODE',
-                style: TextStyle(
-                  color: titleColor,
-                  fontSize: titleSize,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -1.2,
-                  height: 1,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'L I N K*  Y O U R  L I N K',
-                style: TextStyle(
-                  color: titleColor,
-                  fontSize: compact ? 10 : 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: compact ? 2.4 : 3.2,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'L1NK* YOUR LINK',
-                style: TextStyle(
-                  color: mutedText,
-                  fontSize: heroSize,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1,
-                ),
-              ),
-              const SizedBox(height: 22),
-              Wrap(
-                alignment: WrapAlignment.center,
-                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Text(
-                    'New here? ',
-                    style: TextStyle(color: mutedText, fontSize: bodySize),
-                  ),
-                  GestureDetector(
-                    onTap: _isLoading
-                        ? null
-                        : () => Navigator.of(context).push(
-                              MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                            ),
-                    child: Text(
-                      'Create an account',
-                      style: TextStyle(
-                        color: signInPurple,
-                        fontSize: bodySize,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    'ANCODE',
+                    style: TextStyle(
+                      color: titleColor,
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -1.2,
+                      height: 1,
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 26, 24, 18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: cardBorder),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 18,
-                      offset: const Offset(0, 6),
+                  const SizedBox(height: 4),
+                  Text(
+                    'L I N K*  Y O U R  L I N K',
+                    style: TextStyle(
+                      color: titleColor,
+                      fontSize: compact ? 10 : 12,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: compact ? 2.4 : 3.2,
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'Email *',
-                      style: TextStyle(
-                        color: const Color(0xFF2E3440),
-                        fontSize: labelSize,
-                        fontWeight: FontWeight.w600,
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    'L1NK* YOUR LINK',
+                    style: TextStyle(
+                      color: mutedText,
+                      fontSize: heroSize,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        'New here? ',
+                        style: TextStyle(color: mutedText, fontSize: bodySize),
                       ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _emailController,
-                      style: const TextStyle(color: Colors.black87),
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        hintText: 'name@email.com',
-                        hintStyle: const TextStyle(color: Color(0xFFA8A8B2)),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: fieldBorder),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.lavanda, width: 1.4),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 22),
-                    Text(
-                      'Password *',
-                      style: TextStyle(
-                        color: const Color(0xFF2E3440),
-                        fontSize: labelSize,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    TextField(
-                      controller: _passwordController,
-                      style: const TextStyle(color: Colors.black87),
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        hintText: 'Enter your password',
-                        hintStyle: const TextStyle(color: Color(0xFFA8A8B2)),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide(color: fieldBorder),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: const BorderSide(color: AppColors.lavanda, width: 1.4),
-                        ),
-                        suffixIcon: IconButton(
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                          icon: Icon(
-                            _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                            color: mutedText,
+                      GestureDetector(
+                        onTap: _isLoading
+                            ? null
+                            : () => Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                                ),
+                        child: Text(
+                          'Create an account',
+                          style: TextStyle(
+                            color: signInPurple,
+                            fontSize: bodySize,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                    ),
-                    if (_error != null) ...[
-                      const SizedBox(height: 14),
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.red),
-                      ),
                     ],
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      height: 62,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: signInPurple,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.fromLTRB(24, 26, 24, 18),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: cardBorder),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
                         ),
-                        onPressed: _isLoading ? null : _submit,
-                        child: _isLoading
-                            ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                              )
-                            : Text(
-                                'Sign in',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 20,
-                                ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          'Email *',
+                          style: TextStyle(
+                            color: const Color(0xFF2E3440),
+                            fontSize: labelSize,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _emailController,
+                          style: const TextStyle(color: Colors.black87),
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: InputDecoration(
+                            hintText: 'name@email.com',
+                            hintStyle: const TextStyle(color: Color(0xFFA8A8B2)),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: fieldBorder),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: AppColors.lavanda, width: 1.4),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 22),
+                        Text(
+                          'Password *',
+                          style: TextStyle(
+                            color: const Color(0xFF2E3440),
+                            fontSize: labelSize,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _passwordController,
+                          style: const TextStyle(color: Colors.black87),
+                          obscureText: _obscurePassword,
+                          decoration: InputDecoration(
+                            hintText: 'Enter your password',
+                            hintStyle: const TextStyle(color: Color(0xFFA8A8B2)),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide(color: fieldBorder),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(color: AppColors.lavanda, width: 1.4),
+                            ),
+                            suffixIcon: IconButton(
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                color: mutedText,
                               ),
-                      ),
+                            ),
+                          ),
+                        ),
+                        if (_error != null) ...[
+                          const SizedBox(height: 14),
+                          Text(
+                            _error!,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          height: 62,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: signInPurple,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            ),
+                            onPressed: _isLoading ? null : _submit,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                  )
+                                : const Text(
+                                    'Sign in',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 20,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Forgot your password?',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.black.withOpacity(0.9),
+                            fontSize: labelSize,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Forgot your password?',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.black.withOpacity(0.9),
-                        fontSize: labelSize,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Demo: admin@ancode.com / admin123 o user@example.com / user123',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.black.withOpacity(0.75), fontSize: compact ? 13 : 15),
-              ),
-            ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Demo: admin@ancode.com / admin123 o user@example.com / user123',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.black.withOpacity(0.75), fontSize: compact ? 13 : 15),
+                  ),
+                ],
               ),
             ),
           ),

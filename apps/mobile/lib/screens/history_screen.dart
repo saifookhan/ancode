@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../services/auth_service.dart';
 import '../services/ancode_service.dart';
 import 'auth/login_screen.dart';
 import 'code_resolve_screen.dart';
@@ -9,12 +11,13 @@ class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  State<HistoryScreen> createState() => HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class HistoryScreenState extends State<HistoryScreen> {
   List<Map<String, dynamic>> _history = [];
   bool _loading = true;
+  String? _lastUserId;
 
   @override
   void initState() {
@@ -22,20 +25,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _load();
   }
 
-  Future<void> _load() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) {
+  Future<void> reload() => _load();
+
+  Future<void> _load([String? forcedUserId]) async {
+    final auth = context.read<AuthService>();
+    final userId = forcedUserId ?? Supabase.instance.client.auth.currentUser?.id ?? auth.profile?.userId;
+    if (userId == null || userId.isEmpty) {
       setState(() {
         _history = [];
         _loading = false;
+        _lastUserId = null;
       });
       return;
     }
     try {
       final res = await Supabase.instance.client
           .from('search_history')
-          .select('code, searched_at')
-          .eq('user_id', user.id)
+          .select('*')
+          .eq('user_id', userId)
           .order('searched_at', ascending: false)
           .limit(50);
       final seen = <String>{};
@@ -44,13 +51,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final code = (r['code'] as String).toUpperCase().replaceAll(RegExp(r'[\s*]'), '');
         if (!seen.contains(code)) {
           seen.add(code);
-          deduped.add(Map<String, dynamic>.from(r));
+          deduped.add({
+            'code': code,
+            'searched_at': r['searched_at'] ?? r['created_at'] ?? r['updated_at'],
+          });
         }
       }
       if (mounted) {
         setState(() {
           _history = deduped;
           _loading = false;
+          _lastUserId = userId;
         });
       }
     } catch (e) {
@@ -63,7 +74,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  Future<void> _onTapCode(String code) async {
+  Future<void> _openHistoryCode(String code) async {
     final result = await AncodeService.search(code);
     if (!mounted) return;
     if (result.uniqueMatch != null) {
@@ -76,28 +87,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ),
       );
-    } else if (result.multipleMatches != null && result.multipleMatches!.length == 1) {
-      final a = result.multipleMatches!.first;
+      return;
+    }
+    if (result.multipleMatches != null && result.multipleMatches!.isNotEmpty) {
+      final first = result.multipleMatches!.first;
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => CodeResolveScreen(code: a.normalizedCode, ancode: a),
+          builder: (_) => CodeResolveScreen(
+            code: first.normalizedCode,
+            ancode: first,
+          ),
         ),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(result.error ?? 'Codice non trovato')),
-      );
+      return;
     }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.error ?? 'Codice non trovato')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final user = Supabase.instance.client.auth.currentUser;
+    final auth = context.watch<AuthService>();
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? auth.profile?.userId;
+    if (userId != null && userId.isNotEmpty && _lastUserId != userId && !_loading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _load(userId));
+    }
     return Scaffold(
       body: SafeArea(
         top: false,
-        child: user == null
+        child: (userId == null || userId.isEmpty)
             ? Center(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -152,11 +172,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             return ListTile(
                               contentPadding: EdgeInsets.zero,
                               title: Text('*$code'),
-                              subtitle: at != null
-                                  ? Text(DateTime.parse(at).toString().substring(0, 16))
-                                  : null,
+                              subtitle: at != null ? Text(DateTime.parse(at).toString().substring(0, 16)) : null,
                               trailing: const Icon(Icons.arrow_forward),
-                              onTap: () => _onTapCode(code),
+                              onTap: () => _openHistoryCode(code),
                             );
                           }),
                         ],

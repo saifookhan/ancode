@@ -74,6 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         data: {
           'name': _nameController.text.trim(),
           'surname': _surnameController.text.trim(),
+          'plan': 'free',
         },
       );
       final newUser = authRes.user;
@@ -83,10 +84,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
             'user_id': newUser.id,
             'email': _emailController.text.trim(),
             'name': '${_nameController.text.trim()} ${_surnameController.text.trim()}'.trim(),
+            'plan': 'free',
           }, onConflict: 'user_id');
-        } catch (_) {
-          // Trigger-based setups may already create this row.
-        }
+        } catch (_) {}
+        try {
+          await client.from('subscriptions').upsert({
+            'user_id': newUser.id,
+            'plan': 'free',
+            'status': 'canceled',
+          }, onConflict: 'user_id');
+        } catch (_) {}
       }
       if (!mounted) return;
       await Provider.of<AuthService>(context, listen: false).refreshProfile();
@@ -141,64 +148,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildAuthDrawer(double screenWidth) {
-    final drawerWidth = (screenWidth * 0.82).clamp(280.0, 360.0);
-    return Drawer(
-      width: drawerWidth,
-      shape: const RoundedRectangleBorder(),
-      backgroundColor: Colors.white,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: Row(
-                children: [
-                  Image.asset('assets/logo_mark.png', width: 54, height: 54, fit: BoxFit.contain),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.close, size: 32, color: Color(0xFF4D5662)),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1, color: Color(0xFFE6E6E6)),
-            const SizedBox(height: 30),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 34),
-              child: Text('FAQ', style: TextStyle(color: Color(0xFF4D5662), fontSize: 24, fontWeight: FontWeight.w500)),
-            ),
-            const SizedBox(height: 30),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 34),
-              child: Text('Useage Ideas', style: TextStyle(color: Color(0xFF4D5662), fontSize: 24, fontWeight: FontWeight.w500)),
-            ),
-            const SizedBox(height: 34),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26),
-              child: SizedBox(
-                height: 70,
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).maybePop();
-                    Navigator.of(context).maybePop();
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Sign In', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final mutedText = const Color(0xFF8C8C9A);
@@ -215,7 +164,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: AppColors.biancoOttico,
-      endDrawer: _buildAuthDrawer(screenWidth),
       appBar: AppBar(
         backgroundColor: AppColors.biancoOttico,
         foregroundColor: Colors.black87,
@@ -226,15 +174,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           child: Image.asset('assets/logo_mark.png', width: 34, height: 34, fit: BoxFit.contain),
         ),
         leadingWidth: 58,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: IconButton(
-              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-              icon: const Icon(Icons.menu_rounded, size: 32),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

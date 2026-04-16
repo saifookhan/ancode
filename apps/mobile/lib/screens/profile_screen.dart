@@ -6,6 +6,7 @@ import 'package:shared/shared.dart';
 
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
+import 'plan_selection_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -71,6 +72,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _surnameController.text = (_surnameController.text.isEmpty ? (metadata['surname']?.toString() ?? '') : _surnameController.text);
         final email = user.email ?? '';
         if (_emailController.text != email) _emailController.text = email;
+        final rawPlan = user.userMetadata?['plan']?.toString().toLowerCase() ?? 'free';
+        final displayPlan = rawPlan.isEmpty ? 'Free' : '${rawPlan[0].toUpperCase()}${rawPlan.substring(1)}';
 
         return Scaffold(
           backgroundColor: AppColors.biancoOttico,
@@ -130,6 +133,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const _FieldLabel('E-mail *'),
                         const SizedBox(height: 10),
                         _ProfileField(controller: _emailController, readOnly: true),
+                        const SizedBox(height: 18),
+                        const _FieldLabel('Our plan'),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                height: 54,
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.symmetric(horizontal: 18),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF8F8FB),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: const Color(0xFFD8D8E1)),
+                                ),
+                                child: Text(
+                                  displayPlan,
+                                  style: const TextStyle(
+                                    color: Color(0xFF2E3440),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            SizedBox(
+                              height: 54,
+                              child: FilledButton(
+                                onPressed: () => Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (_) => const PlanSelectionScreen(),
+                                  ),
+                                ),
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: const Color(0xFF9A80E8),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                                ),
+                                child: const Text(
+                                  'Upgrade',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                         const SizedBox(height: 24),
                         SizedBox(
                           height: 58,

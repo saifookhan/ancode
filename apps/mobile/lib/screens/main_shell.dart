@@ -10,30 +10,42 @@ import 'auth/login_screen.dart';
 import 'create_screen.dart';
 import 'history_screen.dart';
 import 'home_screen.dart';
-import 'my_codes_screen.dart';
+import 'profile_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  State<MainShell> createState() => MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
-  int _currentIndex = 1; // History, Search, Create, Dashboard
+class MainShellState extends State<MainShell> {
+  int _currentIndex = 1; // Cronologia, Cerca, Crea, Dashboard
   StreamSubscription<String>? _siriSubscription;
-  final _screens = const [
-    HistoryScreen(),
-    HomeScreen(),
-    CreateScreen(),
-    MyCodesScreen(),
+  final GlobalKey<HistoryScreenState> _historyKey = GlobalKey<HistoryScreenState>();
+
+  late final List<Widget> _screens = <Widget>[
+    HistoryScreen(key: _historyKey),
+    const HomeScreen(),
+    const CreateScreen(),
+    const ProfileScreen(),
   ];
 
   static const int _searchIndex = 1;
+  static const int createIndex = 2;
+  static const int _createIndex = 2;
+
+  void goToTab(int index) {
+    if (!mounted) return;
+    setState(() => _currentIndex = index);
+    if (index == 0) {
+      _historyKey.currentState?.reload();
+    }
+  }
 
   void _onBottomNavTap(int i) {
     if (i == _searchIndex) {
-      setState(() => _currentIndex = _searchIndex);
+      goToTab(_searchIndex);
       return;
     }
     final auth = context.read<AuthService>();
@@ -43,7 +55,7 @@ class _MainShellState extends State<MainShell> {
       );
       return;
     }
-    setState(() => _currentIndex = i);
+    goToTab(i);
   }
 
   @override
@@ -63,8 +75,11 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final shellBackground = (_currentIndex == _createIndex || _currentIndex == 0)
+        ? AppColors.bluUniverso
+        : AppColors.biancoOttico;
     return Scaffold(
-      backgroundColor: AppColors.biancoOttico,
+      backgroundColor: shellBackground,
       body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: AncodeBottomNavBar(
         currentIndex: _currentIndex,
