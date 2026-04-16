@@ -216,152 +216,153 @@ class _CreateScreenState extends State<CreateScreen> {
           child: Form(
             key: _formKey,
             child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Crea nuovo ANCODE',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.biancoOttico, fontSize: 44, fontWeight: FontWeight.w700),
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 6),
+                const Text(
+                  'Crea nuovo ANCODE',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.biancoOttico, fontSize: 44, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Genera il tuo codice personalizzato',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.75), fontSize: 17, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 30),
+                Text(
+                  'Inserisci il tuo ANCODE',
+                  style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.92), fontSize: 36, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  decoration: _fieldDecoration(),
+                  child: TextFormField(
+                    controller: _codeController,
+                    style: const TextStyle(color: AppColors.bluUniverso, fontSize: 16),
+                    decoration: const InputDecoration(
+                      hintText: 'es. Sito Web Personale',
+                      hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 15),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                    ),
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: const [_codeInputFormatter],
+                    onChanged: (value) {
+                      _onCodeChanged(value);
+                      setState(() {});
+                    },
+                    validator: (v) => validateCode(v ?? ''),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Genera il tuo codice personalizzato',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.75), fontSize: 17, fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    'Inserisci il tuo ANCODE',
-                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.92), fontSize: 36, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 10),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Max 30 caratteri, solo lettere maiuscole e numeri, simboli e spazi non ammessi.',
+                  style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.72), fontSize: 12),
+                ),
+                const SizedBox(height: 22),
+                Text('Tipo di contenuto', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontWeight: FontWeight.w500, fontSize: 14)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(child: _typeButton(label: 'Link / URL', selected: _isLink, onTap: () => setState(() => _isLink = true))),
+                    const SizedBox(width: 12),
+                    Expanded(child: _typeButton(label: 'Nota/Testo', selected: !_isLink, onTap: () => setState(() => _isLink = false))),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Text(_isLink ? 'Inserisci il link che vuoi connettere all\'ANCODE' : 'Inserisci la tua nota', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.85), fontSize: 14)),
+                const SizedBox(height: 8),
+                if (_isLink)
                   Container(
                     decoration: _fieldDecoration(),
                     child: TextFormField(
-                      controller: _codeController,
-                      style: const TextStyle(color: AppColors.bluUniverso, fontSize: 16),
+                      controller: _urlController,
                       decoration: const InputDecoration(
-                        hintText: 'es. Sito Web Personale',
+                        hintText: 'https://espenp.io',
                         hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 15),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
                       ),
-                      textCapitalization: TextCapitalization.characters,
-                      inputFormatters: const [_codeInputFormatter],
-                      onChanged: (value) {
-                        _onCodeChanged(value);
-                        setState(() {});
-                      },
-                      validator: (v) => validateCode(v ?? ''),
+                      style: const TextStyle(color: AppColors.bluUniverso, fontSize: 16),
+                      keyboardType: TextInputType.url,
+                      validator: (v) => _isLink && (v == null || v.trim().isEmpty) ? 'Inserisci URL' : null,
+                    ),
+                  )
+                else
+                  Container(
+                    decoration: _fieldDecoration(),
+                    child: TextFormField(
+                      controller: _noteController,
+                      decoration: const InputDecoration(
+                        hintText: 'Scrivi qui...',
+                        hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 15),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                      ),
+                      style: const TextStyle(color: AppColors.bluUniverso, fontSize: 16),
+                      maxLines: 4,
+                      validator: (v) => !_isLink && (v == null || v.trim().isEmpty) ? 'Inserisci testo' : null,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'Max 30 caratteri, solo lettere maiuscole e numeri, simboli e spazi non ammessi.',
-                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.72), fontSize: 12),
-                  ),
-                  const SizedBox(height: 22),
-                  Text('Tipo di contenuto', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontWeight: FontWeight.w500, fontSize: 14)),
+                const SizedBox(height: 20),
+                Text('Comune', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: 14)),
+                const SizedBox(height: 8),
+                _ComunePicker(selected: _selectedComune, onSelected: (m) => setState(() => _selectedComune = m)),
+                if (isBusinessPlan) ...[
+                  const SizedBox(height: 20),
+                  Text('Schedule start/end (opzionale)', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: 14)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(child: _typeButton(label: 'Link / URL', selected: _isLink, onTap: () => setState(() => _isLink = true))),
-                      const SizedBox(width: 12),
-                      Expanded(child: _typeButton(label: 'Nota/Testo', selected: !_isLink, onTap: () => setState(() => _isLink = false))),
+                      Expanded(child: OutlinedButton(onPressed: () => _pickScheduleDate(isStart: true), child: Text(_scheduleStart == null ? 'Start Date' : _scheduleStart!.toLocal().toIso8601String().split('T').first))),
+                      const SizedBox(width: 10),
+                      Expanded(child: OutlinedButton(onPressed: () => _pickScheduleDate(isStart: false), child: Text(_scheduleEnd == null ? 'End Date' : _scheduleEnd!.toLocal().toIso8601String().split('T').first))),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  Text(_isLink ? 'Inserisci il link che vuoi connettere all\'ANCODE' : 'Inserisci la tua nota', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.85), fontSize: 14)),
-                  const SizedBox(height: 8),
-                  if (_isLink)
-                    Container(
-                      decoration: _fieldDecoration(),
-                      child: TextFormField(
-                        controller: _urlController,
-                        decoration: const InputDecoration(
-                          hintText: 'https://espenp.io',
-                          hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 15),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-                        ),
-                        style: const TextStyle(color: AppColors.bluUniverso, fontSize: 16),
-                        keyboardType: TextInputType.url,
-                        validator: (v) => _isLink && (v == null || v.trim().isEmpty) ? 'Inserisci URL' : null,
-                      ),
-                    )
-                  else
-                    Container(
-                      decoration: _fieldDecoration(),
-                      child: TextFormField(
-                        controller: _noteController,
-                        decoration: const InputDecoration(
-                          hintText: 'Scrivi qui...',
-                          hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 15),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
-                        ),
-                        style: const TextStyle(color: AppColors.bluUniverso, fontSize: 16),
-                        maxLines: 4,
-                        validator: (v) => !_isLink && (v == null || v.trim().isEmpty) ? 'Inserisci testo' : null,
-                      ),
-                    ),
-                  const SizedBox(height: 20),
-                  Text('Comune', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: 14)),
-                  const SizedBox(height: 8),
-                  _ComunePicker(selected: _selectedComune, onSelected: (m) => setState(() => _selectedComune = m)),
-                  if (isBusinessPlan) ...[
-                    const SizedBox(height: 20),
-                    Text('Schedule start/end (opzionale)', style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.9), fontSize: 14)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(child: OutlinedButton(onPressed: () => _pickScheduleDate(isStart: true), child: Text(_scheduleStart == null ? 'Start Date' : _scheduleStart!.toLocal().toIso8601String().split('T').first))),
-                        const SizedBox(width: 10),
-                        Expanded(child: OutlinedButton(onPressed: () => _pickScheduleDate(isStart: false), child: Text(_scheduleEnd == null ? 'End Date' : _scheduleEnd!.toLocal().toIso8601String().split('T').first))),
-                      ],
-                    ),
-                  ],
-                  const SizedBox(height: 18),
-                  CheckboxListTile(
-                    value: _isExclusive,
-                    onChanged: (v) => setState(() => _isExclusive = v ?? false),
-                    contentPadding: EdgeInsets.zero,
-                    title: Text(
-                      'Rendi questo codice esclusivo (previeni che venga usato in altre localita)',
-                      style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.86), fontSize: isPhone ? 12 : 28),
-                    ),
-                    activeColor: AppColors.biancoOttico,
-                    checkColor: AppColors.bluUniverso,
-                    controlAffinity: ListTileControlAffinity.leading,
+                ],
+                const SizedBox(height: 18),
+                CheckboxListTile(
+                  value: _isExclusive,
+                  onChanged: (v) => setState(() => _isExclusive = v ?? false),
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    'Rendi questo codice esclusivo (previeni che venga usato in altre localita)',
+                    style: TextStyle(color: AppColors.biancoOttico.withOpacity(0.86), fontSize: isPhone ? 12 : 28),
                   ),
-                  if (_error != null) ...[
-                    const SizedBox(height: 8),
-                    Text(_error!, style: const TextStyle(color: AppColors.verdeCosmico)),
-                  ],
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: _isCreating
-                        ? null
-                        : () {
-                            if (_formKey.currentState!.validate() && _selectedComune != null) {
-                              _commit();
-                            } else if (_selectedComune == null) {
-                              setState(() => _error = 'Seleziona un Comune');
-                            }
-                          },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.biancoOttico,
-                      foregroundColor: AppColors.bluUniverso,
-                      minimumSize: const Size.fromHeight(58),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius)),
-                    ),
-                    child: _isCreating
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bluUniverso))
-                        : const Text('Genera codice', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                  activeColor: AppColors.biancoOttico,
+                  checkColor: AppColors.bluUniverso,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(_error!, style: const TextStyle(color: AppColors.verdeCosmico)),
+                ],
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _isCreating
+                      ? null
+                      : () {
+                          if (_formKey.currentState!.validate() && _selectedComune != null) {
+                            _commit();
+                          } else if (_selectedComune == null) {
+                            setState(() => _error = 'Seleziona un Comune');
+                          }
+                        },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.biancoOttico,
+                    foregroundColor: AppColors.bluUniverso,
+                    minimumSize: const Size.fromHeight(58),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius)),
                   ),
-              const SizedBox(height: 80),
-            ],
+                  child: _isCreating
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bluUniverso))
+                      : const Text('Genera codice', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+                ),
+                const SizedBox(height: 80),
+              ],
+            ),
           ),
         ),
       ),
