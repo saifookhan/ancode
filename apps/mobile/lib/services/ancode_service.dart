@@ -109,6 +109,11 @@ class AncodeService {
         .toList();
   }
 
+  static Future<List<Municipality>> listMunicipalities({int limit = 20}) async {
+    final res = await _client.from('municipalities').select().limit(limit);
+    return (res as List).map((r) => Municipality.fromJson(r as Map<String, dynamic>)).toList();
+  }
+
   static Future<void> createAncode({
     required String code,
     required AncodeType type,

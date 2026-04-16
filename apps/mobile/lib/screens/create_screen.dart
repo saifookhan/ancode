@@ -7,9 +7,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pdf/widgets.dart' as pw;
 
-import 'package:shared/shared.dart' hide AppTheme;
+import 'package:shared/shared.dart';
 
-import '../theme/app_theme.dart';
 import 'auth/login_screen.dart';
 import '../services/ancode_service.dart';
 import '../services/app_config.dart';
@@ -147,8 +146,6 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Future<void> _createOne(_DraftCode d) async {
-    final plan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
-    final isBusinessPlan = plan == PlanModeService.business;
     await AncodeService.createAncode(
       code: d.code,
       type: d.type,
@@ -156,8 +153,6 @@ class _CreateScreenState extends State<CreateScreen> {
       isExclusiveItaly: _isExclusive,
       url: d.url,
       noteText: d.noteText,
-      scheduleStart: isBusinessPlan ? _scheduleStart : null,
-      scheduleEnd: isBusinessPlan ? _scheduleEnd : null,
     );
   }
 
@@ -213,16 +208,14 @@ class _CreateScreenState extends State<CreateScreen> {
         onDone: () => setState(() => _createdAncode = null),
       );
     }
-    return Theme(
-      data: AppTheme.dark,
-      child: Scaffold(
-        backgroundColor: AppColors.bluUniverso,
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
+    return Scaffold(
+      backgroundColor: AppColors.bluUniverso,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Form(
+            key: _formKey,
+            child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const SizedBox(height: 6),
@@ -367,10 +360,8 @@ class _CreateScreenState extends State<CreateScreen> {
                         ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bluUniverso))
                         : const Text('Genera codice', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
                   ),
-                  const SizedBox(height: 80),
-                ],
-              ),
-            ),
+              const SizedBox(height: 80),
+            ],
           ),
         ),
       ),
