@@ -149,22 +149,37 @@ class HistoryScreenState extends State<HistoryScreen> {
                             ),
                       ),
                     )
-                  : ListView.builder(
+                  : ListView(
                       padding: const EdgeInsets.all(16),
-                      itemCount: _history.length,
-                      itemBuilder: (context, i) {
-                        final h = _history[i];
-                        final code = h['code'] as String? ?? '';
-                        final at = h['searched_at'] as String?;
-                        return ListTile(
-                          title: Text('*$code'),
-                          subtitle: at != null
-                              ? Text(DateTime.parse(at).toString().substring(0, 16))
-                              : null,
-                          trailing: const Icon(Icons.arrow_forward),
-                          onTap: () => _openHistoryCode(code),
-                        );
-                      },
+                      children: [
+                        Text(
+                          'History:',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 24,
+                                color: Colors.white,
+                              ) ??
+                              const TextStyle(
+                                fontWeight: FontWeight.w700,
+                                fontSize: 24,
+                                color: Colors.white,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        ..._history.map((h) {
+                          final code = h['code'] as String? ?? '';
+                          final at = h['searched_at'] as String?;
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('*$code'),
+                            subtitle: at != null
+                                ? Text(DateTime.parse(at).toString().substring(0, 16))
+                                : null,
+                            trailing: const Icon(Icons.arrow_forward),
+                            onTap: () => _openHistoryCode(code),
+                          );
+                        }),
+                      ],
                     )
       ),
     );

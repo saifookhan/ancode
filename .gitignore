@@ -12,6 +12,8 @@ build/
 apps/*/build/
 apps/*/.dart_tool/
 apps/*/.packages
+apps/*/.flutter-plugins-dependencies
+apps/*/c/
 
 # Environment
 .env
