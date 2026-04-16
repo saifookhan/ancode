@@ -205,6 +205,32 @@ class AncodeService {
 
   static String shortlinkFor(String code) => AppConfig.shortlinkFor(code);
 
+  static Future<void> updateCodeMunicipality({
+    required String codeId,
+    required String municipalityId,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      throw Exception('Accedi per modificare il codice');
+    }
+    final plan = PlanModeService.currentPlan(user);
+    if (plan == PlanModeService.free) {
+      throw Exception('Nel piano FREE i codici non sono modificabili');
+    }
+
+    final normalizedMunicipality = municipalityId.trim().toUpperCase();
+    if (normalizedMunicipality.isEmpty) {
+      throw Exception('Seleziona un Comune valido');
+    }
+
+    final values = <String, dynamic>{
+      'municipality_id': normalizedMunicipality,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    };
+
+    await _updateCodeFlexible(codeId, values, user.id);
+  }
+
   static Future<void> updateCodeDetails({
     required String codeId,
     required String code,
