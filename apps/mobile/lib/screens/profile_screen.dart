@@ -137,43 +137,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         const SizedBox(height: 18),
                         const _FieldLabel('Our plan'),
                         const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Container(
-                                height: 54,
-                                alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.symmetric(horizontal: 18),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF8F8FB),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: const Color(0xFFD8D8E1)),
-                                ),
-                                child: Text(
-                                  displayPlan,
-                                  style: const TextStyle(
-                                    color: Color(0xFF2E3440),
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                        WhiteLimePillSurface(
+                          height: 54,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 18),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                displayPlan,
+                                style: const TextStyle(
+                                  color: Color(0xFF2E3440),
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            SizedBox(
-                              height: 58,
-                              child: _DashboardPillButton(
-                                onPressed: () => Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (_) => const PlanSelectionScreen(),
-                                  ),
-                                ),
-                                label: 'Upgrade',
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: 58,
+                          child: _DashboardPillButton(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => const PlanSelectionScreen(),
+                              ),
+                            ),
+                            label: 'Upgrade',
+                          ),
+                        ),
+                        const SizedBox(height: 14),
                         SizedBox(
                           height: 58,
                           child: _DashboardPillButton(

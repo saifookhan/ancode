@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -104,25 +105,21 @@ class CodeResolveScreen extends StatelessWidget {
                 label: 'Download QR',
                 height: 58,
                 onPressed: () async {
-                  await Printing.layoutPdf(
-                    onLayout: (format) async {
-                      final pdf = pw.Document();
-                      pdf.addPage(
-                        pw.Page(
-                          pageFormat: format,
-                          build: (ctx) => pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text('*${a.code}', style: pw.TextStyle(fontSize: 24)),
-                              pw.SizedBox(height: 16),
-                              pw.Text(shortlink, style: const pw.TextStyle(fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      );
-                      return pdf.save();
-                    },
-                  );
+                  try {
+                    await Printing.layoutPdf(
+                      onLayout: (format) => _buildQrPdf(
+                        format: format,
+                        ancode: a,
+                        shortlink: shortlink,
+                        expirationMessage: expirationMessage,
+                      ),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('QR export failed: $e')),
+                    );
+                  }
                 },
               ),
               const SizedBox(height: 8),
@@ -143,7 +140,13 @@ class CodeResolveScreen extends StatelessWidget {
                 onPressed: () async {
                   try {
                     await SharePlus.instance.share(ShareParams(text: shortlink));
-                  } catch (_) {}
+                  } catch (_) {
+                    await Clipboard.setData(ClipboardData(text: shortlink));
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Share unavailable. Link copied instead.')),
+                    );
+                  }
                 },
               ),
               const SizedBox(height: 8),
@@ -155,9 +158,18 @@ class CodeResolveScreen extends StatelessWidget {
                       ? null
                       : () async {
                           Supabase.instance.client.from('clicks').insert({'ancode_id': a.id});
-                          final uri = Uri.tryParse(directTarget);
+                          final uri = _normalizedUri(directTarget);
                           if (uri != null) {
-                            await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                            if (!opened && context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Could not open link')),
+                              );
+                            }
+                          } else if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Invalid link format')),
+                            );
                           }
                         },
                 ),
@@ -189,5 +201,116 @@ class CodeResolveScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<Uint8List> _buildQrPdf({
+    required PdfPageFormat format,
+    required Ancode ancode,
+    required String shortlink,
+    required String expirationMessage,
+  }) async {
+    final pdf = pw.Document();
+    pdf.addPage(
+      pw.Page(
+        pageFormat: format,
+        build: (ctx) {
+          return pw.Container(
+            padding: const pw.EdgeInsets.all(20),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+              children: [
+                pw.Text(
+                  'ANCODE Print Layout',
+                  textAlign: pw.TextAlign.center,
+                  style: pw.TextStyle(
+                    fontSize: 22,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.indigo900,
+                  ),
+                ),
+                pw.SizedBox(height: 8),
+                pw.Text(
+                  'Scan to access this ANCODE',
+                  textAlign: pw.TextAlign.center,
+                  style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
+                ),
+                pw.SizedBox(height: 18),
+                pw.Center(
+                  child: pw.BarcodeWidget(
+                    data: shortlink,
+                    width: 150,
+                    height: 150,
+                    barcode: pw.Barcode.qrCode(),
+                  ),
+                ),
+                pw.SizedBox(height: 10),
+                pw.Center(
+                  child: pw.Container(
+                    padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: pw.BoxDecoration(
+                      color: PdfColors.indigo900,
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Text(
+                      ancode.code.toUpperCase(),
+                      style: pw.TextStyle(
+                        fontSize: 12,
+                        fontWeight: pw.FontWeight.bold,
+                        color: PdfColors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                pw.SizedBox(height: 16),
+                _pdfRow('Type', ancode.isLink ? 'link' : 'text'),
+                _pdfRow('Comune', ancode.municipality?.name ?? ancode.municipalityId),
+                _pdfRow('Duration', expirationMessage),
+                _pdfRow('Content', ancode.isLink ? (ancode.url ?? '') : (ancode.noteText ?? '')),
+                pw.SizedBox(height: 14),
+                _pdfRow('Short link', shortlink),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+    return pdf.save();
+  }
+
+  pw.Widget _pdfRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 6),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 70,
+            child: pw.Text(
+              '$label:',
+              style: pw.TextStyle(
+                fontSize: 10,
+                fontWeight: pw.FontWeight.bold,
+                color: PdfColors.grey700,
+              ),
+            ),
+          ),
+          pw.Expanded(
+            child: pw.Text(
+              value.isEmpty ? '—' : value,
+              textAlign: pw.TextAlign.right,
+              style: const pw.TextStyle(fontSize: 10),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Uri? _normalizedUri(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) return null;
+    final parsed = Uri.tryParse(trimmed);
+    if (parsed != null && parsed.hasScheme) return parsed;
+    return Uri.tryParse('https://$trimmed');
   }
 }
