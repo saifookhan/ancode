@@ -124,141 +124,164 @@ class _HomeScreenState extends State<HomeScreen> {
     final tailGap = isPhone ? 24.0 : 100.0;
     final hasUniqueMatch = _lastResult?.uniqueMatch != null;
 
+    final logoAndCard = <Widget>[
+      const AncodeLogo(
+        size: _logoSize,
+        showName: true,
+        logoAssetPath: 'assets/logo.png',
+        subtitle: 'CERCA O CREA',
+        subtitleFontSize: 22,
+        nameColor: AppColors.lavanda,
+        nameFontSize: 44,
+      ),
+      SizedBox(height: logoSectionGap),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+        decoration: BoxDecoration(
+          color: AppColors.biancoOttico,
+          borderRadius: BorderRadius.circular(26),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            WhiteLimePillSurface(
+              height: 58,
+              shadowDepth: 8,
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                decoration: const InputDecoration(
+                  hintText: 'INSERISCI ANCODE',
+                  hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                ),
+                style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
+                textCapitalization: TextCapitalization.characters,
+                autocorrect: false,
+                inputFormatters: const [_codeInputFormatter],
+                onChanged: _onCodeChanged,
+                onSubmitted: _onSearchSubmitted,
+              ),
+            ),
+            const SizedBox(height: 16),
+            LimeRailPillButton(
+              label: 'CERCA',
+              height: 58,
+              loading: _isSearching,
+              onPressed: _isSearching
+                  ? null
+                  : () => hasUniqueMatch ? _goToContent() : _onSearchSubmitted(_controller.text),
+            ),
+            const SizedBox(height: 12),
+            WhiteLimePillButton(
+              label: 'CREA',
+              height: 58,
+              onPressed: () {
+                final auth = context.read<AuthService>();
+                if (!auth.isLoggedIn) {
+                  Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+                  );
+                  return;
+                }
+                final shell = context.findAncestorStateOfType<MainShellState>();
+                if (shell != null) {
+                  shell.goToTab(MainShellState.createIndex);
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CreateScreen(
+                      prefillCode: _normalizeCodeInput(_controller.text),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.biancoOttico,
       body: SafeArea(
         child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Column(
-                mainAxisAlignment: idleCentered ? MainAxisAlignment.center : MainAxisAlignment.start,
-                children: [
-              if (!idleCentered) SizedBox(height: topGap),
-              const AncodeLogo(
-                size: _logoSize,
-                showName: true,
-                logoAssetPath: 'assets/logo.png',
-                subtitle: 'CERCA O CREA',
-                subtitleFontSize: 22,
-                nameColor: AppColors.lavanda,
-                nameFontSize: 44,
-              ),
-              SizedBox(height: logoSectionGap),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
-                decoration: BoxDecoration(
-                  color: AppColors.biancoOttico,
-                  borderRadius: BorderRadius.circular(26),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.07),
-                      blurRadius: 24,
-                      offset: const Offset(0, 10),
+          builder: (context, constraints) {
+            final minH = constraints.maxHeight;
+            final scrollChild = idleCentered
+                ? Align(
+                    alignment: const Alignment(0, -0.42),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: logoAndCard,
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    WhiteLimePillSurface(
-                      height: 58,
-                      shadowDepth: 8,
-                      child: TextField(
-                        controller: _controller,
-                        focusNode: _focusNode,
-                        decoration: const InputDecoration(
-                          hintText: 'INSERISCI ANCODE',
-                          hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-                        ),
-                        style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
-                        textCapitalization: TextCapitalization.characters,
-                        autocorrect: false,
-                        inputFormatters: const [_codeInputFormatter],
-                        onChanged: _onCodeChanged,
-                        onSubmitted: _onSearchSubmitted,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    LimeRailPillButton(
-                      label: 'CERCA',
-                      height: 58,
-                      loading: _isSearching,
-                      onPressed: _isSearching
-                          ? null
-                          : () => hasUniqueMatch ? _goToContent() : _onSearchSubmitted(_controller.text),
-                    ),
-                    const SizedBox(height: 12),
-                    WhiteLimePillButton(
-                      label: 'CREA',
-                      height: 58,
-                      onPressed: () {
-                        final auth = context.read<AuthService>();
-                        if (!auth.isLoggedIn) {
-                          Navigator.of(context).push<void>(
-                            MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-                          );
-                          return;
-                        }
-                        final shell = context.findAncestorStateOfType<MainShellState>();
-                        if (shell != null) {
-                          shell.goToTab(MainShellState.createIndex);
-                          return;
-                        }
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => CreateScreen(
-                              prefillCode: _normalizeCodeInput(_controller.text),
-                            ),
+                  )
+                : Column(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SizedBox(height: topGap),
+                      ...logoAndCard,
+                      if (_lastResult?.error != null) ...[
+                        const SizedBox(height: 24),
+                        Text(_lastResult!.error!, style: const TextStyle(color: AppColors.bluPolvere)),
+                      ],
+                      if (_lastResult?.multipleMatches != null && _lastResult!.multipleMatches!.isNotEmpty) ...[
+                        const SizedBox(height: 24),
+                        ..._lastResult!.multipleMatches!.map(
+                          (a) => ListTile(
+                            title: Text(a.code, style: const TextStyle(color: AppColors.bluPolvere)),
+                            subtitle: Text(a.municipality?.name ?? '', style: const TextStyle(color: AppColors.placeholderGrey)),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => CodeResolveScreen(
+                                  code: a.normalizedCode,
+                                  ancode: a,
+                                ),
+                              ),
+                            ).then((_) => _onCodeResolved()),
                           ),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              if (_lastResult?.error != null) ...[
-                const SizedBox(height: 24),
-                Text(_lastResult!.error!, style: const TextStyle(color: AppColors.bluPolvere)),
-              ],
-              if (_lastResult?.multipleMatches != null && _lastResult!.multipleMatches!.isNotEmpty) ...[
-                const SizedBox(height: 24),
-                ..._lastResult!.multipleMatches!.map(
-                  (a) => ListTile(
-                    title: Text(a.code, style: const TextStyle(color: AppColors.bluPolvere)),
-                    subtitle: Text(a.municipality?.name ?? '', style: const TextStyle(color: AppColors.placeholderGrey)),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CodeResolveScreen(
-                          code: a.normalizedCode,
-                          ancode: a,
                         ),
-                      ),
-                    ).then((_) => _onCodeResolved()),
-                  ),
-                ),
-              ],
-              if (_lastResult != null && _lastResult!.uniqueMatch == null && _lastResult!.multipleMatches == null && _lastResult!.similarCodes != null && _lastResult!.similarCodes!.isNotEmpty)
-                ..._lastResult!.similarCodes!.map(
-                  (c) => ListTile(
-                    title: Text(c, style: const TextStyle(color: AppColors.bluPolvere)),
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => CodeResolveScreen(code: c)),
-                    ).then((_) => _onCodeResolved()),
-                  ),
-                ),
-              if (!idleCentered) SizedBox(height: tailGap),
-            ],
-          ),
-        ),
-          ),
+                      ],
+                      if (_lastResult != null &&
+                          _lastResult!.uniqueMatch == null &&
+                          _lastResult!.multipleMatches == null &&
+                          _lastResult!.similarCodes != null &&
+                          _lastResult!.similarCodes!.isNotEmpty)
+                        ..._lastResult!.similarCodes!.map(
+                          (c) => ListTile(
+                            title: Text(c, style: const TextStyle(color: AppColors.bluPolvere)),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => CodeResolveScreen(code: c)),
+                            ).then((_) => _onCodeResolved()),
+                          ),
+                        ),
+                      SizedBox(height: tailGap),
+                    ],
+                  );
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: minH),
+                child: scrollChild,
+              ),
+            );
+          },
         ),
       ),
     );
