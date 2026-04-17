@@ -4,7 +4,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -139,12 +138,22 @@ class CodeResolveScreen extends StatelessWidget {
                 height: 52,
                 onPressed: () async {
                   try {
-                    await SharePlus.instance.share(ShareParams(text: shortlink));
+                    final pdfBytes = await _buildQrPdf(
+                      format: PdfPageFormat.a4,
+                      ancode: a,
+                      shortlink: shortlink,
+                      expirationMessage: expirationMessage,
+                    );
+                    await Printing.sharePdf(
+                      bytes: pdfBytes,
+                      filename: 'ancode_${a.code.toUpperCase()}.pdf',
+                    );
                   } catch (_) {
-                    await Clipboard.setData(ClipboardData(text: shortlink));
+                    final fallbackText = a.isLink ? (a.url ?? shortlink) : shortlink;
+                    await Clipboard.setData(ClipboardData(text: fallbackText));
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Share unavailable. Link copied instead.')),
+                      const SnackBar(content: Text('Could not open share menu. Link copied instead.')),
                     );
                   }
                 },
