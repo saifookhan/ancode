@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -40,6 +39,9 @@ class CodeResolveScreen extends StatelessWidget {
     );
     final shortlink = AppConfig.shortlinkFor(a.normalizedCode);
     final directTarget = a.type == AncodeType.link ? (a.url ?? shortlink) : shortlink;
+    final copyPayload = a.isLink
+        ? (AncodeQrPdf.normalizeHttpUri(directTarget)?.toString() ?? directTarget.trim())
+        : shortlink;
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F6),
       appBar: AppBar(title: const Text('ANCODE Print Layout'), centerTitle: true),
@@ -106,7 +108,7 @@ class CodeResolveScreen extends StatelessWidget {
                 onPressed: () async {
                   try {
                     await Printing.layoutPdf(
-                      onLayout: (format) => _buildQrPdf(
+                      onLayout: (format) => AncodeQrPdf.build(
                         format: format,
                         ancode: a,
                         shortlink: shortlink,
@@ -126,9 +128,9 @@ class CodeResolveScreen extends StatelessWidget {
                 label: 'Copy',
                 height: 52,
                 onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: shortlink));
+                  await Clipboard.setData(ClipboardData(text: copyPayload));
                   if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied')));
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied')));
                   }
                 },
               ),
@@ -138,7 +140,7 @@ class CodeResolveScreen extends StatelessWidget {
                 height: 52,
                 onPressed: () async {
                   try {
-                    final pdfBytes = await _buildQrPdf(
+                    final pdfBytes = await AncodeQrPdf.build(
                       format: PdfPageFormat.a4,
                       ancode: a,
                       shortlink: shortlink,
@@ -149,8 +151,7 @@ class CodeResolveScreen extends StatelessWidget {
                       filename: 'ancode_${a.code.toUpperCase()}.pdf',
                     );
                   } catch (_) {
-                    final fallbackText = a.isLink ? (a.url ?? shortlink) : shortlink;
-                    await Clipboard.setData(ClipboardData(text: fallbackText));
+                    await Clipboard.setData(ClipboardData(text: copyPayload));
                     if (!context.mounted) return;
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Could not open share menu. Link copied instead.')),
@@ -166,8 +167,12 @@ class CodeResolveScreen extends StatelessWidget {
                   onPressed: a.status == AncodeStatus.grace
                       ? null
                       : () async {
-                          Supabase.instance.client.from('clicks').insert({'ancode_id': a.id});
-                          final uri = _normalizedUri(directTarget);
+                          if (a.id.isNotEmpty) {
+                            try {
+                              await Supabase.instance.client.from('clicks').insert({'ancode_id': a.id});
+                            } catch (_) {}
+                          }
+                          final uri = AncodeQrPdf.normalizeHttpUri(directTarget);
                           if (uri != null) {
                             final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
                             if (!opened && context.mounted) {
@@ -210,116 +215,5 @@ class CodeResolveScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Future<Uint8List> _buildQrPdf({
-    required PdfPageFormat format,
-    required Ancode ancode,
-    required String shortlink,
-    required String expirationMessage,
-  }) async {
-    final pdf = pw.Document();
-    pdf.addPage(
-      pw.Page(
-        pageFormat: format,
-        build: (ctx) {
-          return pw.Container(
-            padding: const pw.EdgeInsets.all(20),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-              children: [
-                pw.Text(
-                  'ANCODE Print Layout',
-                  textAlign: pw.TextAlign.center,
-                  style: pw.TextStyle(
-                    fontSize: 22,
-                    fontWeight: pw.FontWeight.bold,
-                    color: PdfColors.indigo900,
-                  ),
-                ),
-                pw.SizedBox(height: 8),
-                pw.Text(
-                  'Scan to access this ANCODE',
-                  textAlign: pw.TextAlign.center,
-                  style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
-                ),
-                pw.SizedBox(height: 18),
-                pw.Center(
-                  child: pw.BarcodeWidget(
-                    data: shortlink,
-                    width: 150,
-                    height: 150,
-                    barcode: pw.Barcode.qrCode(),
-                  ),
-                ),
-                pw.SizedBox(height: 10),
-                pw.Center(
-                  child: pw.Container(
-                    padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: pw.BoxDecoration(
-                      color: PdfColors.indigo900,
-                      borderRadius: pw.BorderRadius.circular(8),
-                    ),
-                    child: pw.Text(
-                      ancode.code.toUpperCase(),
-                      style: pw.TextStyle(
-                        fontSize: 12,
-                        fontWeight: pw.FontWeight.bold,
-                        color: PdfColors.white,
-                      ),
-                    ),
-                  ),
-                ),
-                pw.SizedBox(height: 16),
-                _pdfRow('Type', ancode.isLink ? 'link' : 'text'),
-                _pdfRow('Comune', ancode.municipality?.name ?? ancode.municipalityId),
-                _pdfRow('Duration', expirationMessage),
-                _pdfRow('Content', ancode.isLink ? (ancode.url ?? '') : (ancode.noteText ?? '')),
-                pw.SizedBox(height: 14),
-                _pdfRow('Short link', shortlink),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-    return pdf.save();
-  }
-
-  pw.Widget _pdfRow(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.only(bottom: 6),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.SizedBox(
-            width: 70,
-            child: pw.Text(
-              '$label:',
-              style: pw.TextStyle(
-                fontSize: 10,
-                fontWeight: pw.FontWeight.bold,
-                color: PdfColors.grey700,
-              ),
-            ),
-          ),
-          pw.Expanded(
-            child: pw.Text(
-              value.isEmpty ? '—' : value,
-              textAlign: pw.TextAlign.right,
-              style: const pw.TextStyle(fontSize: 10),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Uri? _normalizedUri(String raw) {
-    final trimmed = raw.trim();
-    if (trimmed.isEmpty) return null;
-    final parsed = Uri.tryParse(trimmed);
-    if (parsed != null && parsed.hasScheme) return parsed;
-    return Uri.tryParse('https://$trimmed');
   }
 }

@@ -11,3 +11,4 @@ export 'src/widgets/white_lime_pill_surface.dart';
 export 'src/widgets/white_lime_pill_button.dart';
 export 'src/widgets/ancode_logo.dart';
 export 'src/widgets/ancode_bottom_nav_bar.dart';
+export 'src/export/ancode_qr_pdf.dart';

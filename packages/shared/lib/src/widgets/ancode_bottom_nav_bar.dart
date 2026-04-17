@@ -50,7 +50,8 @@ class AncodeBottomNavBar extends StatelessWidget {
                 onTap: () => onTap(i),
                 borderRadius: BorderRadius.circular(28),
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.max,
                   children: [
                     Container(
                       width: 52,

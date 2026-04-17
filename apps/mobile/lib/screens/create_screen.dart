@@ -3,9 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:printing/printing.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:pdf/widgets.dart' as pw;
+import 'package:pdf/pdf.dart';
 
 import 'package:shared/shared.dart';
 
@@ -729,9 +728,17 @@ class _OutputScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final shortlink = AppConfig.shortlinkFor(ancode.normalizedCode);
     final directTarget = ancode.type == AncodeType.link ? (ancode.url ?? shortlink) : shortlink;
-    final duration = ancode.expiresAt == null
-        ? '—'
-        : '${ancode.expiresAt!.difference(DateTime.now()).inDays.clamp(0, 9999)} days';
+    final copyPayload = ancode.isLink
+        ? (AncodeQrPdf.normalizeHttpUri(directTarget)?.toString() ?? directTarget.trim())
+        : shortlink;
+    final user = Supabase.instance.client.auth.currentUser;
+    final plan = PlanModeService.currentPlan(user);
+    final subEnd = PlanModeService.subscriptionEnd(user);
+    final expirationMessage = PlanModeService.expirationLabel(
+      code: ancode,
+      plan: plan,
+      subscriptionEndDate: subEnd,
+    );
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F6),
       appBar: AppBar(
@@ -798,7 +805,7 @@ class _OutputScreen extends StatelessWidget {
                     const SizedBox(height: 12),
                     _detailRow('Type', ancode.isLink ? 'link' : 'text'),
                     _detailRow('Comune', ancode.municipality?.name ?? ancode.municipalityId),
-                    _detailRow('Duration', duration),
+                    _detailRow('Duration', expirationMessage),
                     _detailRow('Content', ancode.isLink ? (ancode.url ?? '') : (ancode.noteText ?? '')),
                     const SizedBox(height: 8),
                     const Text(
@@ -824,66 +831,80 @@ class _OutputScreen extends StatelessWidget {
                 label: 'Download QR',
                 height: 58,
                 onPressed: () async {
-                  await Printing.layoutPdf(
-                    onLayout: (format) async {
-                      final pdf = pw.Document();
-                      pdf.addPage(
-                        pw.Page(
-                          pageFormat: format,
-                          build: (ctx) => pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                            children: [
-                              pw.Text('*${ancode.code}', style: pw.TextStyle(fontSize: 24)),
-                              pw.SizedBox(height: 16),
-                              pw.Text(shortlink, style: const pw.TextStyle(fontSize: 12)),
-                            ],
-                          ),
-                        ),
-                      );
-                      return pdf.save();
-                    },
-                  );
+                  try {
+                    await Printing.layoutPdf(
+                      onLayout: (format) => AncodeQrPdf.build(
+                        format: format,
+                        ancode: ancode,
+                        shortlink: shortlink,
+                        expirationMessage: expirationMessage,
+                      ),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('QR export failed: $e')),
+                    );
+                  }
                 },
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: WhiteLimePillButton(
-                      label: 'Copy',
-                      height: 52,
-                      onPressed: () async {
-                        await Clipboard.setData(ClipboardData(text: shortlink));
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied')));
-                        }
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: WhiteLimePillButton(
-                      label: 'Share',
-                      height: 52,
-                      onPressed: () async {
-                        try {
-                          await SharePlus.instance.share(ShareParams(text: shortlink));
-                        } catch (_) {}
-                      },
-                    ),
-                  ),
-                ],
               ),
               const SizedBox(height: 8),
               WhiteLimePillButton(
-                label: 'Test link',
+                label: 'Copy',
                 height: 52,
                 onPressed: () async {
-                  final uri = Uri.tryParse(directTarget);
-                  if (uri == null) return;
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  await Clipboard.setData(ClipboardData(text: copyPayload));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied')));
+                  }
                 },
               ),
+              const SizedBox(height: 8),
+              WhiteLimePillButton(
+                label: 'Share',
+                height: 52,
+                onPressed: () async {
+                  try {
+                    final pdfBytes = await AncodeQrPdf.build(
+                      format: PdfPageFormat.a4,
+                      ancode: ancode,
+                      shortlink: shortlink,
+                      expirationMessage: expirationMessage,
+                    );
+                    await Printing.sharePdf(
+                      bytes: pdfBytes,
+                      filename: 'ancode_${ancode.code.toUpperCase()}.pdf',
+                    );
+                  } catch (_) {
+                    await Clipboard.setData(ClipboardData(text: copyPayload));
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Could not open share menu. Link copied instead.')),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+              if (ancode.isLink && ancode.url != null)
+                WhiteLimePillButton(
+                  label: 'Test link',
+                  height: 52,
+                  onPressed: () async {
+                    if (ancode.id.isNotEmpty) {
+                      try {
+                        await Supabase.instance.client.from('clicks').insert({'ancode_id': ancode.id});
+                      } catch (_) {}
+                    }
+                    final uri = AncodeQrPdf.normalizeHttpUri(directTarget);
+                    if (uri == null) return;
+                    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    if (!opened && context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Could not open link')),
+                      );
+                    }
+                  },
+                ),
               const SizedBox(height: 8),
               LimeRailPillButton(
                 label: 'Create another',
