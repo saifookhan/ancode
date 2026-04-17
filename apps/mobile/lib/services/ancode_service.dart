@@ -156,6 +156,8 @@ class AncodeService {
     required bool isExclusiveItaly,
     String? url,
     String? noteText,
+    DateTime? scheduleStart,
+    DateTime? scheduleEnd,
   }) async {
     final user = _client.auth.currentUser;
     if (user == null) {
@@ -200,6 +202,15 @@ class AncodeService {
       'is_exclusive_italy': isExclusiveItaly,
       'status': 'active',
     };
+    if (scheduleStart != null) {
+      payload['schedule_start'] = scheduleStart.toUtc().toIso8601String();
+      if (scheduleStart.isAfter(DateTime.now().toUtc())) {
+        payload['status'] = 'scheduled';
+      }
+    }
+    if (scheduleEnd != null) {
+      payload['schedule_end'] = scheduleEnd.toUtc().toIso8601String();
+    }
     await _insertCodesFlexible(payload);
   }
 
