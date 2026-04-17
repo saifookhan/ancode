@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:shared/shared.dart' show AppColors;
+import 'package:shared/shared.dart' show AppColors, AppFonts;
 
 export 'package:shared/shared.dart' show AppColors;
 
@@ -9,7 +9,7 @@ class AppTheme {
 
   static ThemeData get light => ThemeData(
         useMaterial3: true,
-        fontFamily: 'Outfit', // KIT-style geometric sans. To use KIT: add font files to web/fonts/ and @font-face in index.html, then change to 'KIT'
+        fontFamily: AppFonts.family,
         colorScheme: ColorScheme.light(
           primary: AppColors.bluUniverso,
           onPrimary: AppColors.biancoOttico,
@@ -68,7 +68,7 @@ class AppTheme {
 
   static ThemeData get dark => ThemeData(
         useMaterial3: true,
-        fontFamily: 'Outfit',
+        fontFamily: AppFonts.family,
         brightness: Brightness.dark,
         colorScheme: ColorScheme.dark(
           primary: AppColors.verdeCosmico,
@@ -108,21 +108,25 @@ class AppTheme {
       );
 
   static TextTheme get _textTheme => const TextTheme(
+        displayLarge: TextStyle(fontWeight: FontWeight.w800, fontSize: 34, letterSpacing: 0.2),
         headlineLarge: TextStyle(
-          fontWeight: FontWeight.bold,
+          fontWeight: FontWeight.w800,
           fontSize: 28,
-          letterSpacing: 0.5,
+          letterSpacing: 0.2,
         ),
         headlineMedium: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 22,
         ),
+        headlineSmall: TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
         titleLarge: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 18,
         ),
-        bodyLarge: TextStyle(fontSize: 16),
-        bodyMedium: TextStyle(fontSize: 14),
+        titleMedium: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        bodyLarge: TextStyle(fontWeight: FontWeight.w400, fontSize: 16),
+        bodyMedium: TextStyle(fontWeight: FontWeight.w400, fontSize: 14),
+        bodySmall: TextStyle(fontWeight: FontWeight.w300, fontSize: 12),
         labelLarge: TextStyle(
           fontWeight: FontWeight.w600,
           fontSize: 14,

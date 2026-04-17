@@ -4,6 +4,7 @@ import 'package:shared/shared.dart';
 
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
+import 'chatbot_screen.dart';
 import 'create_screen.dart';
 import 'history_screen.dart';
 import 'home_screen.dart';
@@ -17,7 +18,7 @@ class MainShell extends StatefulWidget {
 }
 
 class MainShellState extends State<MainShell> {
-  int _currentIndex = 1; // Cronologia, Cerca, Crea, Dashboard
+  int _currentIndex = 1; // Cronologia, Cerca, Crea, Dashboard, Chatbot
   final GlobalKey<HistoryScreenState> _historyKey = GlobalKey<HistoryScreenState>();
 
   late final List<Widget> _screens = <Widget>[
@@ -25,6 +26,7 @@ class MainShellState extends State<MainShell> {
     const HomeScreen(),
     const CreateScreen(),
     const ProfileScreen(),
+    const ChatbotScreen(),
   ];
 
   static const int _searchIndex = 1;

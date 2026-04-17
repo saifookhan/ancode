@@ -16,7 +16,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _error;
@@ -80,89 +79,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Widget _buildAuthDrawer(double screenWidth) {
-    final drawerWidth = (screenWidth * 0.82).clamp(300.0, 380.0);
-    return Drawer(
-      width: drawerWidth,
-      shape: const RoundedRectangleBorder(),
-      backgroundColor: Colors.white,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: Row(
-                children: [
-                  Image.asset('assets/logo_mark.png', width: 54, height: 54, fit: BoxFit.contain),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.close, size: 32, color: Color(0xFF4D5662)),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1, color: Color(0xFFE6E6E6)),
-            const SizedBox(height: 30),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 34),
-              child: Text(
-                'FAQ',
-                style: TextStyle(color: Color(0xFF4D5662), fontSize: 24, fontWeight: FontWeight.w500),
-              ),
-            ),
-            const SizedBox(height: 30),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 34),
-              child: Text(
-                'Useage Ideas',
-                style: TextStyle(color: Color(0xFF4D5662), fontSize: 24, fontWeight: FontWeight.w500),
-              ),
-            ),
-            const SizedBox(height: 34),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26),
-              child: SizedBox(
-                height: 70,
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).maybePop();
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Sign In', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26),
-              child: SizedBox(
-                height: 70,
-                child: OutlinedButton(
-                  onPressed: () {
-                    Navigator.of(context).maybePop();
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.black, width: 2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Register', style: TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final titleColor = Colors.black;
@@ -180,28 +96,18 @@ class _LoginScreenState extends State<LoginScreen> {
     final labelSize = compact ? 16.0 : 18.0;
 
     return Scaffold(
-      key: _scaffoldKey,
       backgroundColor: AppColors.biancoOttico,
-      endDrawer: _buildAuthDrawer(screenWidth),
       appBar: AppBar(
         backgroundColor: AppColors.biancoOttico,
         foregroundColor: Colors.black87,
         elevation: 0,
         centerTitle: false,
+        automaticallyImplyLeading: false,
         leading: Padding(
           padding: const EdgeInsets.only(left: 16),
           child: Image.asset('assets/logo_mark.png', width: 34, height: 34, fit: BoxFit.contain),
         ),
         leadingWidth: 58,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: IconButton(
-              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-              icon: const Icon(Icons.menu_rounded, size: 32),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -213,31 +119,27 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Text(
                     'ANCODE',
-                    style: TextStyle(
+                    style: AppTypography.titleExtraBold(
                       color: titleColor,
                       fontSize: titleSize,
-                      fontWeight: FontWeight.w800,
                       letterSpacing: -1.2,
-                      height: 1,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'L I N K*  Y O U R  L I N K',
-                    style: TextStyle(
+                    style: AppTypography.titleExtraBold(
                       color: titleColor,
                       fontSize: compact ? 10 : 12,
-                      fontWeight: FontWeight.w700,
                       letterSpacing: compact ? 2.4 : 3.2,
                     ),
                   ),
                   const SizedBox(height: 18),
                   Text(
                     'L1NK* YOUR LINK',
-                    style: TextStyle(
+                    style: AppTypography.subtitleSemiBold(
                       color: mutedText,
                       fontSize: heroSize,
-                      fontWeight: FontWeight.w700,
                       letterSpacing: 1,
                     ),
                   ),
@@ -248,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Text(
                         'New here? ',
-                        style: TextStyle(color: mutedText, fontSize: bodySize),
+                        style: AppTypography.bodyRegular(color: mutedText, fontSize: bodySize),
                       ),
                       GestureDetector(
                         onTap: _isLoading
@@ -258,11 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                         child: Text(
                           'Create an account',
-                          style: TextStyle(
-                            color: signInPurple,
-                            fontSize: bodySize,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: AppTypography.bodySemiBoldItalic(color: signInPurple, fontSize: bodySize),
                         ),
                       ),
                     ],
@@ -288,20 +186,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       children: [
                         Text(
                           'Email *',
-                          style: TextStyle(
-                            color: Color(0xFF2E3440),
+                          style: AppTypography.bodyRegular(
+                            color: const Color(0xFF2E3440),
                             fontSize: labelSize,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 10),
                         TextField(
                           controller: _emailController,
-                          style: const TextStyle(color: Colors.black87),
+                          style: AppTypography.bodyRegular(color: Colors.black87, fontSize: bodySize),
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             hintText: 'name@email.com',
-                            hintStyle: const TextStyle(color: Color(0xFFA8A8B2)),
+                            hintStyle: AppTypography.bodyRegular(
+                              color: const Color(0xFFA8A8B2),
+                              fontSize: bodySize,
+                            ),
                             filled: true,
                             fillColor: Colors.white,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
@@ -318,20 +218,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: 22),
                         Text(
                           'Password *',
-                          style: TextStyle(
-                            color: Color(0xFF2E3440),
+                          style: AppTypography.bodyRegular(
+                            color: const Color(0xFF2E3440),
                             fontSize: labelSize,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         const SizedBox(height: 10),
                         TextField(
                           controller: _passwordController,
-                          style: const TextStyle(color: Colors.black87),
+                          style: AppTypography.bodyRegular(color: Colors.black87, fontSize: bodySize),
                           obscureText: _obscurePassword,
                           decoration: InputDecoration(
                             hintText: 'Enter your password',
-                            hintStyle: const TextStyle(color: Color(0xFFA8A8B2)),
+                            hintStyle: AppTypography.bodyRegular(
+                              color: const Color(0xFFA8A8B2),
+                              fontSize: bodySize,
+                            ),
                             filled: true,
                             fillColor: Colors.white,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
@@ -360,38 +262,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ],
                         const SizedBox(height: 24),
-                        SizedBox(
-                          height: 62,
-                          child: FilledButton(
-                            style: FilledButton.styleFrom(
-                              backgroundColor: signInPurple,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                            ),
-                            onPressed: _isLoading ? null : _submit,
-                            child: _isLoading
-                                ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                  )
-                                : Text(
-                                    'Sign in',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 20,
-                                    ),
-                                  ),
-                          ),
+                        LimeRailPillButton(
+                          onPressed: _isLoading ? null : _submit,
+                          loading: _isLoading,
+                          label: 'Sign in',
                         ),
                         const SizedBox(height: 16),
                         Text(
                           'Forgot your password?',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: AppTypography.bodySemiBoldItalic(
                             color: Colors.black.withOpacity(0.9),
                             fontSize: labelSize,
-                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ],
@@ -401,7 +283,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Demo: admin@ancode.com / admin123 o user@example.com / user123',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.black.withOpacity(0.75), fontSize: compact ? 13 : 15),
+                    style: AppTypography.captionLight(
+                      color: Colors.black.withOpacity(0.75),
+                      fontSize: compact ? 13 : 15,
+                    ),
                   ),
                 ],
               ),

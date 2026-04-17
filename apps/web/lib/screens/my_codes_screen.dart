@@ -734,7 +734,7 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
                                     child: _CodeActionButton(
                                       label: 'Delete',
                                       icon: Icons.delete_outline_rounded,
-                                      backgroundColor: const Color(0xFFF16D79),
+                                      dark: true,
                                       onPressed: () => _deleteCode(c),
                                     ),
                                   ),
@@ -757,33 +757,79 @@ class _CodeActionButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onPressed,
-    this.backgroundColor = AppColors.bluUniversoDeep,
+    this.dark = false,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
-  final Color backgroundColor;
+  final bool dark;
 
   @override
   Widget build(BuildContext context) {
     final disabled = onPressed == null;
+    final foreground = AppColors.bluUniversoDeep;
+
+    if (dark) {
+      return Opacity(
+        opacity: disabled ? 0.55 : 1,
+        child: LimeRailPillButton(
+          onPressed: onPressed,
+          label: label,
+          leadingIcon: icon,
+          height: 56,
+          fontSize: 14,
+        ),
+      );
+    }
+
     return Opacity(
       opacity: disabled ? 0.55 : 1,
       child: SizedBox(
-        height: 48,
-        child: FilledButton.icon(
-          onPressed: onPressed,
-          style: FilledButton.styleFrom(
-            backgroundColor: backgroundColor,
-            foregroundColor: AppColors.biancoOttico,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-          ),
-          icon: Icon(icon, size: 18),
-          label: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-          ),
+        height: 56,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.limeCreateHard,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: AppColors.biancoOttico,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: AppColors.bluUniversoDeep, width: 1.5),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(999),
+                    onTap: onPressed,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(icon, size: 18, color: foreground),
+                        const SizedBox(width: 8),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontFamily: AppFonts.family,
+                            color: foreground,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

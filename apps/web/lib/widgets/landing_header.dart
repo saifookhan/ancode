@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../theme/app_theme.dart';
+import 'package:shared/shared.dart';
+
 import '../services/auth_service.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/admin/admin_shell.dart';
@@ -30,19 +31,19 @@ class LandingHeader extends StatelessWidget implements PreferredSizeWidget {
             children: [
               Text(
                 '*',
-                style: TextStyle(
-                  fontSize: 24,
+                style: AppTypography.titleExtraBold(
                   color: AppColors.azzurroCiano,
-                  fontWeight: FontWeight.w300,
+                  fontSize: 24,
                 ),
               ),
               const SizedBox(width: 8),
               Text(
                 'ANCODE',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: AppColors.bluUniverso,
-                      fontWeight: FontWeight.bold,
-                    ),
+                style: AppTypography.titleExtraBold(
+                  color: AppColors.bluUniverso,
+                  fontSize: 22,
+                  letterSpacing: 2,
+                ),
               ),
               const Spacer(),
               _NavLink(label: 'FAQ', onTap: () {}),
@@ -107,10 +108,10 @@ class _NavLink extends StatelessWidget {
         onTap: onTap,
         child: Text(
           label,
-          style: TextStyle(
+          style: AppTypography.bodySemiBoldItalic(
             color: AppColors.bluPolvere,
             fontSize: 14,
-            fontWeight: FontWeight.w500,
+          ).copyWith(
             decoration: TextDecoration.underline,
             decorationColor: AppColors.bluPolvere,
           ),

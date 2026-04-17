@@ -13,3 +13,19 @@ dependencies:
   qr_flutter: ^4.1.0
   url_launcher: ^6.2.1
   share_plus: ^11.1.0
+
+flutter:
+  fonts:
+    - family: KitRounded
+      fonts:
+        - asset: fonts/KitRounded-ExtraBold.ttf
+          weight: 800
+        - asset: fonts/KitRounded-SemiBold.ttf
+          weight: 600
+        - asset: fonts/KitRounded-Regular.ttf
+          weight: 400
+        - asset: fonts/KitRounded-SemiBoldItalic.ttf
+          weight: 600
+          style: italic
+        - asset: fonts/KitRounded-Light.ttf
+          weight: 300

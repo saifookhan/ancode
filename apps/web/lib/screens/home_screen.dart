@@ -113,96 +113,29 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  static const double _radius = 28;
   static const double _logoSize = 160;
-  static const double _limeShadowDy = 6;
-
-  BoxDecoration _limeDropShadowDecoration({
-    required Color fill,
-    Border? border,
-  }) {
-    return BoxDecoration(
-      color: fill,
-      borderRadius: BorderRadius.circular(_radius),
-      border: border,
-      boxShadow: [
-        BoxShadow(
-          color: AppColors.limeNeobrut,
-          blurRadius: 0,
-          offset: Offset(0, _limeShadowDy),
-        ),
-      ],
-    );
-  }
-
-  Widget _navyPillButton({
-    VoidCallback? onPressed,
-    required IconData icon,
-    required String label,
-    Widget? child,
-  }) {
-    final disabled = onPressed == null;
-    return Opacity(
-      opacity: disabled ? 0.55 : 1,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(_radius),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.limeNeobrut,
-              blurRadius: 0,
-              offset: Offset(0, _limeShadowDy),
-            ),
-          ],
-        ),
-        child: Material(
-          color: AppColors.bluUniversoDeep,
-          borderRadius: BorderRadius.circular(_radius),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: onPressed,
-            borderRadius: BorderRadius.circular(_radius),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: child ??
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(icon, color: AppColors.biancoOttico, size: 22),
-                        const SizedBox(width: 10),
-                        Text(
-                          label,
-                          style: const TextStyle(
-                            color: AppColors.biancoOttico,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 16,
-                            letterSpacing: 2,
-                            height: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
+    final isPhone = MediaQuery.of(context).size.width < 600;
+    final idleCentered = isPhone && _lastResult == null;
+    final topGap = isPhone ? 28.0 : 72.0;
+    final logoSectionGap = isPhone ? 16.0 : 28.0;
+    final tailGap = isPhone ? 24.0 : 100.0;
     final hasUniqueMatch = _lastResult?.uniqueMatch != null;
 
     return Scaffold(
       backgroundColor: AppColors.biancoOttico,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            children: [
-              const SizedBox(height: 72),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: idleCentered ? MainAxisAlignment.center : MainAxisAlignment.start,
+                children: [
+              if (!idleCentered) SizedBox(height: topGap),
               const AncodeLogo(
                 size: _logoSize,
                 showName: true,
@@ -212,7 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 nameColor: AppColors.lavanda,
                 nameFontSize: 44,
               ),
-              const SizedBox(height: 28),
+              SizedBox(height: logoSectionGap),
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(20, 22, 20, 24),
@@ -230,11 +163,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    DecoratedBox(
-                      decoration: _limeDropShadowDecoration(
-                        fill: AppColors.biancoOttico,
-                        border: Border.all(color: const Color(0xFFD8D8D8)),
-                      ),
+                    WhiteLimePillSurface(
+                      height: 58,
+                      shadowDepth: 8,
                       child: TextField(
                         controller: _controller,
                         focusNode: _focusNode,
@@ -242,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           hintText: 'INSERISCI ANCODE',
                           hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                         ),
                         style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
                         textCapitalization: TextCapitalization.characters,
@@ -253,25 +184,18 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _navyPillButton(
+                    LimeRailPillButton(
+                      label: 'CERCA',
+                      height: 58,
+                      loading: _isSearching,
                       onPressed: _isSearching
                           ? null
                           : () => hasUniqueMatch ? _goToContent() : _onSearchSubmitted(_controller.text),
-                      icon: Icons.search,
-                      label: 'CERCA',
-                      child: _isSearching
-                          ? const SizedBox(
-                              height: 22,
-                              width: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.biancoOttico,
-                              ),
-                            )
-                          : null,
                     ),
                     const SizedBox(height: 12),
-                    _navyPillButton(
+                    WhiteLimePillButton(
+                      label: 'CREA',
+                      height: 58,
                       onPressed: () {
                         final auth = context.read<AuthService>();
                         if (!auth.isLoggedIn) {
@@ -294,8 +218,6 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         );
                       },
-                      icon: Icons.add,
-                      label: 'CREA',
                     ),
                   ],
                 ),
@@ -332,8 +254,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     ).then((_) => _onCodeResolved()),
                   ),
                 ),
-              const SizedBox(height: 100),
+              if (!idleCentered) SizedBox(height: tailGap),
             ],
+          ),
+        ),
           ),
         ),
       ),

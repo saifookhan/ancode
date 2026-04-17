@@ -25,7 +25,7 @@ class CreateScreen extends StatefulWidget {
 }
 
 class _CreateScreenState extends State<CreateScreen> {
-  static const _fontFamily = 'Outfit';
+  static const _fontFamily = AppFonts.family;
   static const _codeInputFormatter = _UppercaseAlnumFormatter(maxLength: 30);
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
@@ -188,23 +188,8 @@ class _CreateScreenState extends State<CreateScreen> {
     });
   }
 
-  static const double _radius = 24;
-  static const double _greenBorder = 1.5;
-
-  BoxDecoration _fieldDecoration() {
-    return BoxDecoration(
-      color: AppColors.biancoOttico,
-      borderRadius: BorderRadius.circular(_radius),
-      border: Border.all(color: AppColors.verdeCosmico, width: _greenBorder),
-      boxShadow: const [
-        BoxShadow(
-          color: AppColors.limeNeobrut,
-          blurRadius: 0,
-          offset: Offset(0, 6),
-        ),
-      ],
-    );
-  }
+  static const double _pillShadow = 8;
+  static const double _pillRadius = 999;
 
   @override
   Widget build(BuildContext context) {
@@ -216,10 +201,11 @@ class _CreateScreenState extends State<CreateScreen> {
     final labelSize = isPhone ? 14.0 : 16.0;
     final fieldTextSize = isPhone ? 16.0 : 18.0;
     final fieldHintSize = isPhone ? 15.0 : 16.0;
-    final fieldVerticalPadding = isPhone ? 14.0 : 16.0;
     final typeButtonTextSize = isPhone ? 16.0 : 17.0;
     final typeButtonVerticalPadding = isPhone ? 14.0 : 16.0;
     final buttonTextSize = isPhone ? 20.0 : 22.0;
+    const pillFieldH = 58.0;
+    final pillNoteH = isPhone ? 140.0 : 160.0;
     final currentPlan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
     final isFreePlan = currentPlan == PlanModeService.free;
     final isBusinessPlan = currentPlan == PlanModeService.business;
@@ -275,8 +261,9 @@ class _CreateScreenState extends State<CreateScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Container(
-                    decoration: _fieldDecoration(),
+                  WhiteLimePillSurface(
+                    height: pillFieldH,
+                    shadowDepth: _pillShadow,
                     child: TextFormField(
                       controller: _codeController,
                       style: TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: fieldTextSize),
@@ -284,7 +271,7 @@ class _CreateScreenState extends State<CreateScreen> {
                         hintText: 'es. Sito Web Personale',
                         hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: fieldHintSize),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: fieldVerticalPadding),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                       ),
                       textCapitalization: TextCapitalization.characters,
                       inputFormatters: const [_codeInputFormatter],
@@ -351,15 +338,16 @@ class _CreateScreenState extends State<CreateScreen> {
                   ),
                   const SizedBox(height: 8),
                   if (_isLink)
-                    Container(
-                      decoration: _fieldDecoration(),
+                    WhiteLimePillSurface(
+                      height: pillFieldH,
+                      shadowDepth: _pillShadow,
                       child: TextFormField(
                         controller: _urlController,
                         decoration: InputDecoration(
                           hintText: 'https://espenp.io',
                           hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: fieldHintSize),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: fieldVerticalPadding),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                         ),
                         style: TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: fieldTextSize),
                         keyboardType: TextInputType.url,
@@ -367,15 +355,16 @@ class _CreateScreenState extends State<CreateScreen> {
                       ),
                     )
                   else
-                    Container(
-                      decoration: _fieldDecoration(),
+                    WhiteLimePillSurface(
+                      height: pillNoteH,
+                      shadowDepth: _pillShadow,
                       child: TextFormField(
                         controller: _noteController,
                         decoration: InputDecoration(
                           hintText: 'Scrivi qui...',
                           hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: fieldHintSize),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: fieldVerticalPadding),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                         ),
                         style: TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: fieldTextSize),
                         maxLines: 4,
@@ -395,6 +384,7 @@ class _CreateScreenState extends State<CreateScreen> {
                   _ComunePicker(
                     selected: _selectedComune,
                     onSelected: (m) => setState(() => _selectedComune = m),
+                    pillHeight: pillFieldH,
                   ),
                   if (isBusinessPlan) ...[
                     const SizedBox(height: 20),
@@ -410,36 +400,22 @@ class _CreateScreenState extends State<CreateScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => _pickScheduleDate(isStart: true),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.biancoOttico,
-                              side: BorderSide(color: AppColors.biancoOttico.withOpacity(0.5)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-                            ),
-                            child: Text(
-                              _scheduleStart == null
-                                  ? 'Start Date'
-                                  : _scheduleStart!.toLocal().toIso8601String().split('T').first,
-                            ),
+                          child: _SchedulePillButton(
+                            label: _scheduleStart == null
+                                ? 'Start Date'
+                                : _scheduleStart!.toLocal().toIso8601String().split('T').first,
+                            onTap: () => _pickScheduleDate(isStart: true),
+                            fontFamily: _fontFamily,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => _pickScheduleDate(isStart: false),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.biancoOttico,
-                              side: BorderSide(color: AppColors.biancoOttico.withOpacity(0.5)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-                            ),
-                            child: Text(
-                              _scheduleEnd == null
-                                  ? 'End Date'
-                                  : _scheduleEnd!.toLocal().toIso8601String().split('T').first,
-                            ),
+                          child: _SchedulePillButton(
+                            label: _scheduleEnd == null
+                                ? 'End Date'
+                                : _scheduleEnd!.toLocal().toIso8601String().split('T').first,
+                            onTap: () => _pickScheduleDate(isStart: false),
+                            fontFamily: _fontFamily,
                           ),
                         ),
                       ],
@@ -482,41 +458,21 @@ class _CreateScreenState extends State<CreateScreen> {
                     ),
                   ],
                   const SizedBox(height: 24),
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(_radius),
-                      boxShadow: const [
-                        BoxShadow(color: AppColors.limeNeobrut, blurRadius: 0, offset: Offset(0, 6)),
-                      ],
-                    ),
-                    child: FilledButton(
-                      onPressed: _isCreating
-                          ? null
-                          : () {
-                              if (_formKey.currentState!.validate() &&
-                                  _selectedComune != null) {
-                                _commit();
-                              } else if (_selectedComune == null) {
-                                setState(() => _error = 'Seleziona un Comune');
-                              }
-                            },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.biancoOttico,
-                        foregroundColor: AppColors.bluUniverso,
-                        minimumSize: Size.fromHeight(isPhone ? 58 : 74),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius)),
-                      ),
-                      child: _isCreating
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bluUniverso),
-                            )
-                          : Text(
-                              'Genera codice',
-                              style: TextStyle(fontFamily: _fontFamily, fontSize: buttonTextSize, fontWeight: FontWeight.w700),
-                            ),
-                    ),
+                  WhiteLimePillButton(
+                    height: isPhone ? 58 : 72,
+                    shadowDepth: _pillShadow,
+                    fontSize: buttonTextSize,
+                    onPressed: _isCreating
+                        ? null
+                        : () {
+                            if (_formKey.currentState!.validate() && _selectedComune != null) {
+                              _commit();
+                            } else if (_selectedComune == null) {
+                              setState(() => _error = 'Seleziona un Comune');
+                            }
+                          },
+                    loading: _isCreating,
+                    label: 'Genera codice',
                   ),
                   const SizedBox(height: 80),
                 ],
@@ -535,32 +491,95 @@ class _CreateScreenState extends State<CreateScreen> {
     required double textSize,
     required double verticalPadding,
   }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(_radius),
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: verticalPadding),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.biancoOttico : AppColors.bluUniversoLight,
-          borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(color: AppColors.biancoOttico.withOpacity(selected ? 0.0 : 0.2)),
-          boxShadow: selected
-              ? const [
-                  BoxShadow(
-                    color: AppColors.limeNeobrut,
-                    blurRadius: 0,
-                    offset: Offset(0, 6),
-                  ),
-                ]
-              : const [],
+    const h = 50.0;
+    if (selected) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(_pillRadius),
+          child: WhiteLimePillSurface(
+            height: h,
+            shadowDepth: _pillShadow,
+            child: Center(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontFamily: _fontFamily,
+                  color: AppColors.bluUniversoDeep,
+                  fontSize: textSize,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
         ),
-        child: Center(
+      );
+    }
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(_pillRadius),
+        child: Container(
+          height: h,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(_pillRadius),
+            border: Border.all(color: AppColors.biancoOttico.withOpacity(0.45)),
+          ),
           child: Text(
             label,
             style: TextStyle(
-              color: selected ? AppColors.bluUniverso : AppColors.biancoOttico.withOpacity(0.7),
+              fontFamily: _fontFamily,
+              color: AppColors.biancoOttico.withOpacity(0.85),
               fontSize: textSize,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SchedulePillButton extends StatelessWidget {
+  const _SchedulePillButton({
+    required this.label,
+    required this.onTap,
+    required this.fontFamily,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final String fontFamily;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: WhiteLimePillSurface(
+          height: 52,
+          shadowDepth: _CreateScreenState._pillShadow,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: fontFamily,
+                  color: AppColors.bluUniversoDeep,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ),
@@ -600,10 +619,12 @@ class _ComunePicker extends StatefulWidget {
   const _ComunePicker({
     required this.selected,
     required this.onSelected,
+    required this.pillHeight,
   });
 
   final Municipality? selected;
   final ValueChanged<Municipality?> onSelected;
+  final double pillHeight;
 
   @override
   State<_ComunePicker> createState() => _ComunePickerState();
@@ -650,23 +671,12 @@ class _ComunePickerState extends State<_ComunePicker> {
     final selectedText = widget.selected?.name ?? 'All';
     final isPhone = MediaQuery.of(context).size.width < 600;
     final pickerTextSize = isPhone ? 16.0 : 18.0;
-    final pickerVerticalPadding = isPhone ? 14.0 : 16.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.biancoOttico,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppColors.verdeCosmico, width: 1.5),
-            boxShadow: const [
-              BoxShadow(
-                color: AppColors.limeNeobrut,
-                blurRadius: 0,
-                offset: Offset(0, 6),
-              ),
-            ],
-          ),
+        WhiteLimePillSurface(
+          height: widget.pillHeight,
+          shadowDepth: _CreateScreenState._pillShadow,
           child: TextFormField(
             readOnly: true,
             controller: TextEditingController(text: selectedText),
@@ -675,7 +685,7 @@ class _ComunePickerState extends State<_ComunePicker> {
               hintText: '',
               hintStyle: TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.placeholderGrey, fontSize: pickerTextSize),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: pickerVerticalPadding),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
               suffixIcon: IconButton(
                 onPressed: () async {
                   final next = !_isOpen;
@@ -801,74 +811,100 @@ class _OutputScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final shortlink = AppConfig.shortlinkFor(ancode.normalizedCode);
     final directTarget = ancode.type == AncodeType.link ? (ancode.url ?? shortlink) : shortlink;
+    final duration = ancode.expiresAt == null
+        ? '—'
+        : '${ancode.expiresAt!.difference(DateTime.now()).inDays.clamp(0, 9999)} days';
     return Scaffold(
-      appBar: AppBar(title: Text('*${ancode.code}')),
+      backgroundColor: const Color(0xFFF4F4F6),
+      appBar: AppBar(
+        title: const Text('ANCODE Print Layout'),
+        centerTitle: true,
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Link breve:',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.titleMedium,
+              const Text(
+                'Print this page to share your code offline',
+                style: TextStyle(color: Color(0xFF707684), fontSize: 12),
               ),
-              const SizedBox(height: 8),
-              SelectableText(
-                shortlink,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FilledButton.icon(
-                    onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: shortlink));
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Link copiato')),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copia'),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: () async {
-                      try {
-                        await SharePlus.instance.share(
-                          ShareParams(text: shortlink),
-                        );
-                      } catch (_) {
-                        await Clipboard.setData(ClipboardData(text: shortlink));
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Condivisione non disponibile: link copiato')),
-                          );
-                        }
-                      }
-                    },
-                    icon: const Icon(Icons.share),
-                    label: const Text('Condividi'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Center(
-                child: RepaintBoundary(
-                  key: GlobalKey(),
-                  child: QrImageView(
-                    data: shortlink,
-                    version: QrVersions.auto,
-                    size: 200,
-                  ),
+              const SizedBox(height: 10),
+              Container(
+                width: 360,
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE4E4E8)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.07),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 140,
+                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F7F8),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE3E3E6)),
+                      ),
+                      child: Column(
+                        children: [
+                          QrImageView(data: shortlink, version: QrVersions.auto, size: 100),
+                          const SizedBox(height: 4),
+                          const Text('Scan to Access', style: TextStyle(fontSize: 10, color: Color(0xFF676E7C))),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF262D3A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        ancode.code.toUpperCase(),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Your ANCODE', style: TextStyle(fontSize: 12, color: Color(0xFF4A5160))),
+                    const SizedBox(height: 12),
+                    _detailRow('Type', ancode.isLink ? 'link' : 'text'),
+                    _detailRow('Comune', ancode.municipality?.name ?? ancode.municipalityId),
+                    _detailRow('Duration', duration),
+                    _detailRow('Content', ancode.isLink ? (ancode.url ?? '') : (ancode.noteText ?? '')),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Visit ancode.com and enter this code',
+                      style: TextStyle(fontSize: 10, color: Color(0xFF6D7483)),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'ANCODE | Smart code system',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF4C5564), fontWeight: FontWeight.w600),
+                    ),
+                    const Text(
+                      'Memorable codes for instant access to\ndigital content',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 10, color: Color(0xFF808695)),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
+              const SizedBox(height: 12),
+              LimeRailPillButton(
+                label: 'Download QR',
+                height: 58,
                 onPressed: () async {
                   try {
                     await Printing.layoutPdf(
@@ -880,11 +916,9 @@ class _OutputScreen extends StatelessWidget {
                             build: (ctx) => pw.Column(
                               crossAxisAlignment: pw.CrossAxisAlignment.start,
                               children: [
-                                pw.Text('*${ancode.code}',
-                                    style: pw.TextStyle(fontSize: 24)),
+                                pw.Text('*${ancode.code}', style: pw.TextStyle(fontSize: 24)),
                                 pw.SizedBox(height: 16),
-                                pw.Text(shortlink,
-                                    style: const pw.TextStyle(fontSize: 12)),
+                                pw.Text(shortlink, style: const pw.TextStyle(fontSize: 12)),
                               ],
                             ),
                           ),
@@ -900,39 +934,80 @@ class _OutputScreen extends StatelessWidget {
                     }
                   }
                 },
-                icon: const Icon(Icons.print),
-                label: const Text('Esporta PDF'),
               ),
               const SizedBox(height: 8),
-              OutlinedButton.icon(
+              Row(
+                children: [
+                  Expanded(
+                    child: WhiteLimePillButton(
+                      label: 'Copy',
+                      height: 52,
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: shortlink));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied')));
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: WhiteLimePillButton(
+                      label: 'Share',
+                      height: 52,
+                      onPressed: () async {
+                        try {
+                          await SharePlus.instance.share(ShareParams(text: shortlink));
+                        } catch (_) {
+                          await Clipboard.setData(ClipboardData(text: shortlink));
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              WhiteLimePillButton(
+                label: 'Test link',
+                height: 52,
                 onPressed: () async {
                   final uri = Uri.tryParse(directTarget);
-                  if (uri == null) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Link non valido')),
-                      );
-                    }
-                    return;
-                  }
-                  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  if (!ok && context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Impossibile aprire il link')),
-                    );
-                  }
+                  if (uri == null) return;
+                  await launchUrl(uri, mode: LaunchMode.externalApplication);
                 },
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('Testa link'),
               ),
-              const Spacer(),
-              FilledButton(
+              const SizedBox(height: 8),
+              LimeRailPillButton(
+                label: 'Create another',
+                height: 52,
                 onPressed: onDone,
-                child: const Text('Crea un altro'),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text('$label:', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7381))),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '—' : value,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF2A3140)),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -18,6 +18,8 @@ class AppColors {
   static const Color verdeCosmico = Color(0xFFB4FF9A);
   /// Solid lime for neubrutalist offset shadows (search landing)
   static const Color limeNeobrut = Color(0xFFD4F97E);
+  /// Hard lime “sticker” shadow on create page (white pill controls)
+  static const Color limeCreateHard = Color(0xFFC6FF7A);
   /// Softer light green for unselected nav circles
   static const Color verdeCosmicoSoft = Color(0xFFECF9D9);
   /// Dark blue/teal – titles, CERCA text

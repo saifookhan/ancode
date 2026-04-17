@@ -161,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             const SizedBox(width: 10),
                             SizedBox(
-                              height: 48,
+                              height: 58,
                               child: _DashboardPillButton(
                                 onPressed: () => Navigator.of(context).push(
                                   MaterialPageRoute<void>(
@@ -175,15 +175,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(height: 20),
                         SizedBox(
-                          height: 48,
+                          height: 58,
                           child: _DashboardPillButton(
                             onPressed: _isSaving ? null : () => _saveProfile(user),
                             label: _isSaving ? 'Saving...' : 'Save changes',
+                            dark: true,
                           ),
                         ),
                         const SizedBox(height: 12),
                         SizedBox(
-                          height: 48,
+                          height: 58,
                           child: _DashboardPillButton(
                             onPressed: () => Navigator.of(context).push(
                               MaterialPageRoute<void>(builder: (_) => const MyCodesScreen()),
@@ -197,7 +198,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Align(
                           alignment: Alignment.center,
                           child: SizedBox(
-                            height: 48,
+                            height: 58,
                             width: 220,
                             child: _DashboardPillButton(
                               onPressed: () async {
@@ -207,7 +208,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 }
                               },
                               label: 'Logout',
-                              backgroundColor: const Color(0xFFF16D79),
+                              dark: true,
                             ),
                           ),
                         ),
@@ -257,6 +258,8 @@ class _ProfileField extends StatelessWidget {
     return TextField(
       controller: controller,
       readOnly: readOnly,
+      textCapitalization: readOnly ? TextCapitalization.none : TextCapitalization.words,
+      inputFormatters: readOnly ? null : const [CapitalizeFirstLetterFormatter()],
       style: const TextStyle(color: Colors.black87),
       decoration: InputDecoration(
         hintText: hint,
@@ -279,26 +282,28 @@ class _DashboardPillButton extends StatelessWidget {
   const _DashboardPillButton({
     required this.onPressed,
     required this.label,
-    this.backgroundColor = const Color(0xFF9A80E8),
+    this.dark = false,
   });
 
   final VoidCallback? onPressed;
   final String label;
-  final Color backgroundColor;
+  final bool dark;
 
   @override
   Widget build(BuildContext context) {
-    return FilledButton(
+    if (dark) {
+      return LimeRailPillButton(
+        onPressed: onPressed,
+        label: label,
+        height: 58,
+        fontSize: 14,
+      );
+    }
+    return WhiteLimePillButton(
       onPressed: onPressed,
-      style: FilledButton.styleFrom(
-        backgroundColor: backgroundColor,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-      ),
-      child: Text(
-        label,
-        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700),
-      ),
+      label: label,
+      height: 58,
+      fontSize: 14,
     );
   }
 }

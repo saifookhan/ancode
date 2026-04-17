@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_colors.dart';
+import 'app_fonts.dart';
 
 export 'app_colors.dart';
 
@@ -9,7 +10,7 @@ class AppTheme {
 
   static ThemeData get light => ThemeData(
         useMaterial3: true,
-        fontFamily: 'Outfit',
+        fontFamily: AppFonts.family,
         colorScheme: ColorScheme.light(
           primary: AppColors.bluUniverso,
           onPrimary: AppColors.biancoOttico,
@@ -36,11 +37,12 @@ class AppTheme {
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
+        textTheme: _textTheme,
       );
 
   static ThemeData get dark => ThemeData(
         useMaterial3: true,
-        fontFamily: 'Outfit',
+        fontFamily: AppFonts.family,
         brightness: Brightness.dark,
         colorScheme: ColorScheme.dark(
           primary: AppColors.verdeCosmico,
@@ -52,5 +54,22 @@ class AppTheme {
           tertiary: AppColors.verdeCosmico,
         ),
         scaffoldBackgroundColor: AppColors.bluUniverso,
+        textTheme: _textTheme.apply(
+          bodyColor: AppColors.biancoOttico,
+          displayColor: AppColors.biancoOttico,
+        ),
+      );
+
+  static TextTheme get _textTheme => TextTheme(
+        displayLarge: const TextStyle(fontWeight: FontWeight.w800, fontSize: 34, letterSpacing: 0.2),
+        headlineLarge: const TextStyle(fontWeight: FontWeight.w800, fontSize: 28, letterSpacing: 0.2),
+        headlineMedium: const TextStyle(fontWeight: FontWeight.w600, fontSize: 22),
+        headlineSmall: const TextStyle(fontWeight: FontWeight.w600, fontSize: 20),
+        titleLarge: const TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+        titleMedium: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+        bodyLarge: const TextStyle(fontWeight: FontWeight.w400, fontSize: 16),
+        bodyMedium: const TextStyle(fontWeight: FontWeight.w400, fontSize: 14),
+        bodySmall: const TextStyle(fontWeight: FontWeight.w300, fontSize: 12),
+        labelLarge: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
       );
 }

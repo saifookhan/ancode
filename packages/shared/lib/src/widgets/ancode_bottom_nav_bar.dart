@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_fonts.dart';
 
-/// Primary app navigation: History, Search, Create, Dashboard.
+/// Primary app navigation: History, Search, Create, Dashboard, Chatbot.
 /// Single implementation shared by mobile and web so tabs stay in sync.
 class AncodeBottomNavBar extends StatelessWidget {
   const AncodeBottomNavBar({
@@ -19,6 +20,7 @@ class AncodeBottomNavBar extends StatelessWidget {
     _NavItem(icon: Icons.search_rounded, label: 'CERCA'),
     _NavItem(icon: Icons.add_circle_outline_rounded, label: 'CREA'),
     _NavItem(icon: Icons.dashboard_outlined, label: 'Dashboard'),
+    _NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Chatbot'),
   ];
 
   @override
@@ -75,6 +77,7 @@ class AncodeBottomNavBar extends StatelessWidget {
                     Text(
                       item.label,
                       style: TextStyle(
+                        fontFamily: AppFonts.family,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                         color: selected ? AppColors.bluUniverso : AppColors.bluPolvere,

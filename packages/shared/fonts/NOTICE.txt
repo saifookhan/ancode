@@ -1,0 +1,9 @@
+The files named KitRounded-*.ttf in this folder are SIL Open Font License 1.1
+copies of the Nunito family from Google Fonts, registered in pubspec.yaml as
+the family "KitRounded" so the app builds out of the box.
+
+To use the commercial Kit Rounded typeface (Darden Studio), replace these
+files with your licensed Kit Rounded weights (ExtraBold, SemiBold, Regular,
+SemiBold Italic, Light) and keep the same filenames or update pubspec.yaml.
+
+Nunito: https://fonts.google.com/specimen/Nunito

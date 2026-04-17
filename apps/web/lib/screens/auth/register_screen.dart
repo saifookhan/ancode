@@ -13,7 +13,6 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _nameController = TextEditingController();
   final _surnameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -122,21 +121,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Widget _fieldLabel(String text, double size) => Text(
         text,
-        style: TextStyle(
-          color: const Color(0xFF2E3440),
-          fontSize: size,
-          fontWeight: FontWeight.w600,
-        ),
+        style: AppTypography.bodyRegular(color: const Color(0xFF2E3440), fontSize: size),
       );
 
   InputDecoration _fieldDecoration({
     required String hint,
     required Color borderColor,
+    required double hintSize,
     Widget? suffixIcon,
   }) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFFA8A8B2)),
+      hintStyle: AppTypography.bodyRegular(color: const Color(0xFFA8A8B2), fontSize: hintSize),
       filled: true,
       fillColor: Colors.white,
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
@@ -152,70 +148,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildAuthDrawer(double screenWidth) {
-    final drawerWidth = (screenWidth * 0.82).clamp(300.0, 380.0);
-    return Drawer(
-      width: drawerWidth,
-      shape: const RoundedRectangleBorder(),
-      backgroundColor: Colors.white,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
-              child: Row(
-                children: [
-                  Image.asset('assets/logo_mark.png', width: 54, height: 54, fit: BoxFit.contain),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.of(context).maybePop(),
-                    icon: const Icon(Icons.close, size: 32, color: Color(0xFF4D5662)),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1, color: Color(0xFFE6E6E6)),
-            const SizedBox(height: 30),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 34),
-              child: Text('FAQ', style: TextStyle(color: Color(0xFF4D5662), fontSize: 24, fontWeight: FontWeight.w500)),
-            ),
-            const SizedBox(height: 30),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 34),
-              child: Text('Useage Ideas', style: TextStyle(color: Color(0xFF4D5662), fontSize: 24, fontWeight: FontWeight.w500)),
-            ),
-            const SizedBox(height: 34),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 26),
-              child: SizedBox(
-                height: 70,
-                child: FilledButton(
-                  onPressed: () {
-                    Navigator.of(context).maybePop();
-                    Navigator.of(context).maybePop();
-                  },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Sign In', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w600)),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final mutedText = const Color(0xFF8C8C9A);
     final cardBorder = const Color(0xFFE4E4E8);
     final fieldBorder = const Color(0xFFD9D9DE);
-    final signInPurple = const Color(0xFF9A80E8);
     final screenWidth = MediaQuery.of(context).size.width;
     final compact = screenWidth < 390;
     final wide = screenWidth >= 900;
@@ -224,28 +161,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final labelSize = compact ? 16.0 : 18.0;
 
     return Scaffold(
-      key: _scaffoldKey,
       backgroundColor: AppColors.biancoOttico,
-      endDrawer: _buildAuthDrawer(screenWidth),
       appBar: AppBar(
         backgroundColor: AppColors.biancoOttico,
         foregroundColor: Colors.black87,
         elevation: 0,
         centerTitle: false,
+        automaticallyImplyLeading: false,
         leading: Padding(
           padding: const EdgeInsets.only(left: 16),
           child: Image.asset('assets/logo_mark.png', width: 34, height: 34, fit: BoxFit.contain),
         ),
         leadingWidth: 58,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: IconButton(
-              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
-              icon: const Icon(Icons.menu_rounded, size: 32),
-            ),
-          ),
-        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -260,20 +187,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: () => Navigator.of(context).maybePop(),
                       icon: const Icon(Icons.arrow_back, color: Colors.black87),
                     ),
-                    Text('Return to login', style: TextStyle(color: mutedText, fontSize: bodySize)),
+                    Text(
+                      'Return to login',
+                      style: AppTypography.bodyRegular(color: mutedText, fontSize: bodySize),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 Text(
                   'Create a new account',
-                  style: TextStyle(color: Colors.black87, fontSize: compact ? 30 : 38, fontWeight: FontWeight.w700),
                   textAlign: TextAlign.center,
+                  style: AppTypography.titleExtraBold(
+                    color: Colors.black87,
+                    fontSize: compact ? 30 : 38,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Create a new account to access the system',
-                  style: TextStyle(color: mutedText, fontSize: bodySize),
                   textAlign: TextAlign.center,
+                  style: AppTypography.bodyRegular(color: mutedText, fontSize: bodySize),
                 ),
                 const SizedBox(height: 20),
                 Container(
@@ -298,36 +231,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 10),
                       TextField(
                         controller: _nameController,
-                        style: const TextStyle(color: Colors.black87),
-                        decoration: _fieldDecoration(hint: 'Enter your name', borderColor: fieldBorder),
+                        textCapitalization: TextCapitalization.words,
+                        keyboardType: TextInputType.name,
+                        inputFormatters: const [CapitalizeFirstLetterFormatter()],
+                        style: AppTypography.bodyRegular(color: Colors.black87, fontSize: bodySize),
+                        decoration: _fieldDecoration(
+                          hint: 'Enter your name',
+                          borderColor: fieldBorder,
+                          hintSize: bodySize,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       _fieldLabel('Surname*', labelSize),
                       const SizedBox(height: 10),
                       TextField(
                         controller: _surnameController,
-                        style: const TextStyle(color: Colors.black87),
-                        decoration: _fieldDecoration(hint: 'Enter your surname', borderColor: fieldBorder),
+                        textCapitalization: TextCapitalization.words,
+                        keyboardType: TextInputType.name,
+                        inputFormatters: const [CapitalizeFirstLetterFormatter()],
+                        style: AppTypography.bodyRegular(color: Colors.black87, fontSize: bodySize),
+                        decoration: _fieldDecoration(
+                          hint: 'Enter your surname',
+                          borderColor: fieldBorder,
+                          hintSize: bodySize,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       _fieldLabel('Email *', labelSize),
                       const SizedBox(height: 10),
                       TextField(
                         controller: _emailController,
-                        style: const TextStyle(color: Colors.black87),
+                        style: AppTypography.bodyRegular(color: Colors.black87, fontSize: bodySize),
                         keyboardType: TextInputType.emailAddress,
-                        decoration: _fieldDecoration(hint: 'Enter your email', borderColor: fieldBorder),
+                        decoration: _fieldDecoration(
+                          hint: 'Enter your email',
+                          borderColor: fieldBorder,
+                          hintSize: bodySize,
+                        ),
                       ),
                       const SizedBox(height: 18),
                       _fieldLabel('Password *', labelSize),
                       const SizedBox(height: 10),
                       TextField(
                         controller: _passwordController,
-                        style: const TextStyle(color: Colors.black87),
+                        style: AppTypography.bodyRegular(color: Colors.black87, fontSize: bodySize),
                         obscureText: _obscurePassword,
                         decoration: _fieldDecoration(
                           hint: 'Enter your password',
                           borderColor: fieldBorder,
+                          hintSize: bodySize,
                           suffixIcon: IconButton(
                             onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: mutedText),
@@ -339,11 +291,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 10),
                       TextField(
                         controller: _confirmPasswordController,
-                        style: const TextStyle(color: Colors.black87),
+                        style: AppTypography.bodyRegular(color: Colors.black87, fontSize: bodySize),
                         obscureText: _obscureConfirmPassword,
                         decoration: _fieldDecoration(
                           hint: 'Confirm your password',
                           borderColor: fieldBorder,
+                          hintSize: bodySize,
                           suffixIcon: IconButton(
                             onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
                             icon: Icon(_obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined, color: mutedText),
@@ -355,18 +308,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         Text(_error!, style: const TextStyle(color: Colors.red)),
                       ],
                       const SizedBox(height: 24),
-                      SizedBox(
-                        height: 62,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: signInPurple,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          onPressed: _isLoading ? null : _submit,
-                          child: _isLoading
-                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                              : const Text('Register', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 20)),
-                        ),
+                      LimeRailPillButton(
+                        onPressed: _isLoading ? null : _submit,
+                        loading: _isLoading,
+                        label: 'Register',
                       ),
                     ],
                   ),

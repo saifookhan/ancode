@@ -24,7 +24,7 @@ class CreateScreen extends StatefulWidget {
 }
 
 class _CreateScreenState extends State<CreateScreen> {
-  static const _fontFamily = 'Outfit';
+  static const _fontFamily = AppFonts.family;
   static const _codeInputFormatter = _UppercaseAlnumFormatter(maxLength: 30);
   final _formKey = GlobalKey<FormState>();
   final _codeController = TextEditingController();
@@ -147,6 +147,8 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Future<void> _createOne(_DraftCode d) async {
+    final plan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
+    final isBusinessPlan = plan == PlanModeService.business;
     await AncodeService.createAncode(
       code: d.code,
       type: d.type,
@@ -154,6 +156,8 @@ class _CreateScreenState extends State<CreateScreen> {
       isExclusiveItaly: _isExclusive,
       url: d.url,
       noteText: d.noteText,
+      scheduleStart: isBusinessPlan ? _scheduleStart : null,
+      scheduleEnd: isBusinessPlan ? _scheduleEnd : null,
     );
   }
 
@@ -179,27 +183,14 @@ class _CreateScreenState extends State<CreateScreen> {
     });
   }
 
-  static const double _radius = 24;
-  static const double _greenBorder = 1.5;
-
-  BoxDecoration _fieldDecoration() {
-    return BoxDecoration(
-      color: AppColors.biancoOttico,
-      borderRadius: BorderRadius.circular(_radius),
-      border: Border.all(color: AppColors.verdeCosmico, width: _greenBorder),
-      boxShadow: const [
-        BoxShadow(
-          color: AppColors.limeNeobrut,
-          blurRadius: 0,
-          offset: Offset(0, 6),
-        ),
-      ],
-    );
-  }
+  static const double _pillShadow = 8;
+  static const double _pillRadius = 999;
 
   @override
   Widget build(BuildContext context) {
     final isPhone = MediaQuery.of(context).size.width < 600;
+    const pillFieldH = 58.0;
+    final pillNoteH = isPhone ? 140.0 : 160.0;
     final currentPlan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
     final isBusinessPlan = currentPlan == PlanModeService.business;
     const titleStyle = TextStyle(
@@ -254,8 +245,9 @@ class _CreateScreenState extends State<CreateScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Container(
-                  decoration: _fieldDecoration(),
+                WhiteLimePillSurface(
+                  height: pillFieldH,
+                  shadowDepth: _pillShadow,
                   child: TextFormField(
                     controller: _codeController,
                     style: const TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: 16),
@@ -263,7 +255,7 @@ class _CreateScreenState extends State<CreateScreen> {
                       hintText: 'es. Sito Web Personale',
                       hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: 15),
                       border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                     ),
                     textCapitalization: TextCapitalization.characters,
                     inputFormatters: const [_codeInputFormatter],
@@ -312,15 +304,16 @@ class _CreateScreenState extends State<CreateScreen> {
                 ),
                 const SizedBox(height: 8),
                 if (_isLink)
-                  Container(
-                    decoration: _fieldDecoration(),
+                  WhiteLimePillSurface(
+                    height: pillFieldH,
+                    shadowDepth: _pillShadow,
                     child: TextFormField(
                       controller: _urlController,
                       decoration: const InputDecoration(
                         hintText: 'https://espenp.io',
                         hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: 15),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                       ),
                       style: const TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: 16),
                       keyboardType: TextInputType.url,
@@ -328,15 +321,16 @@ class _CreateScreenState extends State<CreateScreen> {
                     ),
                   )
                 else
-                  Container(
-                    decoration: _fieldDecoration(),
+                  WhiteLimePillSurface(
+                    height: pillNoteH,
+                    shadowDepth: _pillShadow,
                     child: TextFormField(
                       controller: _noteController,
                       decoration: const InputDecoration(
                         hintText: 'Scrivi qui...',
                         hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: 15),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 26, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                       ),
                       style: const TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: 16),
                       maxLines: 4,
@@ -353,7 +347,11 @@ class _CreateScreenState extends State<CreateScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                _ComunePicker(selected: _selectedComune, onSelected: (m) => setState(() => _selectedComune = m)),
+                _ComunePicker(
+                  selected: _selectedComune,
+                  onSelected: (m) => setState(() => _selectedComune = m),
+                  pillHeight: pillFieldH,
+                ),
                 if (isBusinessPlan) ...[
                   const SizedBox(height: 20),
                   Text(
@@ -367,10 +365,82 @@ class _CreateScreenState extends State<CreateScreen> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Expanded(child: OutlinedButton(onPressed: () => _pickScheduleDate(isStart: true), child: Text(_scheduleStart == null ? 'Start Date' : _scheduleStart!.toLocal().toIso8601String().split('T').first))),
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _pickScheduleDate(isStart: true),
+                            borderRadius: BorderRadius.circular(_pillRadius),
+                            child: WhiteLimePillSurface(
+                              height: 52,
+                              shadowDepth: _pillShadow,
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  child: Text(
+                                    _scheduleStart == null
+                                        ? 'Start Date'
+                                        : _scheduleStart!.toLocal().toIso8601String().split('T').first,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontFamily: _fontFamily,
+                                      color: AppColors.bluUniversoDeep,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                       const SizedBox(width: 10),
-                      Expanded(child: OutlinedButton(onPressed: () => _pickScheduleDate(isStart: false), child: Text(_scheduleEnd == null ? 'End Date' : _scheduleEnd!.toLocal().toIso8601String().split('T').first))),
+                      Expanded(
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _pickScheduleDate(isStart: false),
+                            borderRadius: BorderRadius.circular(_pillRadius),
+                            child: WhiteLimePillSurface(
+                              height: 52,
+                              shadowDepth: _pillShadow,
+                              child: Center(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                                  child: Text(
+                                    _scheduleEnd == null
+                                        ? 'End Date'
+                                        : _scheduleEnd!.toLocal().toIso8601String().split('T').first,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontFamily: _fontFamily,
+                                      color: AppColors.bluUniversoDeep,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ],
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Se non impostato: attivo subito fino alla scadenza abbonamento.',
+                      style: TextStyle(
+                        fontFamily: _fontFamily,
+                        color: AppColors.biancoOttico.withOpacity(0.72),
+                        fontSize: isPhone ? 11 : 13,
+                      ),
+                    ),
                   ),
                 ],
                 const SizedBox(height: 18),
@@ -395,7 +465,10 @@ class _CreateScreenState extends State<CreateScreen> {
                   Text(_error!, style: const TextStyle(color: AppColors.verdeCosmico)),
                 ],
                 const SizedBox(height: 24),
-                FilledButton(
+                WhiteLimePillButton(
+                  height: 58,
+                  shadowDepth: _pillShadow,
+                  fontSize: 20,
                   onPressed: _isCreating
                       ? null
                       : () {
@@ -405,18 +478,8 @@ class _CreateScreenState extends State<CreateScreen> {
                             setState(() => _error = 'Seleziona un Comune');
                           }
                         },
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.biancoOttico,
-                    foregroundColor: AppColors.bluUniverso,
-                    minimumSize: const Size.fromHeight(58),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(_radius)),
-                  ),
-                  child: _isCreating
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bluUniverso))
-                      : const Text(
-                          'Genera codice',
-                          style: TextStyle(fontFamily: _fontFamily, fontSize: 20, fontWeight: FontWeight.w700),
-                        ),
+                  loading: _isCreating,
+                  label: 'Genera codice',
                 ),
                 const SizedBox(height: 80),
               ],
@@ -428,24 +491,51 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Widget _typeButton({required String label, required bool selected, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(_radius),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(
-          color: selected ? AppColors.biancoOttico : AppColors.bluUniversoLight,
-          borderRadius: BorderRadius.circular(_radius),
-          border: Border.all(color: AppColors.biancoOttico.withOpacity(selected ? 0.0 : 0.2)),
+    const h = 50.0;
+    if (selected) {
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(_pillRadius),
+          child: WhiteLimePillSurface(
+            height: h,
+            shadowDepth: _pillShadow,
+            child: Center(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontFamily: _fontFamily,
+                  color: AppColors.bluUniversoDeep,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
         ),
-        child: Center(
+      );
+    }
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(_pillRadius),
+        child: Container(
+          height: h,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(_pillRadius),
+            border: Border.all(color: AppColors.biancoOttico.withOpacity(0.45)),
+          ),
           child: Text(
             label,
             style: TextStyle(
               fontFamily: _fontFamily,
-              color: selected ? AppColors.bluUniverso : AppColors.biancoOttico.withOpacity(0.7),
+              color: AppColors.biancoOttico.withOpacity(0.85),
               fontSize: 16,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -482,9 +572,14 @@ class _DraftCode {
 }
 
 class _ComunePicker extends StatefulWidget {
-  const _ComunePicker({required this.selected, required this.onSelected});
+  const _ComunePicker({
+    required this.selected,
+    required this.onSelected,
+    required this.pillHeight,
+  });
   final Municipality? selected;
   final ValueChanged<Municipality?> onSelected;
+  final double pillHeight;
 
   @override
   State<_ComunePicker> createState() => _ComunePickerState();
@@ -533,26 +628,35 @@ class _ComunePickerState extends State<_ComunePicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextFormField(
-          readOnly: true,
-          controller: TextEditingController(text: selectedText),
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            suffixIcon: IconButton(
-              onPressed: () async {
-                final next = !_isOpen;
-                setState(() => _isOpen = next);
-                if (next) await _loadDefaultOptions();
-              },
-              icon: Icon(_isOpen ? Icons.close : Icons.keyboard_arrow_down_rounded),
+        WhiteLimePillSurface(
+          height: widget.pillHeight,
+          shadowDepth: _CreateScreenState._pillShadow,
+          child: TextFormField(
+            readOnly: true,
+            controller: TextEditingController(text: selectedText),
+            style: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluUniverso, fontSize: 16),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+              suffixIcon: IconButton(
+                onPressed: () async {
+                  final next = !_isOpen;
+                  setState(() => _isOpen = next);
+                  if (next) await _loadDefaultOptions();
+                },
+                icon: Icon(
+                  _isOpen ? Icons.close : Icons.keyboard_arrow_down_rounded,
+                  color: const Color(0xFF6C7280),
+                ),
+              ),
             ),
+            onTap: () async {
+              final next = !_isOpen;
+              setState(() => _isOpen = next);
+              if (next) await _loadDefaultOptions();
+            },
+            validator: (_) => widget.selected == null ? 'Seleziona un Comune' : null,
           ),
-          onTap: () async {
-            final next = !_isOpen;
-            setState(() => _isOpen = next);
-            if (next) await _loadDefaultOptions();
-          },
-          validator: (_) => widget.selected == null ? 'Seleziona un Comune' : null,
         ),
         if (_isOpen) ...[
           const SizedBox(height: 8),
@@ -625,84 +729,193 @@ class _OutputScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final shortlink = AppConfig.shortlinkFor(ancode.normalizedCode);
     final directTarget = ancode.type == AncodeType.link ? (ancode.url ?? shortlink) : shortlink;
+    final duration = ancode.expiresAt == null
+        ? '—'
+        : '${ancode.expiresAt!.difference(DateTime.now()).inDays.clamp(0, 9999)} days';
     return Scaffold(
-      appBar: AppBar(title: Text('*${ancode.code}')),
+      backgroundColor: const Color(0xFFF4F4F6),
+      appBar: AppBar(
+        title: const Text('ANCODE Print Layout'),
+        centerTitle: true,
+      ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('Link breve:', textAlign: TextAlign.center, style: Theme.of(context).textTheme.titleMedium),
-              const SizedBox(height: 8),
-              SelectableText(shortlink, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  FilledButton.icon(
-                    onPressed: () async {
-                      await Clipboard.setData(ClipboardData(text: shortlink));
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copiato')));
-                      }
-                    },
-                    icon: const Icon(Icons.copy),
-                    label: const Text('Copia'),
-                  ),
-                  const SizedBox(width: 8),
-                  FilledButton.icon(
-                    onPressed: () async {
-                      try {
-                        await SharePlus.instance.share(ShareParams(text: shortlink));
-                      } catch (_) {}
-                    },
-                    icon: const Icon(Icons.share),
-                    label: const Text('Condividi'),
-                  ),
-                ],
+              const Text(
+                'Print this page to share your code offline',
+                style: TextStyle(color: Color(0xFF707684), fontSize: 12),
               ),
-              const SizedBox(height: 24),
-              Center(child: QrImageView(data: shortlink, version: QrVersions.auto, size: 200)),
-              const SizedBox(height: 16),
-              FilledButton.icon(
+              const SizedBox(height: 10),
+              Container(
+                width: 360,
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE4E4E8)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.07),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Container(
+                      width: 140,
+                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F7F8),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: const Color(0xFFE3E3E6)),
+                      ),
+                      child: Column(
+                        children: [
+                          QrImageView(data: shortlink, version: QrVersions.auto, size: 100),
+                          const SizedBox(height: 4),
+                          const Text('Scan to Access', style: TextStyle(fontSize: 10, color: Color(0xFF676E7C))),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF262D3A),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        ancode.code.toUpperCase(),
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Your ANCODE', style: TextStyle(fontSize: 12, color: Color(0xFF4A5160))),
+                    const SizedBox(height: 12),
+                    _detailRow('Type', ancode.isLink ? 'link' : 'text'),
+                    _detailRow('Comune', ancode.municipality?.name ?? ancode.municipalityId),
+                    _detailRow('Duration', duration),
+                    _detailRow('Content', ancode.isLink ? (ancode.url ?? '') : (ancode.noteText ?? '')),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Visit ancode.com and enter this code',
+                      style: TextStyle(fontSize: 10, color: Color(0xFF6D7483)),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'ANCODE | Smart code system',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF4C5564), fontWeight: FontWeight.w600),
+                    ),
+                    const Text(
+                      'Memorable codes for instant access to\ndigital content',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 10, color: Color(0xFF808695)),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              LimeRailPillButton(
+                label: 'Download QR',
+                height: 58,
                 onPressed: () async {
                   await Printing.layoutPdf(
                     onLayout: (format) async {
                       final pdf = pw.Document();
-                      pdf.addPage(pw.Page(
-                        pageFormat: format,
-                        build: (ctx) => pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text('*${ancode.code}', style: pw.TextStyle(fontSize: 24)),
-                            pw.SizedBox(height: 16),
-                            pw.Text(shortlink, style: const pw.TextStyle(fontSize: 12)),
-                          ],
+                      pdf.addPage(
+                        pw.Page(
+                          pageFormat: format,
+                          build: (ctx) => pw.Column(
+                            crossAxisAlignment: pw.CrossAxisAlignment.start,
+                            children: [
+                              pw.Text('*${ancode.code}', style: pw.TextStyle(fontSize: 24)),
+                              pw.SizedBox(height: 16),
+                              pw.Text(shortlink, style: const pw.TextStyle(fontSize: 12)),
+                            ],
+                          ),
                         ),
-                      ));
+                      );
                       return pdf.save();
                     },
                   );
                 },
-                icon: const Icon(Icons.print),
-                label: const Text('Esporta PDF'),
               ),
               const SizedBox(height: 8),
-              OutlinedButton.icon(
+              Row(
+                children: [
+                  Expanded(
+                    child: WhiteLimePillButton(
+                      label: 'Copy',
+                      height: 52,
+                      onPressed: () async {
+                        await Clipboard.setData(ClipboardData(text: shortlink));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied')));
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: WhiteLimePillButton(
+                      label: 'Share',
+                      height: 52,
+                      onPressed: () async {
+                        try {
+                          await SharePlus.instance.share(ShareParams(text: shortlink));
+                        } catch (_) {}
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              WhiteLimePillButton(
+                label: 'Test link',
+                height: 52,
                 onPressed: () async {
                   final uri = Uri.tryParse(directTarget);
                   if (uri == null) return;
                   await launchUrl(uri, mode: LaunchMode.externalApplication);
                 },
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('Testa link'),
               ),
-              const Spacer(),
-              FilledButton(onPressed: onDone, child: const Text('Crea un altro')),
+              const SizedBox(height: 8),
+              LimeRailPillButton(
+                label: 'Create another',
+                height: 52,
+                onPressed: onDone,
+              ),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text('$label:', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7381))),
+          ),
+          Expanded(
+            child: Text(
+              value.isEmpty ? '—' : value,
+              textAlign: TextAlign.right,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF2A3140)),
+            ),
+          ),
+        ],
       ),
     );
   }

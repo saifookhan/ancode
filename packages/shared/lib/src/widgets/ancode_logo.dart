@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_fonts.dart';
 
 class AncodeLogo extends StatelessWidget {
   const AncodeLogo({
@@ -45,24 +46,22 @@ class AncodeLogo extends StatelessWidget {
             Text(
               subtitle!,
               textAlign: TextAlign.center,
-              style: TextStyle(
+              style: AppTypography.titleExtraBold(
                 color: Colors.black,
-                fontWeight: FontWeight.w800,
                 fontSize: subtitleFontSize ?? 15,
-                letterSpacing: subtitleFontSize != null ? 2.4 : 1.4,
                 height: 1.1,
+                letterSpacing: subtitleFontSize != null ? 2.4 : 1.4,
               ),
             ),
             const SizedBox(height: 10),
           ],
           Text(
             'ANCODE',
-            style: TextStyle(
+            style: AppTypography.titleExtraBold(
               color: nameColor ?? AppColors.bluPolvere,
-              fontWeight: FontWeight.w700,
               fontSize: nameFontSize ?? Theme.of(context).textTheme.headlineLarge?.fontSize ?? 32,
-              letterSpacing: nameFontSize != null ? 4 : 2,
               height: 1.05,
+              letterSpacing: nameFontSize != null ? 4 : 2,
             ),
           ),
         ],
@@ -73,11 +72,10 @@ class AncodeLogo extends StatelessWidget {
   Widget _asteriskWidget() {
     return Text(
       '*',
-      style: TextStyle(
+      style: AppTypography.titleExtraBold(
+        color: AppColors.azzurroCiano,
         fontSize: size,
         height: 1,
-        color: AppColors.azzurroCiano,
-        fontWeight: FontWeight.w300,
       ),
     );
   }
