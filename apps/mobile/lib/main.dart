@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared/shared.dart';
 
 import 'app.dart';
+import 'app_navigator_key.dart';
 import 'screens/config_error_screen.dart';
 import 'services/auth_service.dart';
 import 'services/app_config.dart';
@@ -51,9 +52,6 @@ Future<void> main() async {
 class AncodeMobileApp extends StatelessWidget {
   const AncodeMobileApp({super.key});
 
-  /// Used so Stripe return deep links can show [SnackBar]s after reopening the app.
-  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
-
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -62,7 +60,7 @@ class AncodeMobileApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: '*ANCODE',
-        navigatorKey: navigatorKey,
+        navigatorKey: appNavigatorKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,

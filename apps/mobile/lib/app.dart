@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'app_navigator_key.dart';
 import 'screens/main_shell.dart';
 import 'services/auth_service.dart';
 import 'services/stripe_checkout_links.dart';
@@ -48,7 +49,7 @@ class _AppShellState extends State<AppShell> {
     if (checkout == 'success') {
       await _refreshPlanAfterPayment();
     }
-    final messengerContext = AncodeMobileApp.navigatorKey.currentContext;
+    final messengerContext = appNavigatorKey.currentContext;
     if (messengerContext != null && messengerContext.mounted) {
       final nav = Navigator.of(messengerContext, rootNavigator: true);
       if (nav.canPop()) {
@@ -61,7 +62,7 @@ class _AppShellState extends State<AppShell> {
               : null;
       if (message != null) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final ctx = AncodeMobileApp.navigatorKey.currentContext;
+          final ctx = appNavigatorKey.currentContext;
           if (ctx != null && ctx.mounted) {
             ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(message)));
           }
@@ -75,7 +76,7 @@ class _AppShellState extends State<AppShell> {
       try {
         await Supabase.instance.client.auth.refreshSession();
       } catch (_) {}
-      final ctx = AncodeMobileApp.navigatorKey.currentContext;
+      final ctx = appNavigatorKey.currentContext;
       if (ctx != null && ctx.mounted) {
         try {
           await Provider.of<AuthService>(ctx, listen: false).refreshProfile();
