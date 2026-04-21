@@ -333,12 +333,3 @@ class _ChatMessage {
   final bool isUser;
   final String timestamp;
 }
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
