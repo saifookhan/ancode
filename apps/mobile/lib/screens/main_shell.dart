@@ -9,9 +9,9 @@ import '../services/siri_shortcut_service.dart';
 import 'auth/login_screen.dart';
 import 'chatbot_screen.dart';
 import 'create_screen.dart';
-import 'history_screen.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import 'profile_placeholder_screen.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
@@ -21,33 +21,29 @@ class MainShell extends StatefulWidget {
 }
 
 class MainShellState extends State<MainShell> {
-  int _currentIndex = 1; // Cronologia, Cerca, Crea, Dashboard, Chatbot
+  int _currentIndex = 0; // Home, Dashboard, Crea, Chatbot, Profilo
   StreamSubscription<String>? _siriSubscription;
-  final GlobalKey<HistoryScreenState> _historyKey = GlobalKey<HistoryScreenState>();
 
   late final List<Widget> _screens = <Widget>[
-    HistoryScreen(key: _historyKey),
     const HomeScreen(),
-    const CreateScreen(),
     const ProfileScreen(),
+    const CreateScreen(),
     const ChatbotScreen(),
+    const ProfilePlaceholderScreen(),
   ];
 
-  static const int _searchIndex = 1;
+  static const int _homeIndex = 0;
   static const int createIndex = 2;
   static const int _createIndex = 2;
 
   void goToTab(int index) {
     if (!mounted) return;
     setState(() => _currentIndex = index);
-    if (index == 0) {
-      _historyKey.currentState?.reload();
-    }
   }
 
   void _onBottomNavTap(int i) {
-    if (i == _searchIndex) {
-      goToTab(_searchIndex);
+    if (i == _homeIndex) {
+      goToTab(i);
       return;
     }
     final auth = context.read<AuthService>();
@@ -64,8 +60,8 @@ class MainShellState extends State<MainShell> {
   void initState() {
     super.initState();
     _siriSubscription = SiriShortcutService.instance.searchCodeStream.listen((_) {
-      if (!mounted || _currentIndex == _searchIndex) return;
-      setState(() => _currentIndex = _searchIndex);
+      if (!mounted || _currentIndex == _homeIndex) return;
+      setState(() => _currentIndex = _homeIndex);
     });
   }
 
@@ -77,9 +73,7 @@ class MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final shellBackground = (_currentIndex == _createIndex || _currentIndex == 0)
-        ? AppColors.bluUniverso
-        : AppColors.biancoOttico;
+    final shellBackground = _currentIndex == _createIndex ? AppColors.bluUniverso : AppColors.biancoOttico;
     return Scaffold(
       backgroundColor: shellBackground,
       body: IndexedStack(index: _currentIndex, children: _screens),

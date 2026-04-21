@@ -16,4 +16,6 @@ class AppConfig {
 
   static String shortlinkFor(String code) =>
       'https://$_domain/c/$code';
+
+  static String get apiBase => 'https://$_domain';
 }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_fonts.dart';
 
-/// Primary app navigation: History, Search, Create, Dashboard, Chatbot.
+/// Primary app navigation: Home, Dashboard, Crea, Chatbot, Profilo.
 /// Single implementation shared by mobile and web so tabs stay in sync.
 class AncodeBottomNavBar extends StatelessWidget {
   const AncodeBottomNavBar({
@@ -16,19 +16,22 @@ class AncodeBottomNavBar extends StatelessWidget {
   final ValueChanged<int> onTap;
 
   static const List<_NavItem> _items = [
-    _NavItem(icon: Icons.history_rounded, label: 'Cronologia'),
-    _NavItem(icon: Icons.search_rounded, label: 'CERCA'),
-    _NavItem(icon: Icons.add_circle_outline_rounded, label: 'CREA'),
+    _NavItem(icon: Icons.home_outlined, label: 'Home'),
     _NavItem(icon: Icons.dashboard_outlined, label: 'Dashboard'),
+    _NavItem(icon: Icons.add_circle_outline_rounded, label: 'Crea'),
     _NavItem(icon: Icons.chat_bubble_outline_rounded, label: 'Chatbot'),
+    _NavItem(icon: Icons.person_outline_rounded, label: 'Profilo'),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final bottomMargin = bottomInset > 0 ? 0.0 : 12.0;
+
     return SafeArea(
       top: false,
       child: Container(
-        margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+        margin: EdgeInsets.fromLTRB(14, 0, 14, bottomMargin),
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
         decoration: BoxDecoration(
           color: AppColors.biancoOttico,

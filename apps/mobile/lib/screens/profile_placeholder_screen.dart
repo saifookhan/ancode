@@ -6,55 +6,48 @@ import 'package:shared/shared.dart';
 
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
+import 'plan_selection_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+class ProfilePlaceholderScreen extends StatefulWidget {
+  const ProfilePlaceholderScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  State<ProfilePlaceholderScreen> createState() => _ProfilePlaceholderScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
   int _activeCodesCount = 0;
-  int _deactivatedCodesCount = 0;
   int _totalScansCount = 0;
   bool _loadingCodesCount = false;
   String? _lastLoadedUserId;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadCodesCount();
-  }
-
   Future<void> _loadCodesCount() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null || userId.isEmpty || userId == _lastLoadedUserId) {
-      return;
-    }
-
+    if (userId == null || userId.isEmpty || userId == _lastLoadedUserId) return;
     setState(() => _loadingCodesCount = true);
     try {
       final rows = await Supabase.instance.client.from('codes').select('*');
       final activeRows = await Supabase.instance.client.from('codes').select('id').eq('status', 'active');
-      final inactiveRows = await Supabase.instance.client.from('codes').select('id').eq('status', 'inactive');
-      final usageRows = await Supabase.instance.client.from('code_usages').select('*');
+      final usageRows = await Supabase.instance.client.from('code_usages').select('id');
+
+      final usageCount = (usageRows as List).length;
+      var scans = usageCount;
+      if (scans == 0) {
+        for (final row in (rows as List).cast<Map<String, dynamic>>()) {
+          final dynamic scanValue = row['scan_count'] ?? row['total_scans'] ?? row['scans'];
+          if (scanValue is num) {
+            scans += scanValue.toInt();
+          } else if (scanValue is String) {
+            scans += int.tryParse(scanValue) ?? 0;
+          }
+        }
+      }
       if (!mounted) return;
-      final list = (rows as List).cast<Map<String, dynamic>>();
-      final active = (activeRows as List).length;
-      final deactivated = (inactiveRows as List).length;
-      final scans = (usageRows as List).length;
       setState(() {
-        _activeCodesCount = active;
-        _deactivatedCodesCount = deactivated;
+        _activeCodesCount = (activeRows as List).length;
         _totalScansCount = scans;
         _lastLoadedUserId = userId;
       });
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore caricamento codici: $e')),
-      );
     } finally {
       if (mounted) setState(() => _loadingCodesCount = false);
     }
@@ -112,38 +105,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextButton.icon(
-                    onPressed: () async {
-                      await context.read<AuthService>().signOut();
-                      if (context.mounted) {
-                        await context.read<AuthService>().refreshProfile();
-                      }
-                    },
-                    style: TextButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                      foregroundColor: const Color(0xFFF05151),
-                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                    ),
-                    icon: const Icon(Icons.logout_rounded, size: 19),
-                    label: const Text(
-                      'Esci',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.2,
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () async {
+                          await context.read<AuthService>().signOut();
+                          if (context.mounted) {
+                            await context.read<AuthService>().refreshProfile();
+                          }
+                        },
+                        style: TextButton.styleFrom(
+                          alignment: Alignment.centerLeft,
+                          foregroundColor: const Color(0xFFF05151),
+                          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                        ),
+                        icon: const Icon(Icons.logout_rounded, size: 19),
+                        label: const Text(
+                          'Esci',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
                       ),
-                    ),
+                      const Spacer(),
+                      Image.asset('assets/logo.png', width: 34, height: 34),
+                    ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Profilo',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 34 / 2,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
                   _OutlineCard(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
                     child: Row(
@@ -159,11 +149,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           alignment: Alignment.center,
                           child: Text(
                             fullName.characters.first.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w500),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -221,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 30),
                   GridView.count(
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
@@ -238,7 +224,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _DashboardMetricCard(
                         icon: Icons.qr_code_scanner_rounded,
                         label: 'Codici attivi',
-                        value: '$_activeCodesCount',
+                        value: _activeCodesCount.toString(),
                       ),
                     ],
                   ),
@@ -296,6 +282,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 50),
+                  _MenuActionTile(
+                    icon: Icons.credit_card_outlined,
+                    label: 'Gestione Abbonamento',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(builder: (_) => const PlanSelectionScreen()),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _MenuActionTile(
+                    icon: Icons.settings_outlined,
+                    label: 'Impostazioni',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Sezione impostazioni in arrivo.')),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _MenuActionTile(
+                    icon: Icons.help_outline_rounded,
+                    label: 'Supporto & FAQ',
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Supporto e FAQ in arrivo.')),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -345,9 +359,7 @@ class _PlanFeature extends StatelessWidget {
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: AppColors.limeCreateHard,
-              border: Border.fromBorderSide(
-                BorderSide(color: AppColors.bluUniversoDeep, width: 1),
-              ),
+              border: Border.fromBorderSide(BorderSide(color: AppColors.bluUniversoDeep, width: 1)),
             ),
           ),
           const SizedBox(width: 10),
@@ -360,6 +372,51 @@ class _PlanFeature extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _MenuActionTile extends StatelessWidget {
+  const _MenuActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return WhiteLimePillSurface(
+      height: 62,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Row(
+              children: [
+                Icon(icon, color: AppColors.bluUniversoDeep, size: 20),
+                const SizedBox(width: 14),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: AppColors.bluUniversoDeep,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                const Icon(Icons.chevron_right_rounded, color: Color(0xFF778091), size: 24),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -422,7 +479,7 @@ class _DashboardMetricCard extends StatelessWidget {
               value,
               style: const TextStyle(
                 color: AppColors.bluUniversoDeep,
-                fontSize: 24 / 2,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
             ),

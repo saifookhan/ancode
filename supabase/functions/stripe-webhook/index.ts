@@ -39,7 +39,10 @@ serve(async (req) => {
       const { data: users } = await supabase.auth.admin.listUsers()
       const user = users?.users?.find(u => u.email === email)
       if (!user) break
-      const plan = sub.items.data[0]?.price?.metadata?.plan ?? 'pro'
+      const plan =
+        sub.items.data[0]?.price?.metadata?.plan ??
+        sub.metadata?.plan ??
+        'pro'
       const status = sub.status === 'active' || sub.status === 'trialing'
         ? 'active'
         : sub.status === 'past_due'
@@ -60,6 +63,17 @@ serve(async (req) => {
             : null,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
+      try {
+        await supabase.auth.admin.updateUserById(user.id, {
+          user_metadata: {
+            ...(user.user_metadata ?? {}),
+            plan,
+            subscription_end: sub.current_period_end
+              ? new Date(sub.current_period_end * 1000).toISOString()
+              : null,
+          },
+        })
+      } catch (_) {}
       break
     }
     case 'customer.subscription.deleted': {

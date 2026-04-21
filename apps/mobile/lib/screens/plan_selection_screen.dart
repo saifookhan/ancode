@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_service.dart';
 import '../services/plan_mode_service.dart';
@@ -36,6 +37,60 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     }
   }
 
+  Future<void> _applyFreePlan(User user) async {
+    const planValue = 'free';
+    await Supabase.instance.client.auth.updateUser(
+      UserAttributes(
+        data: {
+          'plan': planValue,
+          'subscription_end': null,
+        },
+      ),
+    );
+    try {
+      await Supabase.instance.client.from('profiles').upsert({'user_id': user.id, 'plan': planValue}, onConflict: 'user_id');
+    } catch (_) {}
+    try {
+      await Supabase.instance.client.from('subscriptions').upsert({
+        'user_id': user.id,
+        'plan': planValue,
+        'status': 'canceled',
+        'current_period_end': null,
+      }, onConflict: 'user_id');
+    } catch (_) {}
+    await PlanModeService.enforcePlanRules(
+      client: Supabase.instance.client,
+      userId: user.id,
+      plan: planValue,
+      subscriptionEndDate: null,
+    );
+  }
+
+  Future<void> _startStripeCheckout(User user, String planValue) async {
+    const origin = 'https://ancode.vercel.app';
+    final response = await Supabase.instance.client.functions.invoke(
+      'create-checkout-session',
+      body: {
+        'plan': planValue,
+        'userId': user.id,
+        'email': user.email ?? '',
+        'successUrl': '$origin/?checkout=success&plan=$planValue',
+        'cancelUrl': '$origin/?checkout=cancel',
+      },
+    );
+    final data = response.data;
+    if (data is! Map<String, dynamic>) {
+      throw Exception('Invalid checkout response');
+    }
+    final checkoutUrl = data['url']?.toString();
+    if (checkoutUrl == null || checkoutUrl.isEmpty) {
+      throw Exception('Invalid checkout URL');
+    }
+    final uri = Uri.parse(checkoutUrl);
+    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!ok) throw Exception('Cannot open checkout URL');
+  }
+
   Future<void> _savePlan() async {
     if (_isSaving) return;
     setState(() => _isSaving = true);
@@ -47,36 +102,16 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         return;
       }
       final planValue = _selectedPlan.toLowerCase();
-      final now = DateTime.now().toUtc();
-      final subscriptionEnd = planValue == 'free' ? null : now.add(const Duration(days: 30));
-
-      await Supabase.instance.client.auth.updateUser(
-        UserAttributes(
-          data: {
-            'plan': planValue,
-            'subscription_end': subscriptionEnd?.toIso8601String(),
-          },
-        ),
-      );
-
-      try {
-        await Supabase.instance.client.from('profiles').upsert({'user_id': user.id, 'plan': planValue}, onConflict: 'user_id');
-      } catch (_) {}
-      try {
-        await Supabase.instance.client.from('subscriptions').upsert({
-          'user_id': user.id,
-          'plan': planValue,
-          'status': planValue == 'free' ? 'canceled' : 'active',
-          'current_period_end': subscriptionEnd?.toIso8601String(),
-        }, onConflict: 'user_id');
-      } catch (_) {}
-
-      await PlanModeService.enforcePlanRules(
-        client: Supabase.instance.client,
-        userId: user.id,
-        plan: planValue,
-        subscriptionEndDate: subscriptionEnd,
-      );
+      if (planValue == 'free') {
+        await _applyFreePlan(user);
+      } else {
+        await _startStripeCheckout(user, planValue);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Completa il pagamento su Stripe per attivare il piano.')),
+        );
+        return;
+      }
 
       if (!mounted) return;
       await context.read<AuthService>().refreshProfile();
@@ -105,7 +140,12 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _selectedPlan,
+                style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w600),
+                dropdownColor: Colors.white,
+                iconEnabledColor: Colors.black87,
                 decoration: const InputDecoration(
+                  filled: true,
+                  fillColor: Colors.white,
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
@@ -117,7 +157,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               ),
               const SizedBox(height: 18),
               const Text(
-                'This is a temporary page for plan mode selection. Payment flow will be added later.',
+                'Per i piani Pro/Business verrai reindirizzato al checkout Stripe.',
                 style: TextStyle(color: Colors.black54),
               ),
               const Spacer(),
