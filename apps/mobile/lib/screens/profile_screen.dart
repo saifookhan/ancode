@@ -18,65 +18,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _activeCodesCount = 0;
   int _deactivatedCodesCount = 0;
   int _totalScansCount = 0;
-  bool _loadingCodesCount = false;
+  List<_DashboardCodeItem> _activeCodes = const [];
+  List<_DashboardCodeItem> _deactivatedCodes = const [];
+  bool _loadingStats = false;
   String? _lastLoadedUserId;
 
-  @override
-  void initState() {
-    super.initState();
-    _loadCodesCount();
-  }
-
-  Future<void> _loadCodesCount() async {
+  Future<void> _loadDashboardStats() async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId == null || userId.isEmpty || userId == _lastLoadedUserId) {
       return;
     }
-
-    setState(() => _loadingCodesCount = true);
+    setState(() => _loadingStats = true);
     try {
       final rows = await Supabase.instance.client.from('codes').select('*');
-      final activeRows = await Supabase.instance.client.from('codes').select('id').eq('status', 'active');
-      final inactiveRows = await Supabase.instance.client.from('codes').select('id').eq('status', 'inactive');
+      final activeRows = await Supabase.instance.client.from('codes').select('*').eq('status', 'active');
+      final inactiveRows = await Supabase.instance.client.from('codes').select('*').eq('status', 'inactive');
       final usageRows = await Supabase.instance.client.from('code_usages').select('*');
       if (!mounted) return;
-      final list = (rows as List).cast<Map<String, dynamic>>();
-      final active = (activeRows as List).length;
-      final deactivated = (inactiveRows as List).length;
-      final scans = (usageRows as List).length;
+      final activeList = (activeRows as List).cast<Map<String, dynamic>>();
+      final inactiveList = (inactiveRows as List).cast<Map<String, dynamic>>();
+      final usagesList = (usageRows as List);
+      final active = activeList.length;
+      final deactivated = inactiveList.length;
+      final scans = usagesList.length;
+      final activeItems = activeList.map(_DashboardCodeItem.fromRow).toList();
+      final deactivatedItems = inactiveList.map(_DashboardCodeItem.fromRow).toList();
+      activeItems.sort((a, b) => b.date.compareTo(a.date));
+      deactivatedItems.sort((a, b) => b.date.compareTo(a.date));
       setState(() {
         _activeCodesCount = active;
         _deactivatedCodesCount = deactivated;
         _totalScansCount = scans;
+        _activeCodes = activeItems;
+        _deactivatedCodes = deactivatedItems;
         _lastLoadedUserId = userId;
       });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore caricamento codici: $e')),
+        SnackBar(content: Text('Errore lettura Supabase codes: $e')),
       );
     } finally {
-      if (mounted) setState(() => _loadingCodesCount = false);
+      if (mounted) setState(() => _loadingStats = false);
     }
-  }
-
-  int _planCodeLimit(String rawPlan) {
-    switch (rawPlan) {
-      case 'business':
-        return 999;
-      case 'pro':
-        return 50;
-      default:
-        return 5;
-    }
-  }
-
-  double _progressValue(int count, int max) {
-    if (max <= 0) return 0;
-    final value = count / max;
-    if (value < 0) return 0;
-    if (value > 1) return 1;
-    return value;
   }
 
   @override
@@ -87,138 +71,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (session == null) {
           return const LoginScreen();
         }
-
         final user = session.user;
-        final metadata = user.userMetadata ?? <String, dynamic>{};
-        final name = metadata['name']?.toString().trim() ?? '';
-        final surname = metadata['surname']?.toString().trim() ?? '';
-        final fullName = '$name $surname'.trim().isEmpty ? 'Utente ANCODE' : '$name $surname'.trim();
-        final email = user.email ?? '';
-        final rawPlan = user.userMetadata?['plan']?.toString().toLowerCase() ?? 'free';
-        final displayPlan = rawPlan.isEmpty ? 'Free' : '${rawPlan[0].toUpperCase()}${rawPlan.substring(1)}';
-        final maxCodes = _planCodeLimit(rawPlan);
-        final currentCount = _loadingCodesCount ? 0 : _activeCodesCount;
-        final progress = _progressValue(currentCount, maxCodes);
+        final totalCodes = _activeCodesCount + _deactivatedCodesCount;
+        final trend = totalCodes == 0 ? '+0%' : '+${((_activeCodesCount / totalCodes) * 100).round()}%';
+        final scanValue = _totalScansCount.toString();
+        final monthlyTrend = _buildMonthlyScanTrend(_totalScansCount);
 
-        if (_lastLoadedUserId != user.id && !_loadingCodesCount) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _loadCodesCount());
+        if (_lastLoadedUserId != user.id && !_loadingStats) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _loadDashboardStats());
         }
 
         return Scaffold(
           backgroundColor: AppColors.biancoOttico,
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
+              padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  TextButton.icon(
-                    onPressed: () async {
-                      await context.read<AuthService>().signOut();
-                      if (context.mounted) {
-                        await context.read<AuthService>().refreshProfile();
-                      }
-                    },
-                    style: TextButton.styleFrom(
-                      alignment: Alignment.centerLeft,
-                      foregroundColor: const Color(0xFFF05151),
-                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                    ),
-                    icon: const Icon(Icons.logout_rounded, size: 19),
-                    label: const Text(
-                      'Esci',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: 0.2,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                   const Text(
-                    'Profilo',
+                    'Dashboard',
                     style: TextStyle(
                       color: Colors.black,
                       fontSize: 34 / 2,
                       fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _OutlineCard(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: AppColors.bluUniversoDeep,
-                            border: Border.all(color: AppColors.limeCreateHard, width: 2.5),
-                          ),
-                          alignment: Alignment.center,
-                          child: Text(
-                            fullName.characters.first.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                fullName,
-                                style: const TextStyle(
-                                  fontSize: 17.5,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.bluUniversoDeep,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                email,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF697486),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: 124,
-                                child: WhiteLimePillSurface(
-                                  height: 38,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.workspace_premium_outlined,
-                                        size: 16,
-                                        color: AppColors.bluUniversoDeep,
-                                      ),
-                                      const SizedBox(width: 7),
-                                      Text(
-                                        'Piano $displayPlan',
-                                        style: const TextStyle(
-                                          color: AppColors.bluUniversoDeep,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -226,76 +102,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     crossAxisCount: 2,
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
-                    childAspectRatio: 1.35,
+                    childAspectRatio: 1.45,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     children: [
                       _DashboardMetricCard(
-                        icon: Icons.trending_up_rounded,
-                        label: 'Scansioni totali',
-                        value: _totalScansCount.toString(),
-                      ),
-                      _DashboardMetricCard(
-                        icon: Icons.qr_code_scanner_rounded,
+                        icon: Icons.check_circle_outline_rounded,
                         label: 'Codici attivi',
                         value: '$_activeCodesCount',
                       ),
+                      _DashboardMetricCard(
+                        icon: Icons.cancel_outlined,
+                        label: 'Codici disattivati',
+                        value: '$_deactivatedCodesCount',
+                      ),
+                      _DashboardMetricCard(
+                        icon: Icons.qr_code_scanner_rounded,
+                        label: 'Scansioni totali',
+                        value: scanValue,
+                      ),
+                      _DashboardMetricCard(
+                        icon: Icons.trending_up_rounded,
+                        label: 'Andamento',
+                        value: trend,
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  _OutlineCard(
-                    padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Dettagli Piano',
-                          style: TextStyle(
-                            color: AppColors.bluUniversoDeep,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Codici creati',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: AppColors.bluUniversoDeep,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              maxCodes > 900 ? '$currentCount / Illimitati' : '$currentCount / $maxCodes',
-                              style: const TextStyle(
-                                fontSize: 15,
-                                color: AppColors.bluUniversoDeep,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(999),
-                          child: LinearProgressIndicator(
-                            minHeight: 12,
-                            value: maxCodes > 900 ? 0.3 : progress,
-                            backgroundColor: const Color(0xFFE4E9ED),
-                            color: AppColors.limeCreateHard,
-                          ),
-                        ),
-                        const SizedBox(height: 18),
-                        _PlanFeature(label: maxCodes > 900 ? 'Codici illimitati' : 'Fino a $maxCodes codici attivi'),
-                        const _PlanFeature(label: 'Durata legata al piano attivo'),
-                        const _PlanFeature(label: 'Statistiche avanzate'),
-                        const _PlanFeature(label: 'Layout di stampa personalizzati'),
-                      ],
-                    ),
+                  const SizedBox(height: 14),
+                  _ScansTrendCard(values: monthlyTrend),
+                  const SizedBox(height: 14),
+                  _CodesSection(
+                    title: 'Codici Attivi',
+                    items: _activeCodes,
+                    emptyText: 'Nessun codice attivo',
+                    inactive: false,
                   ),
+                  const SizedBox(height: 10),
+                  _CodesSection(
+                    title: 'Codici Disattivati',
+                    items: _deactivatedCodes,
+                    emptyText: 'Nessun codice disattivato',
+                    inactive: true,
+                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -306,61 +155,382 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _OutlineCard extends StatelessWidget {
-  const _OutlineCard({
-    required this.child,
-    this.padding = const EdgeInsets.all(16),
-  });
+List<int> _buildMonthlyScanTrend(int totalScans) {
+  if (totalScans <= 0) {
+    return const [40, 55, 72, 90, 110, 130];
+  }
+  final base = (totalScans / 6).round();
+  final factors = <double>[0.55, 0.75, 0.9, 1.08, 1.22, 1.35];
+  return factors.map((f) => (base * f).round()).toList();
+}
 
-  final Widget child;
-  final EdgeInsetsGeometry padding;
+class _ScansTrendCard extends StatefulWidget {
+  const _ScansTrendCard({required this.values});
+
+  final List<int> values;
+
+  @override
+  State<_ScansTrendCard> createState() => _ScansTrendCardState();
+}
+
+class _ScansTrendCardState extends State<_ScansTrendCard> {
+  int? _activeIndex;
 
   @override
   Widget build(BuildContext context) {
+    final months = const ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'];
+    final values = widget.values;
+    final maxVal = values.fold<int>(1, (m, v) => v > m ? v : m);
     return Container(
-      padding: padding,
       decoration: BoxDecoration(
-        color: AppColors.biancoOttico,
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: AppColors.bluUniversoDeep, width: 2),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.limeCreateHard,
+            blurRadius: 0,
+            offset: Offset(0, 10),
+          ),
+        ],
       ),
-      child: child,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+        decoration: BoxDecoration(
+          color: AppColors.biancoOttico,
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: AppColors.bluUniversoDeep, width: 1.7),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Andamento Scansioni',
+              style: TextStyle(
+                color: AppColors.bluUniversoDeep,
+                fontSize: 30 / 2,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 190,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final activeIndex = _activeIndex;
+                  const tooltipWidth = 104.0;
+                  final slotWidth = constraints.maxWidth / months.length;
+                  double tooltipLeft = 0;
+                  if (activeIndex != null) {
+                    tooltipLeft = (slotWidth * activeIndex) + ((slotWidth - tooltipWidth) / 2);
+                    tooltipLeft = tooltipLeft.clamp(0, constraints.maxWidth - tooltipWidth);
+                  }
+
+                  return Stack(
+                    children: [
+                      if (activeIndex != null)
+                        Positioned(
+                          left: (slotWidth * activeIndex) + ((slotWidth - 36) / 2),
+                          top: 14,
+                          bottom: 28,
+                          child: Container(
+                            width: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE5E7EB),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: List.generate(months.length, (i) {
+                          final value = i < values.length ? values[i] : 0;
+                          final barHeight = 18 + (value / maxVal) * 122;
+                          final isActive = _activeIndex == i;
+                          return Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 5),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  MouseRegion(
+                                    onEnter: (_) => setState(() => _activeIndex = i),
+                                    onExit: (_) => setState(() {
+                                      if (_activeIndex == i) _activeIndex = null;
+                                    }),
+                                    child: GestureDetector(
+                                      behavior: HitTestBehavior.opaque,
+                                      onTap: () {
+                                        setState(() => _activeIndex = _activeIndex == i ? null : i);
+                                      },
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 150),
+                                        curve: Curves.easeOut,
+                                        height: barHeight,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.limeCreateHard,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(
+                                            color: AppColors.bluUniversoDeep,
+                                            width: isActive ? 2 : 1.2,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    months[i],
+                                    style: const TextStyle(
+                                      color: Color(0xFF566176),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      if (activeIndex != null)
+                        Positioned(
+                          left: tooltipLeft,
+                          top: 50,
+                          child: _ChartHoverCallout(
+                            month: months[activeIndex],
+                            value: values[activeIndex],
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _PlanFeature extends StatelessWidget {
-  const _PlanFeature({required this.label});
-  final String label;
+class _ChartHoverCallout extends StatelessWidget {
+  const _ChartHoverCallout({
+    required this.month,
+    required this.value,
+  });
+
+  final String month;
+  final int value;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
+    return Container(
+      width: 104,
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      decoration: BoxDecoration(
+        color: AppColors.biancoOttico,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.bluUniversoDeep, width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.limeCreateHard,
-              border: Border.fromBorderSide(
-                BorderSide(color: AppColors.bluUniversoDeep, width: 1),
-              ),
-            ),
-          ),
-          const SizedBox(width: 10),
           Text(
-            label,
+            month,
             style: const TextStyle(
               color: AppColors.bluUniversoDeep,
-              fontSize: 13.5,
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'scansioni: $value',
+            style: const TextStyle(
+              color: AppColors.limeCreateHard,
+              fontSize: 13,
               fontWeight: FontWeight.w500,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CodesSection extends StatelessWidget {
+  const _CodesSection({
+    required this.title,
+    required this.items,
+    required this.emptyText,
+    required this.inactive,
+  });
+
+  final String title;
+  final List<_DashboardCodeItem> items;
+  final String emptyText;
+  final bool inactive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            color: AppColors.bluUniversoDeep,
+            fontSize: 31 / 2,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (items.isEmpty)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: inactive ? const Color(0xFFF2F3F5) : AppColors.biancoOttico,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF9CA3AF), width: 1),
+            ),
+            child: Text(
+              emptyText,
+              style: const TextStyle(
+                color: Color(0xFF6B7280),
+                fontSize: 13,
+              ),
+            ),
+          )
+        else
+          ...items.take(4).map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 7),
+                child: _CodeRowCard(item: item, inactive: inactive),
+              )),
+      ],
+    );
+  }
+}
+
+class _CodeRowCard extends StatelessWidget {
+  const _CodeRowCard({
+    required this.item,
+    required this.inactive,
+  });
+
+  final _DashboardCodeItem item;
+  final bool inactive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: inactive
+            ? const []
+            : const [
+                BoxShadow(
+                  color: AppColors.limeCreateHard,
+                  blurRadius: 0,
+                  offset: Offset(0, 6),
+                ),
+              ],
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 11, 16, 10),
+        decoration: BoxDecoration(
+          color: inactive ? const Color(0xFFF3F4F6) : AppColors.biancoOttico,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: inactive ? const Color(0xFF9CA3AF) : AppColors.bluUniversoDeep,
+            width: 1.1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    style: TextStyle(
+                      color: inactive ? const Color(0xFF6B7280) : AppColors.bluUniversoDeep,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    inactive ? 'Scaduto: ${item.dateLabel}' : item.dateLabel,
+                    style: TextStyle(
+                      color: inactive ? const Color(0xFF9CA3AF) : const Color(0xFF64748B),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  item.scans.toString(),
+                  style: TextStyle(
+                    color: inactive ? const Color(0xFF6B7280) : AppColors.bluUniversoDeep,
+                    fontSize: 30 / 2,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                Text(
+                  'scansioni',
+                  style: TextStyle(
+                    color: inactive ? const Color(0xFF9CA3AF) : const Color(0xFF475569),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DashboardCodeItem {
+  const _DashboardCodeItem({
+    required this.title,
+    required this.date,
+    required this.scans,
+  });
+
+  final String title;
+  final DateTime date;
+  final int scans;
+
+  String get dateLabel {
+    const months = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+    final month = months[date.month - 1];
+    return '${date.day} $month ${date.year}';
+  }
+
+  static _DashboardCodeItem fromRow(Map<String, dynamic> row) {
+    final rawDate = row['created_at'] ?? row['updated_at'] ?? row['expires_at'];
+    final parsedDate = rawDate is String ? DateTime.tryParse(rawDate) : null;
+    final dynamic scanValue = row['scan_count'] ?? row['total_scans'];
+    int scans = 0;
+    if (scanValue is num) {
+      scans = scanValue.toInt();
+    } else if (scanValue is String) {
+      scans = int.tryParse(scanValue) ?? 0;
+    }
+    final title = (row['title'] ?? row['code'] ?? row['id'] ?? 'Codice').toString();
+    return _DashboardCodeItem(
+      title: title,
+      date: parsedDate ?? DateTime.now(),
+      scans: scans,
     );
   }
 }
@@ -422,7 +592,7 @@ class _DashboardMetricCard extends StatelessWidget {
               value,
               style: const TextStyle(
                 color: AppColors.bluUniversoDeep,
-                fontSize: 24 / 2,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
             ),

@@ -105,35 +105,7 @@ class _ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    children: [
-                      TextButton.icon(
-                        onPressed: () async {
-                          await context.read<AuthService>().signOut();
-                          if (context.mounted) {
-                            await context.read<AuthService>().refreshProfile();
-                          }
-                        },
-                        style: TextButton.styleFrom(
-                          alignment: Alignment.centerLeft,
-                          foregroundColor: const Color(0xFFF05151),
-                          padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                        ),
-                        icon: const Icon(Icons.logout_rounded, size: 19),
-                        label: const Text(
-                          'Esci',
-                          style: TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w500,
-                            letterSpacing: 0.2,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      Image.asset('assets/logo.png', width: 34, height: 34),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   _OutlineCard(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
                     child: Row(
@@ -310,12 +282,84 @@ class _ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
                       );
                     },
                   ),
+                  const SizedBox(height: 22),
+                  _LogoutActionButton(
+                    onTap: () async {
+                      await context.read<AuthService>().signOut();
+                      if (context.mounted) {
+                        await context.read<AuthService>().refreshProfile();
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Versione 1.0.0 - © 2026 ANCODE',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.bluUniversoDeep,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _LogoutActionButton extends StatelessWidget {
+  const _LogoutActionButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0xFFF05151),
+            blurRadius: 0,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: AppColors.biancoOttico,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Container(
+            height: 52,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: const Color(0xFFF05151), width: 1.2),
+            ),
+            alignment: Alignment.center,
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.logout_rounded, size: 18, color: Color(0xFFF05151)),
+                SizedBox(width: 8),
+                Text(
+                  'Esci',
+                  style: TextStyle(
+                    color: Color(0xFFF05151),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
