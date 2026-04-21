@@ -87,7 +87,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         'plan': planValue,
         'userId': user.id,
         'email': user.email ?? '',
-        'successUrl': '$origin/?checkout=success&plan=$planValue',
+        'successUrl': '$origin/?checkout=success&plan=$planValue&session_id={CHECKOUT_SESSION_ID}',
         'cancelUrl': '$origin/?checkout=cancel',
       },
     );

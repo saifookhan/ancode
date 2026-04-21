@@ -14,7 +14,12 @@ class AncodeQrPdf {
     required Ancode ancode,
     required String shortlink,
     required String expirationMessage,
+    /// When set (e.g. HTTPS URL for link codes), the QR encodes this instead of [shortlink].
+    String? qrEncodedPayload,
   }) async {
+    final qrData = (qrEncodedPayload != null && qrEncodedPayload.trim().isNotEmpty)
+        ? qrEncodedPayload.trim()
+        : shortlink;
     final pdf = pw.Document();
     pdf.addPage(
       pw.Page(
@@ -36,14 +41,14 @@ class AncodeQrPdf {
                 ),
                 pw.SizedBox(height: 8),
                 pw.Text(
-                  'Scan to access this ANCODE',
+                  ancode.isLink ? 'Scan the QR code to open this link' : 'Scan to access this ANCODE',
                   textAlign: pw.TextAlign.center,
                   style: const pw.TextStyle(fontSize: 11, color: PdfColors.grey700),
                 ),
                 pw.SizedBox(height: 18),
                 pw.Center(
                   child: pw.BarcodeWidget(
-                    data: shortlink,
+                    data: qrData,
                     width: 150,
                     height: 150,
                     barcode: pw.Barcode.qrCode(),

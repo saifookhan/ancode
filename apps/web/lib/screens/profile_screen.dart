@@ -11,10 +11,10 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
+  ProfileScreenState createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class ProfileScreenState extends State<ProfileScreen> {
   int _activeCodesCount = 0;
   int _deactivatedCodesCount = 0;
   int _totalScansCount = 0;
@@ -23,27 +23,116 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _loadingStats = false;
   String? _lastLoadedUserId;
 
+  Future<List<Map<String, dynamic>>> _fetchCodesRowsForUser(String userId) async {
+    Future<List<Map<String, dynamic>>?> tryQuery(Future<dynamic> Function() query) async {
+      try {
+        final res = await query();
+        return List<Map<String, dynamic>>.from(res as List);
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final byOwner = await tryQuery(() => Supabase.instance.client
+        .from('codes')
+        .select('*')
+        .eq('owner_user_id', userId)
+        .order('created_at', ascending: false));
+    if (byOwner != null) return byOwner;
+
+    final byCreated = await tryQuery(() => Supabase.instance.client
+        .from('codes')
+        .select('*')
+        .eq('created_by', userId)
+        .order('created_at', ascending: false));
+    if (byCreated != null) return byCreated;
+
+    try {
+      final res = await Supabase.instance.client
+          .from('codes')
+          .select('*')
+          .eq('created_by', userId)
+          .order('priority_rank', ascending: true)
+          .order('created_at', ascending: false);
+      return List<Map<String, dynamic>>.from(res as List);
+    } catch (_) {}
+
+    final fromAncodes = await tryQuery(() => Supabase.instance.client
+        .from('ancodes')
+        .select('*, municipality:municipalities(*)')
+        .eq('owner_user_id', userId)
+        .order('created_at', ascending: false));
+    if (fromAncodes != null) return fromAncodes;
+
+    return [];
+  }
+
+  String _normalizedCodeKey(Map<String, dynamic> row) {
+    final raw = row['normalized_code'] ?? row['title'] ?? '';
+    return normalizeCodeInput(raw.toString());
+  }
+
+  /// Counts rows in [search_history] per normalized code (Home searches).
+  Future<Map<String, int>> _fetchSearchHistoryCounts(Iterable<String> normalizedCodes) async {
+    final keys = normalizedCodes.where((k) => k.isNotEmpty).toSet().toList();
+    if (keys.isEmpty) return {};
+    const chunkSize = 80;
+    final counts = <String, int>{};
+    for (var i = 0; i < keys.length; i += chunkSize) {
+      final end = (i + chunkSize > keys.length) ? keys.length : i + chunkSize;
+      final chunk = keys.sublist(i, end);
+      try {
+        final res = await Supabase.instance.client.from('search_history').select('code').inFilter('code', chunk);
+        for (final r in res as List) {
+          final k = normalizeCodeInput((r['code'] ?? '').toString());
+          if (k.isEmpty) continue;
+          counts[k] = (counts[k] ?? 0) + 1;
+        }
+      } catch (_) {
+        // Chunk may fail if schema differs; continue with other chunks.
+      }
+    }
+    return counts;
+  }
+
+  int _totalSearchHitsForCodes(Map<String, int> countsByCode, List<Map<String, dynamic>> userCodes) {
+    var sum = 0;
+    for (final r in userCodes) {
+      final k = _normalizedCodeKey(r);
+      sum += countsByCode[k] ?? 0;
+    }
+    return sum;
+  }
+
   Future<void> _loadDashboardStats() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final auth = context.read<AuthService>();
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? auth.profile?.userId;
     if (userId == null || userId.isEmpty || userId == _lastLoadedUserId) {
       return;
     }
     setState(() => _loadingStats = true);
     try {
-      final rows = await Supabase.instance.client.from('codes').select('*');
-      final activeRows = await Supabase.instance.client.from('codes').select('*').eq('status', 'active');
-      final inactiveRows = await Supabase.instance.client.from('codes').select('*').eq('status', 'inactive');
-      final usageRows = await Supabase.instance.client.from('code_usages').select('*');
+      final userCodes = await _fetchCodesRowsForUser(userId);
       if (!mounted) return;
-      final list = (rows as List).cast<Map<String, dynamic>>();
-      final activeList = (activeRows as List).cast<Map<String, dynamic>>();
-      final inactiveList = (inactiveRows as List).cast<Map<String, dynamic>>();
-      final usagesList = (usageRows as List);
+
+      bool rowIsActive(Map<String, dynamic> r) =>
+          (r['status']?.toString().toLowerCase() ?? '') == 'active';
+      bool rowIsInactive(Map<String, dynamic> r) =>
+          (r['status']?.toString().toLowerCase() ?? '') == 'inactive';
+
+      final activeList = userCodes.where(rowIsActive).toList();
+      final inactiveList = userCodes.where(rowIsInactive).toList();
       final active = activeList.length;
       final deactivated = inactiveList.length;
-      final scans = usagesList.length;
-      final activeItems = activeList.map(_DashboardCodeItem.fromRow).toList();
-      final deactivatedItems = inactiveList.map(_DashboardCodeItem.fromRow).toList();
+      final codeKeys = userCodes.map(_normalizedCodeKey).where((k) => k.isNotEmpty);
+      final scanCounts = await _fetchSearchHistoryCounts(codeKeys);
+      final scans = _totalSearchHitsForCodes(scanCounts, userCodes);
+      final activeItems = activeList
+          .map((r) => _DashboardCodeItem.fromRow(r, searchHistoryScans: scanCounts[_normalizedCodeKey(r)] ?? 0))
+          .toList();
+      final deactivatedItems = inactiveList
+          .map((r) => _DashboardCodeItem.fromRow(r, searchHistoryScans: scanCounts[_normalizedCodeKey(r)] ?? 0))
+          .toList();
       activeItems.sort((a, b) => b.date.compareTo(a.date));
       deactivatedItems.sort((a, b) => b.date.compareTo(a.date));
       setState(() {
@@ -64,6 +153,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Called when the Dashboard tab becomes active so stats stay in sync (e.g. after Home search).
+  Future<void> reloadDashboardStats() async {
+    final auth = context.read<AuthService>();
+    final userId = Supabase.instance.client.auth.currentUser?.id ?? auth.profile?.userId;
+    if (userId == null || userId.isEmpty || !mounted) return;
+    setState(() => _lastLoadedUserId = null);
+    await _loadDashboardStats();
+  }
+
+  Future<void> _refreshDashboard() => reloadDashboardStats();
+
   @override
   Widget build(BuildContext context) {
     return Consumer<AuthService>(
@@ -72,22 +172,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (session == null) {
           return const LoginScreen();
         }
-        final user = session.user;
         final totalCodes = _activeCodesCount + _deactivatedCodesCount;
         final trend = totalCodes == 0 ? '+0%' : '+${((_activeCodesCount / totalCodes) * 100).round()}%';
         final scanValue = _totalScansCount.toString();
         final monthlyTrend = _buildMonthlyScanTrend(_totalScansCount);
 
-        if (_lastLoadedUserId != user.id && !_loadingStats) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _loadDashboardStats());
-        }
-
         return Scaffold(
           backgroundColor: AppColors.biancoOttico,
           body: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
+            child: RefreshIndicator(
+              onRefresh: _refreshDashboard,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(24),
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
@@ -148,6 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 12),
                 ],
               ),
+            ),
             ),
           ),
         );
@@ -585,16 +684,13 @@ class _DashboardCodeItem {
     return '${date.day} $month ${date.year}';
   }
 
-  static _DashboardCodeItem fromRow(Map<String, dynamic> row) {
+  static _DashboardCodeItem fromRow(
+    Map<String, dynamic> row, {
+    required int searchHistoryScans,
+  }) {
     final rawDate = row['created_at'] ?? row['updated_at'] ?? row['expires_at'];
     final parsedDate = rawDate is String ? DateTime.tryParse(rawDate) : null;
-    final dynamic scanValue = row['scan_count'] ?? row['total_scans'];
-    int scans = 0;
-    if (scanValue is num) {
-      scans = scanValue.toInt();
-    } else if (scanValue is String) {
-      scans = int.tryParse(scanValue) ?? 0;
-    }
+    final scans = searchHistoryScans;
     final title = (row['title'] ?? row['code'] ?? row['id'] ?? 'Codice').toString();
     return _DashboardCodeItem(
       title: title,

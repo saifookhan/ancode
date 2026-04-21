@@ -51,6 +51,9 @@ Future<void> main() async {
 class AncodeMobileApp extends StatelessWidget {
   const AncodeMobileApp({super.key});
 
+  /// Used so Stripe return deep links can show [SnackBar]s after reopening the app.
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -59,6 +62,7 @@ class AncodeMobileApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: '*ANCODE',
+        navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,

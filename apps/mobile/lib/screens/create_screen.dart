@@ -731,6 +731,7 @@ class _OutputScreen extends StatelessWidget {
     final copyPayload = ancode.isLink
         ? (AncodeQrPdf.normalizeHttpUri(directTarget)?.toString() ?? directTarget.trim())
         : shortlink;
+    final qrPayload = ancode.isLink ? copyPayload : shortlink;
     final user = Supabase.instance.client.auth.currentUser;
     final plan = PlanModeService.currentPlan(user);
     final subEnd = PlanModeService.subscriptionEnd(user);
@@ -782,9 +783,12 @@ class _OutputScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          QrImageView(data: shortlink, version: QrVersions.auto, size: 100),
+                          QrImageView(data: qrPayload, version: QrVersions.auto, size: 100),
                           const SizedBox(height: 4),
-                          const Text('Scan to Access', style: TextStyle(fontSize: 10, color: Color(0xFF676E7C))),
+                          Text(
+                            ancode.isLink ? 'Scan to open link' : 'Scan to Access',
+                            style: const TextStyle(fontSize: 10, color: Color(0xFF676E7C)),
+                          ),
                         ],
                       ),
                     ),
@@ -808,9 +812,11 @@ class _OutputScreen extends StatelessWidget {
                     _detailRow('Duration', expirationMessage),
                     _detailRow('Content', ancode.isLink ? (ancode.url ?? '') : (ancode.noteText ?? '')),
                     const SizedBox(height: 8),
-                    const Text(
-                      'Visit ancode.com and enter this code',
-                      style: TextStyle(fontSize: 10, color: Color(0xFF6D7483)),
+                    Text(
+                      ancode.isLink
+                          ? 'Generic scanners open your URL directly.\nYou can still look up this code on ANCODE.'
+                          : 'Visit ancode.com and enter this code',
+                      style: const TextStyle(fontSize: 10, color: Color(0xFF6D7483)),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
@@ -837,6 +843,7 @@ class _OutputScreen extends StatelessWidget {
                         format: format,
                         ancode: ancode,
                         shortlink: shortlink,
+                        qrEncodedPayload: qrPayload,
                         expirationMessage: expirationMessage,
                       ),
                     );
@@ -869,6 +876,7 @@ class _OutputScreen extends StatelessWidget {
                       format: PdfPageFormat.a4,
                       ancode: ancode,
                       shortlink: shortlink,
+                      qrEncodedPayload: qrPayload,
                       expirationMessage: expirationMessage,
                     );
                     await Printing.sharePdf(

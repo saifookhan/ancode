@@ -20,17 +20,25 @@ class MainShell extends StatefulWidget {
 class MainShellState extends State<MainShell> {
   int _currentIndex = 0; // Home, Dashboard, Crea, Chatbot, Profilo
 
-  late final List<Widget> _screens = <Widget>[
-    const HomeScreen(),
-    const ProfileScreen(),
-    const CreateScreen(),
-    const ChatbotScreen(),
-    const ProfilePlaceholderScreen(),
-  ];
+  final GlobalKey<ProfileScreenState> _dashboardKey = GlobalKey<ProfileScreenState>();
+  late final List<Widget> _screens;
 
   static const int _homeIndex = 0;
+  static const int _dashboardIndex = 1;
   static const int createIndex = 2;
   static const int _createIndex = 2;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = <Widget>[
+      const HomeScreen(),
+      ProfileScreen(key: _dashboardKey),
+      const CreateScreen(),
+      const ChatbotScreen(),
+      const ProfilePlaceholderScreen(),
+    ];
+  }
 
   void goToTab(int index) {
     if (!mounted) return;
@@ -50,6 +58,11 @@ class MainShellState extends State<MainShell> {
       return;
     }
     goToTab(i);
+    if (i == _dashboardIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _dashboardKey.currentState?.reloadDashboardStats();
+      });
+    }
   }
 
   @override

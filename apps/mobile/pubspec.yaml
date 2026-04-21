@@ -19,6 +19,7 @@ dependencies:
   printing: ^5.14.2
   pdf: ^3.10.7
   share_plus: ^11.1.0
+  app_links: ^6.3.3
 
 flutter:
   uses-material-design: true

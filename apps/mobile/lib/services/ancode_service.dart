@@ -27,16 +27,6 @@ class AncodeService {
     if (normalized.isEmpty) {
       return AncodeSearchResult(error: 'Codice non valido');
     }
-    final userId = _client.auth.currentUser?.id;
-    if (userId != null) {
-      try {
-        await _client.from('search_history').delete().eq('user_id', userId).eq('code', normalized);
-        await _client.from('search_history').insert({'user_id': userId, 'code': normalized});
-      } catch (_) {
-        // Search should continue even if history tracking fails.
-      }
-    }
-
     final rawRows = await _searchRows(normalized);
     final rows = rawRows
         .where((r) {
@@ -57,6 +47,14 @@ class AncodeService {
     if (matches.isEmpty) {
       final similar = await _findSimilar(normalized);
       return AncodeSearchResult(error: 'Codice non trovato', similarCodes: similar);
+    }
+    try {
+      final payload = <String, dynamic>{'code': normalized};
+      final uid = _client.auth.currentUser?.id;
+      if (uid != null) payload['user_id'] = uid;
+      await _client.from('search_history').insert(payload);
+    } catch (_) {
+      // Search should continue even if history tracking fails.
     }
     if (matches.length == 1) {
       return AncodeSearchResult(uniqueMatch: matches.first);

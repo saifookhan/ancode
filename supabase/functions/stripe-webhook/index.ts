@@ -9,6 +9,62 @@ const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') ?? ''
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 
+type SupabaseAdmin = ReturnType<typeof createClient>
+
+async function resolveUserIdFromStripeCustomer(
+  supabase: SupabaseAdmin,
+  customerId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from('subscriptions')
+    .select('user_id')
+    .eq('stripe_customer_id', customerId)
+    .maybeSingle()
+  return data?.user_id ?? null
+}
+
+async function recordPayment(
+  supabase: SupabaseAdmin,
+  row: {
+    user_id: string
+    stripe_event_id: string
+    stripe_checkout_session_id?: string | null
+    stripe_invoice_id?: string | null
+    stripe_payment_intent_id?: string | null
+    stripe_subscription_id?: string | null
+    stripe_customer_id?: string | null
+    amount_cents: number | null
+    currency: string
+    plan: string | null
+    status: string
+    event_type: string
+    metadata?: Record<string, unknown>
+  },
+) {
+  const { error } = await supabase.from('payments').insert({
+    user_id: row.user_id,
+    stripe_event_id: row.stripe_event_id,
+    stripe_checkout_session_id: row.stripe_checkout_session_id ?? null,
+    stripe_invoice_id: row.stripe_invoice_id ?? null,
+    stripe_payment_intent_id: row.stripe_payment_intent_id ?? null,
+    stripe_subscription_id: row.stripe_subscription_id ?? null,
+    stripe_customer_id: row.stripe_customer_id ?? null,
+    amount_cents: row.amount_cents,
+    currency: row.currency,
+    plan: row.plan,
+    status: row.status,
+    event_type: row.event_type,
+    metadata: row.metadata ?? {},
+    updated_at: new Date().toISOString(),
+  })
+  if (error) {
+    if (String(error.message).toLowerCase().includes('duplicate') || error.code === '23505') {
+      return
+    }
+    console.error('payments insert error:', error)
+  }
+}
+
 serve(async (req) => {
   if (req.method !== 'POST') {
     return new Response('Method not allowed', { status: 405 })
@@ -29,6 +85,141 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
   switch (event.type) {
+    case 'checkout.session.completed': {
+      const session = event.data.object as Stripe.Checkout.Session
+      const userId = session.client_reference_id
+      if (!userId) break
+      const customerId =
+        typeof session.customer === 'string'
+          ? session.customer
+          : session.customer?.id ?? null
+      const subscriptionId =
+        typeof session.subscription === 'string'
+          ? session.subscription
+          : (session.subscription as Stripe.Subscription | null)?.id ?? null
+      let plan = (session.metadata?.plan ?? '').toString().toLowerCase()
+      if (!plan && subscriptionId) {
+        try {
+          const sub = await stripe.subscriptions.retrieve(subscriptionId)
+          plan =
+            (sub.metadata?.plan ?? sub.items.data[0]?.price?.metadata?.plan ?? 'pro')
+              .toString()
+              .toLowerCase()
+        } catch (_) {
+          plan = 'pro'
+        }
+      }
+      if (!['pro', 'business'].includes(plan)) plan = 'pro'
+      await recordPayment(supabase, {
+        user_id: userId,
+        stripe_event_id: event.id,
+        stripe_checkout_session_id: session.id,
+        stripe_subscription_id: subscriptionId,
+        stripe_customer_id: customerId,
+        stripe_payment_intent_id:
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id ?? null,
+        amount_cents: session.amount_total ?? null,
+        currency: (session.currency ?? 'usd').toLowerCase(),
+        plan,
+        status: session.payment_status === 'paid' ? 'succeeded' : session.payment_status ?? 'completed',
+        event_type: event.type,
+        metadata: {
+          mode: session.mode,
+          payment_status: session.payment_status,
+        },
+      })
+      break
+    }
+    case 'invoice.payment_succeeded': {
+      const invoice = event.data.object as Stripe.Invoice
+      const customerId = typeof invoice.customer === 'string'
+        ? invoice.customer
+        : invoice.customer?.id ?? null
+      if (!customerId) break
+      let userId = await resolveUserIdFromStripeCustomer(supabase, customerId)
+      if (!userId && invoice.customer_email) {
+        const { data: users } = await supabase.auth.admin.listUsers()
+        const u = users?.users?.find((x) => x.email === invoice.customer_email)
+        userId = u?.id ?? null
+      }
+      if (!userId) break
+      const subscriptionId =
+        typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id ?? null
+      const pi =
+        typeof invoice.payment_intent === 'string'
+          ? invoice.payment_intent
+          : invoice.payment_intent?.id ?? null
+      const planFromLines = invoice.lines?.data?.[0]?.metadata?.plan
+      const plan = (planFromLines ?? 'pro').toString().toLowerCase()
+      await recordPayment(supabase, {
+        user_id: userId,
+        stripe_event_id: event.id,
+        stripe_invoice_id: invoice.id,
+        stripe_payment_intent_id: pi,
+        stripe_subscription_id: subscriptionId,
+        stripe_customer_id: customerId,
+        amount_cents: invoice.amount_paid ?? null,
+        currency: (invoice.currency ?? 'usd').toLowerCase(),
+        plan: ['pro', 'business'].includes(plan) ? plan : 'pro',
+        status: 'succeeded',
+        event_type: event.type,
+        metadata: {
+          billing_reason: invoice.billing_reason,
+          invoice_number: invoice.number,
+        },
+      })
+      break
+    }
+    case 'invoice.payment_failed': {
+      const invoice = event.data.object as Stripe.Invoice
+      const customerId = typeof invoice.customer === 'string'
+        ? invoice.customer
+        : invoice.customer?.id ?? null
+      if (!customerId) break
+      let userId = await resolveUserIdFromStripeCustomer(supabase, customerId)
+      if (!userId && invoice.customer_email) {
+        const { data: users } = await supabase.auth.admin.listUsers()
+        const u = users?.users?.find((x) => x.email === invoice.customer_email)
+        userId = u?.id ?? null
+      }
+      if (!userId) break
+      const subscriptionId =
+        typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id ?? null
+      const pi =
+        typeof invoice.payment_intent === 'string'
+          ? invoice.payment_intent
+          : invoice.payment_intent?.id ?? null
+      await recordPayment(supabase, {
+        user_id: userId,
+        stripe_event_id: event.id,
+        stripe_invoice_id: invoice.id,
+        stripe_payment_intent_id: pi,
+        stripe_subscription_id: subscriptionId,
+        stripe_customer_id: customerId,
+        amount_cents: invoice.amount_due ?? null,
+        currency: (invoice.currency ?? 'usd').toLowerCase(),
+        plan: null,
+        status: 'failed',
+        event_type: event.type,
+        metadata: {
+          billing_reason: invoice.billing_reason,
+          attempt_count: invoice.attempt_count,
+        },
+      })
+      const subId = invoice.subscription as string
+      if (!subId) break
+      await supabase
+        .from('subscriptions')
+        .update({
+          status: 'past_due',
+          past_due_since: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('stripe_subscription_id', subId)
+      break
+    }
     case 'customer.subscription.created':
     case 'customer.subscription.updated': {
       const sub = event.data.object as Stripe.Subscription
@@ -37,7 +228,7 @@ serve(async (req) => {
       const email = (customer as Stripe.Customer).email
       if (!email) break
       const { data: users } = await supabase.auth.admin.listUsers()
-      const user = users?.users?.find(u => u.email === email)
+      const user = users?.users?.find((u) => u.email === email)
       if (!user) break
       const plan =
         sub.items.data[0]?.price?.metadata?.plan ??
@@ -86,20 +277,6 @@ serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq('stripe_subscription_id', sub.id)
-      break
-    }
-    case 'invoice.payment_failed': {
-      const invoice = event.data.object as Stripe.Invoice
-      const subId = invoice.subscription as string
-      if (!subId) break
-      await supabase
-        .from('subscriptions')
-        .update({
-          status: 'past_due',
-          past_due_since: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('stripe_subscription_id', subId)
       break
     }
     default:

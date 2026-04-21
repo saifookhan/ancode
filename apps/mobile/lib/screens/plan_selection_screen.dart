@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_service.dart';
 import '../services/plan_mode_service.dart';
+import '../services/stripe_checkout_links.dart';
 
 class PlanSelectionScreen extends StatefulWidget {
   const PlanSelectionScreen({super.key});
@@ -67,15 +68,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   }
 
   Future<void> _startStripeCheckout(User user, String planValue) async {
-    const origin = 'https://ancode.vercel.app';
     final response = await Supabase.instance.client.functions.invoke(
       'create-checkout-session',
       body: {
         'plan': planValue,
         'userId': user.id,
         'email': user.email ?? '',
-        'successUrl': '$origin/?checkout=success&plan=$planValue',
-        'cancelUrl': '$origin/?checkout=cancel',
+        'successUrl': StripeCheckoutLinks.successUrl(planValue),
+        'cancelUrl': StripeCheckoutLinks.cancelUrl,
       },
     );
     final data = response.data;

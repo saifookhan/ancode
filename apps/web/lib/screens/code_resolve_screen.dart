@@ -43,6 +43,7 @@ class CodeResolveScreen extends StatelessWidget {
     final copyPayload = a.isLink
         ? (AncodeQrPdf.normalizeHttpUri(directTarget)?.toString() ?? directTarget.trim())
         : shortlink;
+    final qrPayload = a.isLink ? copyPayload : shortlink;
     return Scaffold(
       backgroundColor: const Color(0xFFF4F4F6),
       appBar: AppBar(title: const Text('ANCODE Print Layout'), centerTitle: true),
@@ -76,9 +77,12 @@ class CodeResolveScreen extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          QrImageView(data: shortlink, version: QrVersions.auto, size: 100),
+                          QrImageView(data: qrPayload, version: QrVersions.auto, size: 100),
                           const SizedBox(height: 4),
-                          const Text('Scan to Access', style: TextStyle(fontSize: 10, color: Color(0xFF676E7C))),
+                          Text(
+                            a.isLink ? 'Scan to open link' : 'Scan to Access',
+                            style: const TextStyle(fontSize: 10, color: Color(0xFF676E7C)),
+                          ),
                         ],
                       ),
                     ),
@@ -113,6 +117,7 @@ class CodeResolveScreen extends StatelessWidget {
                         format: format,
                         ancode: a,
                         shortlink: shortlink,
+                        qrEncodedPayload: qrPayload,
                         expirationMessage: expirationMessage,
                       ),
                     );
@@ -145,6 +150,7 @@ class CodeResolveScreen extends StatelessWidget {
                       format: PdfPageFormat.a4,
                       ancode: a,
                       shortlink: shortlink,
+                      qrEncodedPayload: qrPayload,
                       expirationMessage: expirationMessage,
                     );
                     await Printing.sharePdf(

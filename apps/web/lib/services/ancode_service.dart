@@ -39,12 +39,6 @@ class AncodeService {
     if (normalized.isEmpty) {
       return AncodeSearchResult(error: 'Codice non valido');
     }
-    // Record search history for logged-in users (dedupe in DB/query)
-    final userId = client.auth.currentUser?.id;
-    if (userId != null) {
-      await _recordSearchHistory(client, userId, normalized);
-    }
-
     // Public search priority:
     // 1) active/scheduled exclusive ITALIA
     // 2) active/scheduled municipality-based
@@ -91,6 +85,7 @@ class AncodeService {
         similarCodes: similar,
       );
     }
+    await _appendSearchHistoryOnHit(client, normalized);
     if (matches.length == 1) {
       return AncodeSearchResult(uniqueMatch: matches.first);
     }
@@ -545,22 +540,16 @@ class AncodeService {
     }
   }
 
-  static Future<void> _recordSearchHistory(
+  /// One row per successful search so owners can aggregate "scansioni" from [search_history].
+  static Future<void> _appendSearchHistoryOnHit(
     SupabaseClient client,
-    String userId,
     String normalizedCode,
   ) async {
     try {
-      // Keep latest only per code for this user.
-      await client
-          .from('search_history')
-          .delete()
-          .eq('user_id', userId)
-          .eq('code', normalizedCode);
-      await client.from('search_history').insert({
-        'user_id': userId,
-        'code': normalizedCode,
-      });
+      final payload = <String, dynamic>{'code': normalizedCode};
+      final uid = client.auth.currentUser?.id;
+      if (uid != null) payload['user_id'] = uid;
+      await client.from('search_history').insert(payload);
     } catch (_) {
       // Non-blocking: search must continue even if history storage fails.
     }
