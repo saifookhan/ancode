@@ -10,6 +10,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function parseDollarAmountToCents(value: string | null | undefined): number | null {
+  if (!value) return null
+  const normalized = value.trim().replace(',', '.')
+  if (!normalized) return null
+  const parsed = Number(normalized)
+  if (!Number.isFinite(parsed) || parsed <= 0) return null
+  return Math.round(parsed * 100)
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -63,13 +72,19 @@ serve(async (req) => {
       },
     }
 
-    const configuredPrice = plan === 'business' ? priceBusiness : pricePro
-    if (configuredPrice) {
+    const configuredPrice = (plan === 'business' ? priceBusiness : pricePro).trim()
+    if (configuredPrice.startsWith('price_')) {
+      // Preferred mode: real Stripe Price ID configured in secrets.
       params.line_items![0].price = configuredPrice
     } else {
+      // Fallback mode:
+      // - if secret is numeric (e.g. "20" or "30"), treat it as USD amount
+      // - otherwise use temporary defaults.
+      const configuredCents = parseDollarAmountToCents(configuredPrice)
+      const fallbackCents = plan === 'business' ? 3000 : 2000
       params.line_items![0].price_data = {
         currency: 'usd',
-        unit_amount: plan === 'business' ? 3000 : 2000, // temporary fallback
+        unit_amount: configuredCents ?? fallbackCents,
         recurring: { interval: 'month' },
         product_data: {
           name: `ANCODE ${plan === 'business' ? 'Business' : 'Pro'} Plan`,

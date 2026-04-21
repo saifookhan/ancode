@@ -26,10 +26,11 @@ class AncodeBottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
+    final safeBottomPadding = (bottomInset - 6).clamp(0.0, double.infinity).toDouble();
     final bottomMargin = bottomInset > 0 ? 0.0 : 12.0;
 
-    return SafeArea(
-      top: false,
+    return Padding(
+      padding: EdgeInsets.only(bottom: safeBottomPadding),
       child: Container(
         margin: EdgeInsets.fromLTRB(14, 0, 14, bottomMargin),
         padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
