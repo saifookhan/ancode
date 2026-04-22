@@ -46,6 +46,20 @@ class MainShellState extends State<MainShell> {
   void goToTab(int index) {
     if (!mounted) return;
     setState(() => _currentIndex = index);
+    if (index == _dashboardIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _dashboardKey.currentState?.reloadDashboardStats();
+      });
+    }
+  }
+
+  /// Refetch Dashboard codici + chart (e.g. after creating a code on the Crea tab).
+  void refreshDashboard() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _dashboardKey.currentState?.reloadDashboardStats();
+    });
   }
 
   void _onBottomNavTap(int i) {
@@ -61,11 +75,6 @@ class MainShellState extends State<MainShell> {
       return;
     }
     goToTab(i);
-    if (i == _dashboardIndex) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _dashboardKey.currentState?.reloadDashboardStats();
-      });
-    }
   }
 
   @override

@@ -10,6 +10,7 @@ import 'package:shared/shared.dart' hide AppTheme;
 
 import '../theme/app_theme.dart';
 import 'auth/login_screen.dart';
+import 'main_shell.dart';
 import '../services/ancode_service.dart';
 import '../services/app_config.dart';
 import '../services/plan_mode_service.dart';
@@ -123,6 +124,7 @@ class _CreateScreenState extends State<CreateScreen> {
           _drafts = [];
           _isCreating = false;
         });
+        context.findAncestorStateOfType<MainShellState>()?.refreshDashboard();
       }
     } catch (e) {
       if (mounted) {

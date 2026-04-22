@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -35,7 +37,6 @@ class ProfileScreenState extends State<ProfileScreen> {
   List<_DashboardCodeItem> _activeCodes = const [];
   List<int> _monthlyScanCounts = List<int>.filled(6, 0);
   bool _loadingStats = false;
-  String? _lastLoadedUserId;
 
   Future<List<Map<String, dynamic>>> _fetchCodesRowsForUser(String userId) async {
     Future<List<Map<String, dynamic>>?> tryQuery(Future<dynamic> Function() query) async {
@@ -129,7 +130,7 @@ class ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadDashboardStats() async {
     final auth = context.read<AuthService>();
     final userId = Supabase.instance.client.auth.currentUser?.id ?? auth.profile?.userId;
-    if (userId == null || userId.isEmpty || userId == _lastLoadedUserId) {
+    if (userId == null || userId.isEmpty) {
       return;
     }
     setState(() => _loadingStats = true);
@@ -137,8 +138,10 @@ class ProfileScreenState extends State<ProfileScreen> {
       final userCodes = await _fetchCodesRowsForUser(userId);
       if (!mounted) return;
 
-      bool rowIsActive(Map<String, dynamic> r) =>
-          (r['status']?.toString().toLowerCase() ?? '') == 'active';
+      bool rowIsActive(Map<String, dynamic> r) {
+        final s = (r['status']?.toString().toLowerCase() ?? 'active');
+        return s == 'active' || s == 'scheduled' || s == 'grace';
+      }
 
       final activeList = userCodes.where(rowIsActive).toList();
       final codeKeys = userCodes.map(_normalizedCodeKey).where((k) => k.isNotEmpty);
@@ -152,7 +155,6 @@ class ProfileScreenState extends State<ProfileScreen> {
       setState(() {
         _activeCodes = activeItems;
         _monthlyScanCounts = historyAgg.byMonthSlot;
-        _lastLoadedUserId = userId;
       });
     } catch (e) {
       if (!mounted) return;
@@ -168,11 +170,22 @@ class ProfileScreenState extends State<ProfileScreen> {
     final auth = context.read<AuthService>();
     final userId = Supabase.instance.client.auth.currentUser?.id ?? auth.profile?.userId;
     if (userId == null || userId.isEmpty || !mounted) return;
-    setState(() => _lastLoadedUserId = null);
     await _loadDashboardStats();
   }
 
   Future<void> _refreshDashboard() => reloadDashboardStats();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        unawaited(reloadDashboardStats());
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
