@@ -7,19 +7,33 @@ import 'package:shared/shared.dart';
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
 
+const _dashboardChartMonthLabels = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'];
+
+/// Month starts January–June of the chart year (matches x‑axis labels Gen…Giu).
+List<DateTime> _januaryThroughJuneStarts([DateTime? reference]) {
+  final y = (reference ?? DateTime.now()).year;
+  return List.generate(6, (i) => DateTime(y, i + 1, 1));
+}
+
+DateTime? _parseSearchHistoryTimestamp(dynamic raw) {
+  if (raw == null) return null;
+  if (raw is DateTime) return raw;
+  if (raw is String) return DateTime.tryParse(raw);
+  return null;
+}
+
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.onAppHeaderProfileTap});
+
+  final VoidCallback? onAppHeaderProfileTap;
 
   @override
   ProfileScreenState createState() => ProfileScreenState();
 }
 
 class ProfileScreenState extends State<ProfileScreen> {
-  int _activeCodesCount = 0;
-  int _deactivatedCodesCount = 0;
-  int _totalScansCount = 0;
   List<_DashboardCodeItem> _activeCodes = const [];
-  List<_DashboardCodeItem> _deactivatedCodes = const [];
+  List<int> _monthlyScanCounts = List<int>.filled(6, 0);
   bool _loadingStats = false;
   String? _lastLoadedUserId;
 
@@ -72,33 +86,44 @@ class ProfileScreenState extends State<ProfileScreen> {
     return normalizeCodeInput(raw.toString());
   }
 
-  Future<Map<String, int>> _fetchSearchHistoryCounts(Iterable<String> normalizedCodes) async {
+  Future<({Map<String, int> byCode, List<int> byMonthSlot})> _searchHistoryAggregatesForCodes(
+    Iterable<String> normalizedCodes,
+    List<DateTime> monthSlotStarts,
+  ) async {
     final keys = normalizedCodes.where((k) => k.isNotEmpty).toSet().toList();
-    if (keys.isEmpty) return {};
-    const chunkSize = 80;
     final counts = <String, int>{};
+    final byMonth = List<int>.filled(monthSlotStarts.length, 0);
+    if (keys.isEmpty) {
+      return (byCode: counts, byMonthSlot: byMonth);
+    }
+    const chunkSize = 80;
     for (var i = 0; i < keys.length; i += chunkSize) {
       final end = (i + chunkSize > keys.length) ? keys.length : i + chunkSize;
       final chunk = keys.sublist(i, end);
       try {
-        final res = await Supabase.instance.client.from('search_history').select('code').inFilter('code', chunk);
+        final res = await Supabase.instance.client
+            .from('search_history')
+            .select('code, searched_at')
+            .inFilter('code', chunk);
         for (final r in res as List) {
           final k = normalizeCodeInput((r['code'] ?? '').toString());
           if (k.isEmpty) continue;
           counts[k] = (counts[k] ?? 0) + 1;
+          final at = _parseSearchHistoryTimestamp(r['searched_at']);
+          if (at == null) continue;
+          final local = at.toLocal();
+          final bucket = DateTime(local.year, local.month, 1);
+          for (var j = 0; j < monthSlotStarts.length; j++) {
+            final slot = monthSlotStarts[j];
+            if (slot.year == bucket.year && slot.month == bucket.month) {
+              byMonth[j]++;
+              break;
+            }
+          }
         }
       } catch (_) {}
     }
-    return counts;
-  }
-
-  int _totalSearchHitsForCodes(Map<String, int> countsByCode, List<Map<String, dynamic>> userCodes) {
-    var sum = 0;
-    for (final r in userCodes) {
-      final k = _normalizedCodeKey(r);
-      sum += countsByCode[k] ?? 0;
-    }
-    return sum;
+    return (byCode: counts, byMonthSlot: byMonth);
   }
 
   Future<void> _loadDashboardStats() async {
@@ -114,30 +139,19 @@ class ProfileScreenState extends State<ProfileScreen> {
 
       bool rowIsActive(Map<String, dynamic> r) =>
           (r['status']?.toString().toLowerCase() ?? '') == 'active';
-      bool rowIsInactive(Map<String, dynamic> r) =>
-          (r['status']?.toString().toLowerCase() ?? '') == 'inactive';
 
       final activeList = userCodes.where(rowIsActive).toList();
-      final inactiveList = userCodes.where(rowIsInactive).toList();
-      final active = activeList.length;
-      final deactivated = inactiveList.length;
       final codeKeys = userCodes.map(_normalizedCodeKey).where((k) => k.isNotEmpty);
-      final scanCounts = await _fetchSearchHistoryCounts(codeKeys);
-      final scans = _totalSearchHitsForCodes(scanCounts, userCodes);
+      final monthSlots = _januaryThroughJuneStarts();
+      final historyAgg = await _searchHistoryAggregatesForCodes(codeKeys, monthSlots);
+      final scanCounts = historyAgg.byCode;
       final activeItems = activeList
           .map((r) => _DashboardCodeItem.fromRow(r, searchHistoryScans: scanCounts[_normalizedCodeKey(r)] ?? 0))
           .toList();
-      final deactivatedItems = inactiveList
-          .map((r) => _DashboardCodeItem.fromRow(r, searchHistoryScans: scanCounts[_normalizedCodeKey(r)] ?? 0))
-          .toList();
       activeItems.sort((a, b) => b.date.compareTo(a.date));
-      deactivatedItems.sort((a, b) => b.date.compareTo(a.date));
       setState(() {
-        _activeCodesCount = active;
-        _deactivatedCodesCount = deactivated;
-        _totalScansCount = scans;
         _activeCodes = activeItems;
-        _deactivatedCodes = deactivatedItems;
+        _monthlyScanCounts = historyAgg.byMonthSlot;
         _lastLoadedUserId = userId;
       });
     } catch (e) {
@@ -168,81 +182,50 @@ class ProfileScreenState extends State<ProfileScreen> {
         if (session == null) {
           return const LoginScreen();
         }
-        final totalCodes = _activeCodesCount + _deactivatedCodesCount;
-        final trend = totalCodes == 0 ? '+0%' : '+${((_activeCodesCount / totalCodes) * 100).round()}%';
-        final scanValue = _totalScansCount.toString();
-        final monthlyTrend = _buildMonthlyScanTrend(_totalScansCount);
-
         return Scaffold(
           backgroundColor: AppColors.biancoOttico,
           body: SafeArea(
-            child: RefreshIndicator(
-              onRefresh: _refreshDashboard,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Text(
-                    'Dashboard',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 34 / 2,
-                      fontWeight: FontWeight.w500,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                LogoProfileAppBar(
+                  onProfileTap: widget.onAppHeaderProfileTap,
+                  padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: _refreshDashboard,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'Dashboard',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontSize: 34 / 2,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          _CodesSection(
+                            title: 'Codici Attivi',
+                            items: _activeCodes,
+                            emptyText: 'Nessun codice attivo',
+                            inactive: false,
+                            viewportMaxRows: 4,
+                          ),
+                          const SizedBox(height: 14),
+                          _ScansTrendCard(values: _monthlyScanCounts, monthLabels: _dashboardChartMonthLabels),
+                          const SizedBox(height: 12),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1.45,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      _DashboardMetricCard(
-                        icon: Icons.check_circle_outline_rounded,
-                        label: 'Codici attivi',
-                        value: '$_activeCodesCount',
-                      ),
-                      _DashboardMetricCard(
-                        icon: Icons.cancel_outlined,
-                        label: 'Codici disattivati',
-                        value: '$_deactivatedCodesCount',
-                      ),
-                      _DashboardMetricCard(
-                        icon: Icons.qr_code_scanner_rounded,
-                        label: 'Scansioni totali',
-                        value: scanValue,
-                      ),
-                      _DashboardMetricCard(
-                        icon: Icons.trending_up_rounded,
-                        label: 'Andamento',
-                        value: trend,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  _ScansTrendCard(values: monthlyTrend),
-                  const SizedBox(height: 14),
-                  _CodesSection(
-                    title: 'Codici Attivi',
-                    items: _activeCodes,
-                    emptyText: 'Nessun codice attivo',
-                    inactive: false,
-                  ),
-                  const SizedBox(height: 10),
-                  _CodesSection(
-                    title: 'Codici Disattivati',
-                    items: _deactivatedCodes,
-                    emptyText: 'Nessun codice disattivato',
-                    inactive: true,
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
+                ),
+              ],
             ),
           ),
         );
@@ -251,19 +234,14 @@ class ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-List<int> _buildMonthlyScanTrend(int totalScans) {
-  if (totalScans <= 0) {
-    return const [40, 55, 72, 90, 110, 130];
-  }
-  final base = (totalScans / 6).round();
-  final factors = <double>[0.55, 0.75, 0.9, 1.08, 1.22, 1.35];
-  return factors.map((f) => (base * f).round()).toList();
-}
-
 class _ScansTrendCard extends StatefulWidget {
-  const _ScansTrendCard({required this.values});
+  const _ScansTrendCard({
+    required this.values,
+    required this.monthLabels,
+  });
 
   final List<int> values;
+  final List<String> monthLabels;
 
   @override
   State<_ScansTrendCard> createState() => _ScansTrendCardState();
@@ -274,8 +252,13 @@ class _ScansTrendCardState extends State<_ScansTrendCard> {
 
   @override
   Widget build(BuildContext context) {
-    final months = const ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'];
     final values = widget.values;
+    final months = widget.monthLabels.length == values.length
+        ? widget.monthLabels
+        : List<String>.generate(
+            values.length,
+            (i) => i < _dashboardChartMonthLabels.length ? _dashboardChartMonthLabels[i] : '$i',
+          );
     final maxVal = values.fold<int>(1, (m, v) => v > m ? v : m);
     return Container(
       decoration: BoxDecoration(
@@ -459,12 +442,18 @@ class _CodesSection extends StatelessWidget {
     required this.items,
     required this.emptyText,
     required this.inactive,
+    this.viewportMaxRows,
   });
+
+  /// When set, list is this many rows tall and scrolls inside (e.g. Dashboard “Codici Attivi”).
+  final int? viewportMaxRows;
 
   final String title;
   final List<_DashboardCodeItem> items;
   final String emptyText;
   final bool inactive;
+
+  static const double _rowSlotHeight = 78;
 
   @override
   Widget build(BuildContext context) {
@@ -496,8 +485,19 @@ class _CodesSection extends StatelessWidget {
               ),
             ),
           )
+        else if (viewportMaxRows != null && viewportMaxRows! > 0)
+          SizedBox(
+            height: (items.length < viewportMaxRows! ? items.length : viewportMaxRows!) * _rowSlotHeight,
+            child: ListView.separated(
+              padding: EdgeInsets.zero,
+              itemCount: items.length,
+              physics: const AlwaysScrollableScrollPhysics(),
+              separatorBuilder: (_, __) => const SizedBox(height: 7),
+              itemBuilder: (context, i) => _CodeRowCard(item: items[i], inactive: inactive),
+            ),
+          )
         else
-          ...items.take(4).map((item) => Padding(
+          ...items.map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 7),
                 child: _CodeRowCard(item: item, inactive: inactive),
               )),
@@ -624,74 +624,6 @@ class _DashboardCodeItem {
       title: title,
       date: parsedDate ?? DateTime.now(),
       scans: scans,
-    );
-  }
-}
-
-class _DashboardMetricCard extends StatelessWidget {
-  const _DashboardMetricCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.limeCreateHard,
-            blurRadius: 0,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-        decoration: BoxDecoration(
-          color: AppColors.biancoOttico,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(color: AppColors.bluUniversoDeep, width: 1.4),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppColors.limeCreateHard,
-                border: Border.all(color: AppColors.bluUniversoDeep, width: 1.2),
-              ),
-              child: Icon(icon, size: 18, color: AppColors.bluUniversoDeep),
-            ),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Color(0xFF566176),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Text(
-              value,
-              style: const TextStyle(
-                color: AppColors.bluUniversoDeep,
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

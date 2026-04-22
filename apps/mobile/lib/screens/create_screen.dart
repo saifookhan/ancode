@@ -6,8 +6,9 @@ import 'package:printing/printing.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:pdf/pdf.dart';
 
-import 'package:shared/shared.dart';
+import 'package:shared/shared.dart' hide AppTheme;
 
+import '../theme/app_theme.dart';
 import 'auth/login_screen.dart';
 import '../services/ancode_service.dart';
 import '../services/app_config.dart';
@@ -78,6 +79,7 @@ class _CreateScreenState extends State<CreateScreen> {
   }
 
   Future<void> _commit() async {
+    // If no drafts, add current form as one and then commit
     if (_drafts.isEmpty) {
       if (!_formKey.currentState!.validate()) return;
       if (_selectedComune == null) {
@@ -85,7 +87,7 @@ class _CreateScreenState extends State<CreateScreen> {
         return;
       }
       _addCode();
-      if (_drafts.isEmpty) return;
+      if (_drafts.isEmpty) return; // e.g. validation failed
     }
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) {
@@ -116,7 +118,8 @@ class _CreateScreenState extends State<CreateScreen> {
       }
       if (mounted) {
         setState(() {
-          _createdAncode = _drafts.isNotEmpty ? _drafts.first.toAncodePlaceholder() : null;
+          _createdAncode =
+              _drafts.isNotEmpty ? _drafts.first.toAncodePlaceholder() : null;
           _drafts = [];
           _isCreating = false;
         });
@@ -160,7 +163,9 @@ class _CreateScreenState extends State<CreateScreen> {
     );
   }
 
-  Future<void> _pickScheduleDate({required bool isStart}) async {
+  Future<void> _pickScheduleDate({
+    required bool isStart,
+  }) async {
     final now = DateTime.now();
     final initial = isStart ? (_scheduleStart ?? now) : (_scheduleEnd ?? _scheduleStart ?? now);
     final picked = await showDatePicker(
@@ -187,18 +192,22 @@ class _CreateScreenState extends State<CreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isPhone = MediaQuery.of(context).size.width < 600;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isPhone = screenWidth < 600;
+    final titleSize = isPhone ? 40.0 : 44.0;
+    final subtitleSize = isPhone ? 16.0 : 18.0;
+    final sectionTitleSize = isPhone ? 18.0 : 20.0;
+    final labelSize = isPhone ? 14.0 : 16.0;
+    final fieldTextSize = isPhone ? 16.0 : 18.0;
+    final fieldHintSize = isPhone ? 15.0 : 16.0;
+    final typeButtonTextSize = isPhone ? 16.0 : 17.0;
+    final typeButtonVerticalPadding = isPhone ? 14.0 : 16.0;
+    final buttonTextSize = isPhone ? 20.0 : 22.0;
     const pillFieldH = 58.0;
     final pillNoteH = isPhone ? 140.0 : 160.0;
     final currentPlan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
+    final isFreePlan = currentPlan == PlanModeService.free;
     final isBusinessPlan = currentPlan == PlanModeService.business;
-    const titleStyle = TextStyle(
-      fontFamily: _fontFamily,
-      color: AppColors.biancoOttico,
-      fontSize: 40,
-      fontWeight: FontWeight.w700,
-      height: 1.05,
-    );
 
     if (_createdAncode != null) {
       return _OutputScreen(
@@ -206,290 +215,289 @@ class _CreateScreenState extends State<CreateScreen> {
         onDone: () => setState(() => _createdAncode = null),
       );
     }
-    return Scaffold(
-      backgroundColor: AppColors.bluUniverso,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const SizedBox(height: 6),
-                const Text(
-                  'Crea nuovo ANCODE',
-                  textAlign: TextAlign.center,
-                  style: titleStyle,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Genera il tuo codice personalizzato',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: _fontFamily,
-                    color: AppColors.biancoOttico.withOpacity(0.75),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 30),
-                Text(
-                  'Inserisci il tuo ANCODE',
-                  style: TextStyle(
-                    fontFamily: _fontFamily,
-                    color: AppColors.biancoOttico.withOpacity(0.92),
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                WhiteLimePillSurface(
-                  height: pillFieldH,
-                  shadowDepth: _pillShadow,
-                  child: TextFormField(
-                    controller: _codeController,
-                    style: const TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: 16),
-                    decoration: const InputDecoration(
-                      hintText: 'es. Sito Web Personale',
-                      hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: 15),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+    return Theme(
+      data: AppTheme.dark,
+      child: Scaffold(
+        backgroundColor: AppColors.bluUniverso,
+        body: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const AncodeCreateTopBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 6),
+                        Text(
+                          'Crea nuovo ANCODE',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico,
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.w700,
                     ),
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: const [_codeInputFormatter],
-                    onChanged: (value) {
-                      _onCodeChanged(value);
-                      setState(() {});
-                    },
-                    validator: (v) => validateCode(v ?? ''),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Max 30 caratteri, solo lettere maiuscole e numeri, simboli e spazi non ammessi.',
-                  style: TextStyle(
-                    fontFamily: _fontFamily,
-                    color: AppColors.biancoOttico.withOpacity(0.72),
-                    fontSize: 12,
+                  const SizedBox(height: 2),
+                  Text(
+                    'Genera il tuo codice personalizzato',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico.withOpacity(0.75),
+                      fontSize: subtitleSize,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 22),
-                Text(
-                  'Tipo di contenuto',
-                  style: TextStyle(
-                    fontFamily: _fontFamily,
-                    color: AppColors.biancoOttico.withOpacity(0.9),
-                    fontWeight: FontWeight.w500,
-                    fontSize: 14,
+                  const SizedBox(height: 30),
+                  Text(
+                    'Inserisci il tuo ANCODE',
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico.withOpacity(0.92),
+                      fontSize: sectionTitleSize,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(child: _typeButton(label: 'Link / URL', selected: _isLink, onTap: () => setState(() => _isLink = true))),
-                    const SizedBox(width: 12),
-                    Expanded(child: _typeButton(label: 'Nota/Testo', selected: !_isLink, onTap: () => setState(() => _isLink = false))),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  _isLink ? 'Inserisci il link che vuoi connettere all\'ANCODE' : 'Inserisci la tua nota',
-                  style: TextStyle(
-                    fontFamily: _fontFamily,
-                    color: AppColors.biancoOttico.withOpacity(0.85),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                if (_isLink)
+                  const SizedBox(height: 10),
                   WhiteLimePillSurface(
                     height: pillFieldH,
                     shadowDepth: _pillShadow,
                     child: TextFormField(
-                      controller: _urlController,
-                      decoration: const InputDecoration(
-                        hintText: 'https://espenp.io',
-                        hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: 15),
+                      controller: _codeController,
+                      style: TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: fieldTextSize),
+                      decoration: InputDecoration(
+                        hintText: 'es. Sito Web Personale',
+                        hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: fieldHintSize),
                         border: InputBorder.none,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
                       ),
-                      style: const TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: 16),
-                      keyboardType: TextInputType.url,
-                      validator: (v) => _isLink && (v == null || v.trim().isEmpty) ? 'Inserisci URL' : null,
-                    ),
-                  )
-                else
-                  WhiteLimePillSurface(
-                    height: pillNoteH,
-                    shadowDepth: _pillShadow,
-                    child: TextFormField(
-                      controller: _noteController,
-                      decoration: const InputDecoration(
-                        hintText: 'Scrivi qui...',
-                        hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: 15),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-                      ),
-                      style: const TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: 16),
-                      maxLines: 4,
-                      validator: (v) => !_isLink && (v == null || v.trim().isEmpty) ? 'Inserisci testo' : null,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: const [_codeInputFormatter],
+                      onChanged: (value) {
+                        _onCodeChanged(value);
+                        setState(() {});
+                      },
+                      validator: (v) => validateCode(v ?? ''),
                     ),
                   ),
-                const SizedBox(height: 20),
-                Text(
-                  'Comune',
-                  style: TextStyle(
-                    fontFamily: _fontFamily,
-                    color: AppColors.biancoOttico.withOpacity(0.9),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _ComunePicker(
-                  selected: _selectedComune,
-                  onSelected: (m) => setState(() => _selectedComune = m),
-                  pillHeight: pillFieldH,
-                ),
-                if (isBusinessPlan) ...[
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 10),
                   Text(
-                    'Schedule start/end (opzionale)',
+                    'Max 30 caratteri, solo lettere maiuscole e numeri, simboli e spazi non ammessi.',
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico.withOpacity(0.72),
+                      fontSize: isPhone ? 12 : 14,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  Text(
+                    'Tipo di contenuto',
                     style: TextStyle(
                       fontFamily: _fontFamily,
                       color: AppColors.biancoOttico.withOpacity(0.9),
-                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      fontSize: labelSize,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _pickScheduleDate(isStart: true),
-                            borderRadius: BorderRadius.circular(_pillRadius),
-                            child: WhiteLimePillSurface(
-                              height: 52,
-                              shadowDepth: _pillShadow,
-                              child: Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                                  child: Text(
-                                    _scheduleStart == null
-                                        ? 'Start Date'
-                                        : _scheduleStart!.toLocal().toIso8601String().split('T').first,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontFamily: _fontFamily,
-                                      color: AppColors.bluUniversoDeep,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        child: _typeButton(
+                          label: 'Link / URL',
+                          selected: _isLink,
+                          onTap: () => setState(() => _isLink = true),
+                          textSize: typeButtonTextSize,
+                          verticalPadding: typeButtonVerticalPadding,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _pickScheduleDate(isStart: false),
-                            borderRadius: BorderRadius.circular(_pillRadius),
-                            child: WhiteLimePillSurface(
-                              height: 52,
-                              shadowDepth: _pillShadow,
-                              child: Center(
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6),
-                                  child: Text(
-                                    _scheduleEnd == null
-                                        ? 'End Date'
-                                        : _scheduleEnd!.toLocal().toIso8601String().split('T').first,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontFamily: _fontFamily,
-                                      color: AppColors.bluUniversoDeep,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                        child: _typeButton(
+                          label: 'Nota/Testo',
+                          selected: !_isLink,
+                          onTap: () => setState(() => _isLink = false),
+                          textSize: typeButtonTextSize,
+                          verticalPadding: typeButtonVerticalPadding,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Se non impostato: attivo subito fino alla scadenza abbonamento.',
-                      style: TextStyle(
-                        fontFamily: _fontFamily,
-                        color: AppColors.biancoOttico.withOpacity(0.72),
-                        fontSize: isPhone ? 11 : 13,
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 18),
-                CheckboxListTile(
-                  value: _isExclusive,
-                  onChanged: (v) => setState(() => _isExclusive = v ?? false),
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(
-                    'Rendi questo codice esclusivo (previeni che venga usato in altre localita)',
+                  const SizedBox(height: 20),
+                  Text(
+                    _isLink
+                        ? 'Inserisci il link che vuoi connettere all\'ANCODE'
+                        : 'Inserisci la tua nota',
                     style: TextStyle(
                       fontFamily: _fontFamily,
-                      color: AppColors.biancoOttico.withOpacity(0.86),
-                      fontSize: isPhone ? 12 : 28,
+                      color: AppColors.biancoOttico.withOpacity(0.85),
+                      fontSize: labelSize,
                     ),
                   ),
-                  activeColor: AppColors.biancoOttico,
-                  checkColor: AppColors.bluUniverso,
-                  controlAffinity: ListTileControlAffinity.leading,
-                ),
-                if (_error != null) ...[
                   const SizedBox(height: 8),
-                  Text(_error!, style: const TextStyle(color: AppColors.verdeCosmico)),
+                  if (_isLink)
+                    WhiteLimePillSurface(
+                      height: pillFieldH,
+                      shadowDepth: _pillShadow,
+                      child: TextFormField(
+                        controller: _urlController,
+                        decoration: InputDecoration(
+                          hintText: 'https://espenp.io',
+                          hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: fieldHintSize),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                        ),
+                        style: TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: fieldTextSize),
+                        keyboardType: TextInputType.url,
+                        validator: (v) => _isLink && (v == null || v.trim().isEmpty) ? 'Inserisci URL' : null,
+                      ),
+                    )
+                  else
+                    WhiteLimePillSurface(
+                      height: pillNoteH,
+                      shadowDepth: _pillShadow,
+                      child: TextFormField(
+                        controller: _noteController,
+                        decoration: InputDecoration(
+                          hintText: 'Scrivi qui...',
+                          hintStyle: TextStyle(fontFamily: _fontFamily, color: AppColors.placeholderGrey, fontSize: fieldHintSize),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                        ),
+                        style: TextStyle(fontFamily: _fontFamily, color: AppColors.bluUniverso, fontSize: fieldTextSize),
+                        maxLines: 4,
+                        validator: (v) => !_isLink && (v == null || v.trim().isEmpty) ? 'Inserisci testo' : null,
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Comune',
+                    style: TextStyle(
+                      fontFamily: _fontFamily,
+                      color: AppColors.biancoOttico.withOpacity(0.9),
+                      fontSize: labelSize,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _ComunePicker(
+                    selected: _selectedComune,
+                    onSelected: (m) => setState(() => _selectedComune = m),
+                    pillHeight: pillFieldH,
+                  ),
+                  if (isBusinessPlan) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      'Schedule start/end (opzionale)',
+                      style: TextStyle(
+                        fontFamily: _fontFamily,
+                        color: AppColors.biancoOttico.withOpacity(0.9),
+                        fontSize: labelSize,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _SchedulePillButton(
+                            label: _scheduleStart == null
+                                ? 'Start Date'
+                                : _scheduleStart!.toLocal().toIso8601String().split('T').first,
+                            onTap: () => _pickScheduleDate(isStart: true),
+                            fontFamily: _fontFamily,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _SchedulePillButton(
+                            label: _scheduleEnd == null
+                                ? 'End Date'
+                                : _scheduleEnd!.toLocal().toIso8601String().split('T').first,
+                            onTap: () => _pickScheduleDate(isStart: false),
+                            fontFamily: _fontFamily,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Se non impostato: attivo subito fino alla scadenza abbonamento.',
+                        style: TextStyle(
+                          fontFamily: _fontFamily,
+                          color: AppColors.biancoOttico.withOpacity(0.72),
+                          fontSize: isPhone ? 11 : 13,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 18),
+                  CheckboxListTile(
+                    value: _isExclusive,
+                    onChanged: (v) => setState(() => _isExclusive = v ?? false),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      'Rendi questo codice esclusivo (previeni che venga usato in altre localita)',
+                      style: TextStyle(
+                        fontFamily: _fontFamily,
+                        color: AppColors.biancoOttico.withOpacity(0.86),
+                        fontSize: isPhone ? 12 : 16,
+                      ),
+                    ),
+                    activeColor: AppColors.biancoOttico,
+                    checkColor: AppColors.bluUniverso,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      _error!,
+                      style: const TextStyle(color: AppColors.verdeCosmico),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  WhiteLimePillButton(
+                    height: isPhone ? 58 : 72,
+                    shadowDepth: _pillShadow,
+                    fontSize: buttonTextSize,
+                    onPressed: _isCreating
+                        ? null
+                        : () {
+                            if (_formKey.currentState!.validate() && _selectedComune != null) {
+                              _commit();
+                            } else if (_selectedComune == null) {
+                              setState(() => _error = 'Seleziona un Comune');
+                            }
+                          },
+                    loading: _isCreating,
+                    label: 'Genera codice',
+                  ),
+                  const SizedBox(height: 80),
                 ],
-                const SizedBox(height: 24),
-                WhiteLimePillButton(
-                  height: 58,
-                  shadowDepth: _pillShadow,
-                  fontSize: 20,
-                  onPressed: _isCreating
-                      ? null
-                      : () {
-                          if (_formKey.currentState!.validate() && _selectedComune != null) {
-                            _commit();
-                          } else if (_selectedComune == null) {
-                            setState(() => _error = 'Seleziona un Comune');
-                          }
-                        },
-                  loading: _isCreating,
-                  label: 'Genera codice',
-                ),
-                const SizedBox(height: 80),
-              ],
+              ),
             ),
+          ),
+        ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _typeButton({required String label, required bool selected, required VoidCallback onTap}) {
+  Widget _typeButton({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    required double textSize,
+    required double verticalPadding,
+  }) {
     const h = 50.0;
     if (selected) {
       return Material(
@@ -503,10 +511,10 @@ class _CreateScreenState extends State<CreateScreen> {
             child: Center(
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: _fontFamily,
                   color: AppColors.bluUniversoDeep,
-                  fontSize: 16,
+                  fontSize: textSize,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -533,8 +541,52 @@ class _CreateScreenState extends State<CreateScreen> {
             style: TextStyle(
               fontFamily: _fontFamily,
               color: AppColors.biancoOttico.withOpacity(0.85),
-              fontSize: 16,
+              fontSize: textSize,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SchedulePillButton extends StatelessWidget {
+  const _SchedulePillButton({
+    required this.label,
+    required this.onTap,
+    required this.fontFamily,
+  });
+
+  final String label;
+  final VoidCallback onTap;
+  final String fontFamily;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(999),
+        child: WhiteLimePillSurface(
+          height: 52,
+          shadowDepth: _CreateScreenState._pillShadow,
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: fontFamily,
+                  color: AppColors.bluUniversoDeep,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ),
         ),
@@ -576,6 +628,7 @@ class _ComunePicker extends StatefulWidget {
     required this.onSelected,
     required this.pillHeight,
   });
+
   final Municipality? selected;
   final ValueChanged<Municipality?> onSelected;
   final double pillHeight;
@@ -603,12 +656,11 @@ class _ComunePickerState extends State<_ComunePicker> {
     }
     setState(() => _searching = true);
     final list = await AncodeService.searchRegionCities(q);
-    if (mounted) {
+    if (mounted)
       setState(() {
         _results = [const Municipality(istatCode: 'ALL', name: 'All'), ...list];
         _searching = false;
       });
-    }
   }
 
   Future<void> _loadDefaultOptions() async {
@@ -624,6 +676,8 @@ class _ComunePickerState extends State<_ComunePicker> {
   @override
   Widget build(BuildContext context) {
     final selectedText = widget.selected?.name ?? 'All';
+    final isPhone = MediaQuery.of(context).size.width < 600;
+    final pickerTextSize = isPhone ? 16.0 : 18.0;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -633,8 +687,10 @@ class _ComunePickerState extends State<_ComunePicker> {
           child: TextFormField(
             readOnly: true,
             controller: TextEditingController(text: selectedText),
-            style: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluUniverso, fontSize: 16),
+            style: TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluUniverso, fontSize: pickerTextSize),
             decoration: InputDecoration(
+              hintText: '',
+              hintStyle: TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.placeholderGrey, fontSize: pickerTextSize),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
               suffixIcon: IconButton(
@@ -646,6 +702,7 @@ class _ComunePickerState extends State<_ComunePicker> {
                 icon: Icon(
                   _isOpen ? Icons.close : Icons.keyboard_arrow_down_rounded,
                   color: const Color(0xFF6C7280),
+                  size: isPhone ? 22 : 30,
                 ),
               ),
             ),
@@ -660,6 +717,10 @@ class _ComunePickerState extends State<_ComunePicker> {
         if (_isOpen) ...[
           const SizedBox(height: 8),
           Card(
+            color: AppColors.biancoOttico,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxHeight: 200),
               child: Column(
@@ -669,45 +730,70 @@ class _ComunePickerState extends State<_ComunePicker> {
                     child: TextField(
                       controller: _queryController,
                       onChanged: _search,
-                      style: const TextStyle(fontFamily: _CreateScreenState._fontFamily),
-                      decoration: const InputDecoration(
+                      style: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluUniverso),
+                      decoration: InputDecoration(
                         hintText: 'Cerca comune',
-                        hintStyle: TextStyle(fontFamily: _CreateScreenState._fontFamily),
-                        prefixIcon: Icon(Icons.search),
+                        hintStyle: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.placeholderGrey),
+                        prefixIcon: const Icon(Icons.search, color: AppColors.placeholderGrey),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        filled: true,
+                        fillColor: AppColors.biancoOttico,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFD1D5DB)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFB8BEC8)),
+                        ),
                       ),
                     ),
                   ),
-                  const Divider(height: 1),
+                  const Divider(height: 1, color: Color(0xFFE6E6E6)),
                   Expanded(
                     child: _searching
-                        ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-                        : ListView.builder(
-                            itemCount: _results.length,
-                            itemBuilder: (_, i) {
-                              final m = _results[i];
-                              return ListTile(
-                                dense: true,
-                                title: Text(
-                                  m.name,
-                                  style: const TextStyle(fontFamily: _CreateScreenState._fontFamily),
+                        ? const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : _results.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  'No record',
+                                  style: TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluPolvere, fontSize: 16),
                                 ),
-                                subtitle: m.province != null
-                                    ? Text(
-                                        m.province!,
-                                        style: const TextStyle(fontFamily: _CreateScreenState._fontFamily),
-                                      )
-                                    : null,
-                                onTap: () {
-                                  widget.onSelected(m);
-                                  _queryController.clear();
-                                  setState(() {
-                                    _results = [];
-                                    _isOpen = false;
-                                  });
+                              )
+                            : ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: _results.length,
+                                itemBuilder: (_, i) {
+                                  final m = _results[i];
+                                  return ListTile(
+                                    dense: true,
+                                    title: Text(
+                                      m.name,
+                                      style: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluUniverso),
+                                    ),
+                                    subtitle: m.province != null
+                                        ? Text(
+                                            m.province!,
+                                            style: const TextStyle(fontFamily: _CreateScreenState._fontFamily, color: AppColors.bluPolvere),
+                                          )
+                                        : null,
+                                    onTap: () {
+                                      widget.onSelected(m);
+                                      _queryController.clear();
+                                      setState(() {
+                                        _results = [];
+                                        _isOpen = false;
+                                      });
+                                    },
+                                  );
                                 },
-                              );
-                            },
-                          ),
+                              ),
                   ),
                 ],
               ),
@@ -720,7 +806,11 @@ class _ComunePickerState extends State<_ComunePicker> {
 }
 
 class _OutputScreen extends StatelessWidget {
-  const _OutputScreen({required this.ancode, required this.onDone});
+  const _OutputScreen({
+    required this.ancode,
+    required this.onDone,
+  });
+
   final Ancode ancode;
   final VoidCallback onDone;
 
@@ -848,10 +938,11 @@ class _OutputScreen extends StatelessWidget {
                       ),
                     );
                   } catch (e) {
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('QR export failed: $e')),
-                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('QR export failed: $e')),
+                      );
+                    }
                   }
                 },
               ),
@@ -952,12 +1043,18 @@ class _OutputScreen extends StatelessWidget {
 
 class _UppercaseAlnumFormatter extends TextInputFormatter {
   const _UppercaseAlnumFormatter({required this.maxLength});
+
   final int maxLength;
 
   @override
   TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
     var normalized = newValue.text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
-    if (normalized.length > maxLength) normalized = normalized.substring(0, maxLength);
-    return TextEditingValue(text: normalized, selection: TextSelection.collapsed(offset: normalized.length));
+    if (normalized.length > maxLength) {
+      normalized = normalized.substring(0, maxLength);
+    }
+    return TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+    );
   }
 }

@@ -33,7 +33,10 @@ class MainShellState extends State<MainShell> {
     super.initState();
     _screens = <Widget>[
       const HomeScreen(),
-      ProfileScreen(key: _dashboardKey),
+      ProfileScreen(
+        key: _dashboardKey,
+        onAppHeaderProfileTap: () => goToTab(4),
+      ),
       const CreateScreen(),
       const ChatbotScreen(),
       const ProfilePlaceholderScreen(),

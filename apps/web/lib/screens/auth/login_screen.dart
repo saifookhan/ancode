@@ -112,13 +112,16 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: contentWidth),
-            child: Center(
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentWidth),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     'ANCODE',
+                    textAlign: TextAlign.center,
                     style: AppTypography.titleExtraBold(
                       color: titleColor,
                       fontSize: titleSize,
@@ -128,6 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'L I N K*  Y O U R  L I N K',
+                    textAlign: TextAlign.center,
                     style: AppTypography.titleExtraBold(
                       color: titleColor,
                       fontSize: compact ? 10 : 12,
@@ -137,6 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 18),
                   Text(
                     'L1NK* YOUR LINK',
+                    textAlign: TextAlign.center,
                     style: AppTypography.subtitleSemiBold(
                       color: mutedText,
                       fontSize: heroSize,
@@ -150,6 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Text(
                         'New here? ',
+                        textAlign: TextAlign.center,
                         style: AppTypography.bodyRegular(color: mutedText, fontSize: bodySize),
                       ),
                       GestureDetector(
@@ -160,6 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                         child: Text(
                           'Create an account',
+                          textAlign: TextAlign.center,
                           style: AppTypography.bodySemiBoldItalic(color: signInPurple, fontSize: bodySize),
                         ),
                       ),

@@ -182,8 +182,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   : () => hasUniqueMatch ? _goToContent() : _onSearchSubmitted(_controller.text),
             ),
             const SizedBox(height: 12),
-            WhiteLimePillButton(
-              label: 'CREA',
+            LimeFacePillButton(
+              label: 'Vai al contenuto',
               height: 58,
               onPressed: () {
                 final auth = context.read<AuthService>();

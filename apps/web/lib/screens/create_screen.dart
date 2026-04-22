@@ -220,16 +220,21 @@ class _CreateScreenState extends State<CreateScreen> {
       child: Scaffold(
         backgroundColor: AppColors.bluUniverso,
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: 6),
-                  Text(
-                    'Crea nuovo ANCODE',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const AncodeCreateTopBar(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 6),
+                        Text(
+                          'Crea nuovo ANCODE',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: _fontFamily,
@@ -477,6 +482,9 @@ class _CreateScreenState extends State<CreateScreen> {
                 ],
               ),
             ),
+          ),
+        ),
+            ],
           ),
         ),
       ),

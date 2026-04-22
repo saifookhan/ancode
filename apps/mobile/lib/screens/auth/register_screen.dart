@@ -85,14 +85,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
             'name': '${_nameController.text.trim()} ${_surnameController.text.trim()}'.trim(),
             'plan': 'free',
           }, onConflict: 'user_id');
-        } catch (_) {}
+        } catch (_) {
+          // Trigger-based setups may already create this row.
+        }
         try {
           await client.from('subscriptions').upsert({
             'user_id': newUser.id,
             'plan': 'free',
             'status': 'canceled',
           }, onConflict: 'user_id');
-        } catch (_) {}
+        } catch (_) {
+          // Trigger-based setups may already create this row.
+        }
       }
       if (!mounted) return;
       await Provider.of<AuthService>(context, listen: false).refreshProfile();
@@ -173,10 +177,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: contentWidth),
-            child: Column(
-              children: [
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: contentWidth),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 Row(
                   children: [
                     IconButton(

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
+import 'package:shared/shared.dart' hide AppTheme;
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
@@ -109,9 +110,7 @@ class _AncodeBootstrapState extends State<_AncodeBootstrap> {
     theme: AppTheme.light,
     darkTheme: AppTheme.dark,
     themeMode: ThemeMode.system,
-    home: const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    ),
+    home: const AncodeLoadingScreen(),
   );
 
   @override
@@ -184,9 +183,7 @@ class AncodeApp extends StatelessWidget {
         future: AncodeService.search(code),
         builder: (context, snap) {
           if (!snap.hasData) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
+            return const AncodeLoadingScreen();
           }
           final r = snap.data as AncodeSearchResult;
           if (r.uniqueMatch != null) {

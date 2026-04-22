@@ -3,6 +3,7 @@ import 'dart:html' as html;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared/shared.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'screens/main_shell.dart';
@@ -74,9 +75,7 @@ class _AppShellState extends State<AppShell> {
       builder: (context, authService, _) {
         final auth = authService.state;
         if (auth.isLoading) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
+          return const AncodeLoadingScreen();
         }
         return const MainShell();
       },

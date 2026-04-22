@@ -12,41 +12,71 @@ import 'services/auth_service.dart';
 import 'services/app_config.dart';
 import 'services/siri_shortcut_service.dart';
 
-Future<void> main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  runApp(const _MobileBootstrap());
+}
 
-  // Bundled env: must match a path declared under flutter.assets (see pubspec assets/).
-  await dotenv.load(fileName: 'assets/.env', isOptional: true);
+class _MobileBootstrap extends StatefulWidget {
+  const _MobileBootstrap();
 
-  const urlFromDefineRaw =
-      String.fromEnvironment('SUPABASE_URL', defaultValue: '');
-  const keyFromDefineRaw =
-      String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
-  final urlFromDefine = urlFromDefineRaw.trim();
-  final keyFromDefine = keyFromDefineRaw.trim();
-  final supabaseUrl = urlFromDefine.isNotEmpty
-      ? urlFromDefine
-      : (dotenv.env['SUPABASE_URL']?.trim() ?? '');
-  final supabaseAnonKey = keyFromDefine.isNotEmpty
-      ? keyFromDefine
-      : (dotenv.env['SUPABASE_ANON_KEY']?.trim() ?? '');
+  @override
+  State<_MobileBootstrap> createState() => _MobileBootstrapState();
+}
 
-  if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
-    runApp(const ConfigErrorScreen());
-    return;
+class _MobileBootstrapState extends State<_MobileBootstrap> {
+  Widget _app = MaterialApp(
+    debugShowCheckedModeBanner: false,
+    theme: AppTheme.light,
+    darkTheme: AppTheme.dark,
+    themeMode: ThemeMode.system,
+    home: const AncodeLoadingScreen(),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _start();
   }
 
-  try {
-    await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
-  } catch (e, st) {
-    debugPrint('Supabase.initialize failed: $e\n$st');
-    runApp(ConfigErrorScreen(message: e.toString()));
-    return;
+  Future<void> _start() async {
+    // Bundled env: must match a path declared under flutter.assets (see pubspec assets/).
+    await dotenv.load(fileName: 'assets/.env', isOptional: true);
+
+    const urlFromDefineRaw = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+    const keyFromDefineRaw = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+    final urlFromDefine = urlFromDefineRaw.trim();
+    final keyFromDefine = keyFromDefineRaw.trim();
+    final supabaseUrl = urlFromDefine.isNotEmpty
+        ? urlFromDefine
+        : (dotenv.env['SUPABASE_URL']?.trim() ?? '');
+    final supabaseAnonKey = keyFromDefine.isNotEmpty
+        ? keyFromDefine
+        : (dotenv.env['SUPABASE_ANON_KEY']?.trim() ?? '');
+
+    if (!mounted) return;
+    if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+      setState(() => _app = const ConfigErrorScreen());
+      return;
+    }
+
+    try {
+      await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+    } catch (e, st) {
+      debugPrint('Supabase.initialize failed: $e\n$st');
+      if (!mounted) return;
+      setState(() => _app = ConfigErrorScreen(message: e.toString()));
+      return;
+    }
+
+    await AppConfig.initialize();
+    await SiriShortcutService.instance.initialize();
+    if (!mounted) return;
+    setState(() => _app = const AncodeMobileApp());
   }
 
-  await AppConfig.initialize();
-  await SiriShortcutService.instance.initialize();
-  runApp(const AncodeMobileApp());
+  @override
+  Widget build(BuildContext context) => _app;
 }
 
 class AncodeMobileApp extends StatelessWidget {
