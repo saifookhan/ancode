@@ -190,15 +190,30 @@ class AncodeService {
       }
     }
 
+    final normalizedMunicipality = municipalityId.trim().toUpperCase();
+    if (normalizedMunicipality.isEmpty) {
+      throw Exception('Seleziona un Comune valido');
+    }
+
+    final subscriptionEnd = PlanModeService.subscriptionEnd(user);
     final payload = <String, dynamic>{
       'title': normalizedCode,
+      'code': normalizedCode,
+      'normalized_code': normalizedCode,
+      'type': type == AncodeType.link ? 'link' : 'note',
       'content_type': type == AncodeType.link ? 'link' : 'text',
       'area': type == AncodeType.link ? url?.trim() : noteText?.trim(),
       'content': type == AncodeType.link ? url?.trim() : noteText?.trim(),
-      'municipality_id': municipalityId,
+      'url': type == AncodeType.link ? url?.trim() : null,
+      'note_text': type == AncodeType.note ? noteText?.trim() : null,
+      'municipality_id': normalizedMunicipality,
       'owner_user_id': user.id,
+      'owner_user': user.id,
+      'created_by': user.id,
       'is_exclusive_italy': isExclusiveItaly,
       'status': 'active',
+      'created_plan': PlanModeService.currentPlan(user),
+      'subscription_snapshot_end': subscriptionEnd?.toUtc().toIso8601String(),
     };
     if (scheduleStart != null) {
       payload['schedule_start'] = scheduleStart.toUtc().toIso8601String();
@@ -304,7 +319,13 @@ class AncodeService {
         if (match == null) rethrow;
         final missing = match.group(1);
         if (missing == null || !working.containsKey(missing)) rethrow;
-        if (missing == 'title' || missing == 'content_type' || missing == 'area') rethrow;
+        if (missing == 'title' ||
+            missing == 'content_type' ||
+            missing == 'area' ||
+            missing == 'created_by' ||
+            missing == 'owner_user_id') {
+          rethrow;
+        }
         working.remove(missing);
       }
     }
