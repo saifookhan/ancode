@@ -216,10 +216,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.biancoOttico,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final minH = constraints.maxHeight;
-            final scrollChild = idleCentered
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final minH = constraints.maxHeight;
+                final scrollChild = idleCentered
                 ? Align(
                     alignment: const Alignment(0, -0.42),
                     child: Column(
@@ -274,14 +277,43 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   );
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: minH),
-                child: scrollChild,
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: minH),
+                    child: scrollChild,
+                  ),
+                );
+              },
+            ),
+            Positioned(
+              top: 4,
+              right: 8,
+              child: Consumer<AuthService>(
+                builder: (context, auth, _) {
+                  if (!auth.isLoggedIn) return const SizedBox.shrink();
+                  final red = Colors.red.shade700;
+                  return TextButton.icon(
+                    onPressed: () => context.read<AuthService>().signOut(),
+                    icon: Icon(Icons.logout, size: 22, color: red),
+                    label: Text(
+                      'Esci',
+                      style: TextStyle(
+                        color: red,
+                        fontWeight: FontWeight.w600,
+                        fontSize: isPhone ? 15 : 16,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: red,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );

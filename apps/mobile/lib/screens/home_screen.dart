@@ -215,74 +215,106 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.biancoOttico,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final minH = constraints.maxHeight;
-            final scrollChild = idleCentered
-                ? Align(
-                    // Nudge block upward so space below the card (above bottom nav) is smaller
-                    // than true vertical center (full-height Column + center caused a huge gap).
-                    alignment: const Alignment(0, -0.42),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: logoAndCard,
-                    ),
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      SizedBox(height: topGap),
-                      ...logoAndCard,
-                      if (_lastResult?.error != null) ...[
-                        const SizedBox(height: 24),
-                        Text(_lastResult!.error!, style: const TextStyle(color: AppColors.bluPolvere)),
-                      ],
-                      if (_lastResult?.multipleMatches != null && _lastResult!.multipleMatches!.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        ..._lastResult!.multipleMatches!.map(
-                          (a) => ListTile(
-                            title: Text(a.code, style: const TextStyle(color: AppColors.bluPolvere)),
-                            subtitle: Text(a.municipality?.name ?? '', style: const TextStyle(color: AppColors.placeholderGrey)),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => CodeResolveScreen(
-                                  code: a.normalizedCode,
-                                  ancode: a,
-                                ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final minH = constraints.maxHeight;
+                final scrollChild = idleCentered
+                    ? Align(
+                        // Nudge block upward so space below the card (above bottom nav) is smaller
+                        // than true vertical center (full-height Column + center caused a huge gap).
+                        alignment: const Alignment(0, -0.42),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: logoAndCard,
+                        ),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(height: topGap),
+                          ...logoAndCard,
+                          if (_lastResult?.error != null) ...[
+                            const SizedBox(height: 24),
+                            Text(_lastResult!.error!, style: const TextStyle(color: AppColors.bluPolvere)),
+                          ],
+                          if (_lastResult?.multipleMatches != null && _lastResult!.multipleMatches!.isNotEmpty) ...[
+                            const SizedBox(height: 24),
+                            ..._lastResult!.multipleMatches!.map(
+                              (a) => ListTile(
+                                title: Text(a.code, style: const TextStyle(color: AppColors.bluPolvere)),
+                                subtitle: Text(a.municipality?.name ?? '', style: const TextStyle(color: AppColors.placeholderGrey)),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => CodeResolveScreen(
+                                      code: a.normalizedCode,
+                                      ancode: a,
+                                    ),
+                                  ),
+                                ).then((_) => _onCodeResolved()),
                               ),
-                            ).then((_) => _onCodeResolved()),
-                          ),
-                        ),
-                      ],
-                      if (_lastResult != null &&
-                          _lastResult!.uniqueMatch == null &&
-                          _lastResult!.multipleMatches == null &&
-                          _lastResult!.similarCodes != null &&
-                          _lastResult!.similarCodes!.isNotEmpty)
-                        ..._lastResult!.similarCodes!.map(
-                          (c) => ListTile(
-                            title: Text(c, style: const TextStyle(color: AppColors.bluPolvere)),
-                            onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => CodeResolveScreen(code: c)),
-                            ).then((_) => _onCodeResolved()),
-                          ),
-                        ),
-                      SizedBox(height: tailGap),
-                    ],
-                  );
+                            ),
+                          ],
+                          if (_lastResult != null &&
+                              _lastResult!.uniqueMatch == null &&
+                              _lastResult!.multipleMatches == null &&
+                              _lastResult!.similarCodes != null &&
+                              _lastResult!.similarCodes!.isNotEmpty)
+                            ..._lastResult!.similarCodes!.map(
+                              (c) => ListTile(
+                                title: Text(c, style: const TextStyle(color: AppColors.bluPolvere)),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => CodeResolveScreen(code: c)),
+                                ).then((_) => _onCodeResolved()),
+                              ),
+                            ),
+                          SizedBox(height: tailGap),
+                        ],
+                      );
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: minH),
-                child: scrollChild,
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: minH),
+                    child: scrollChild,
+                  ),
+                );
+              },
+            ),
+            Positioned(
+              top: 4,
+              right: 8,
+              child: Consumer<AuthService>(
+                builder: (context, auth, _) {
+                  if (!auth.isLoggedIn) return const SizedBox.shrink();
+                  final red = Colors.red.shade700;
+                  return TextButton.icon(
+                    onPressed: () => context.read<AuthService>().signOut(),
+                    icon: Icon(Icons.logout, size: 22, color: red),
+                    label: Text(
+                      'Esci',
+                      style: TextStyle(
+                        color: red,
+                        fontWeight: FontWeight.w600,
+                        fontSize: isPhone ? 15 : 16,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: red,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ],
         ),
       ),
     );
