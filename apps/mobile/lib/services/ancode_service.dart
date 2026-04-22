@@ -315,17 +315,17 @@ class AncodeService {
         return;
       } catch (e) {
         final msg = e.toString();
+        if (msg.contains('duplicate key value violates unique constraint') ||
+            msg.contains('23505') ||
+            msg.toLowerCase().contains('unique')) {
+          throw Exception('Code no longer available');
+        }
         final match = RegExp(r"Could not find the '([^']+)' column").firstMatch(msg);
         if (match == null) rethrow;
         final missing = match.group(1);
         if (missing == null || !working.containsKey(missing)) rethrow;
-        if (missing == 'title' ||
-            missing == 'content_type' ||
-            missing == 'area' ||
-            missing == 'created_by' ||
-            missing == 'owner_user_id') {
-          rethrow;
-        }
+        // Strip unknown columns (e.g. owner_user_id) for schemas that only use created_by.
+        if (missing == 'title' || missing == 'content_type' || missing == 'area') rethrow;
         working.remove(missing);
       }
     }
