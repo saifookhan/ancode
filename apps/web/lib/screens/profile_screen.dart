@@ -458,8 +458,8 @@ class _CodesSection extends StatelessWidget {
   final String emptyText;
   final bool inactive;
 
-  /// Card + gap between rows — tuned to [_CodeRowCard] + `Padding(bottom: 7)`.
-  static const double _rowSlotHeight = 78;
+  /// Card + gap between rows — tuned to [_CodeRowCard] + list separator height.
+  static const double _rowSlotHeight = 68;
 
   @override
   Widget build(BuildContext context) {
@@ -498,13 +498,13 @@ class _CodesSection extends StatelessWidget {
               padding: EdgeInsets.zero,
               itemCount: items.length,
               physics: const AlwaysScrollableScrollPhysics(),
-              separatorBuilder: (_, __) => const SizedBox(height: 7),
+              separatorBuilder: (_, __) => const SizedBox(height: 5),
               itemBuilder: (context, i) => _CodeRowCard(item: items[i], inactive: inactive),
             ),
           )
         else
           ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 7),
+                padding: const EdgeInsets.only(bottom: 5),
                 child: _CodeRowCard(item: item, inactive: inactive),
               )),
       ],
@@ -537,7 +537,7 @@ class _CodeRowCard extends StatelessWidget {
               ],
       ),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 11, 16, 10),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 7),
         decoration: BoxDecoration(
           color: inactive ? const Color(0xFFF3F4F6) : AppColors.biancoOttico,
           borderRadius: BorderRadius.circular(18),
