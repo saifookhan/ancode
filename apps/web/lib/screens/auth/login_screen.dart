@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared/shared.dart';
@@ -81,7 +83,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final titleColor = Colors.black;
     final mutedText = const Color(0xFF8C8C9A);
     final cardBorder = const Color(0xFFE4E4E8);
     final fieldBorder = const Color(0xFFD9D9DE);
@@ -90,8 +91,6 @@ class _LoginScreenState extends State<LoginScreen> {
     final compact = screenWidth < 390;
     final wide = screenWidth >= 900;
     final contentWidth = wide ? 760.0 : 640.0;
-    final titleSize = compact ? 42.0 : 56.0;
-    final heroSize = compact ? 24.0 : 34.0;
     final bodySize = compact ? 15.0 : 20.0;
     final labelSize = compact ? 16.0 : 18.0;
 
@@ -110,45 +109,23 @@ class _LoginScreenState extends State<LoginScreen> {
         leadingWidth: 58,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-          child: Align(
-            alignment: Alignment.topCenter,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: contentWidth),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'ANCODE',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.titleExtraBold(
-                      color: titleColor,
-                      fontSize: titleSize,
-                      letterSpacing: -1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'L I N K*  Y O U R  L I N K',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.titleExtraBold(
-                      color: titleColor,
-                      fontSize: compact ? 10 : 12,
-                      letterSpacing: compact ? 2.4 : 3.2,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'L1NK* YOUR LINK',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.subtitleSemiBold(
-                      color: mutedText,
-                      fontSize: heroSize,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                  const SizedBox(height: 22),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final formMaxW = math.max(
+              280.0,
+              math.min(contentWidth, constraints.maxWidth - 48),
+            );
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight - 24),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: formMaxW),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                  const SizedBox(height: 8),
                   Wrap(
                     alignment: WrapAlignment.center,
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -286,19 +263,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Demo: admin@ancode.com / admin123 o user@example.com / user123',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.captionLight(
-                      color: Colors.black.withOpacity(0.75),
-                      fontSize: compact ? 13 : 15,
-                    ),
-                  ),
                 ],
               ),
             ),
           ),
+        ),
+        );
+          },
         ),
       ),
     );

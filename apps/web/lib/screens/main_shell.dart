@@ -18,26 +18,26 @@ class MainShell extends StatefulWidget {
 }
 
 class MainShellState extends State<MainShell> {
-  int _currentIndex = 0; // Home, Dashboard, Crea, Chatbot, Profilo
+  int _currentIndex = 2;
 
   final GlobalKey<ProfileScreenState> _dashboardKey = GlobalKey<ProfileScreenState>();
   late final List<Widget> _screens;
 
-  static const int _homeIndex = 0;
+  static const int _homeTabIndex = 2;
   static const int _dashboardIndex = 1;
-  static const int createIndex = 2;
-  static const int _createIndex = 2;
+  static const int createIndex = 0;
+  static const int _createIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _screens = <Widget>[
-      const HomeScreen(),
+      const CreateScreen(),
       ProfileScreen(
         key: _dashboardKey,
         onAppHeaderProfileTap: () => goToTab(4),
       ),
-      const CreateScreen(),
+      const HomeScreen(),
       const ChatbotScreen(),
       const ProfilePlaceholderScreen(),
     ];
@@ -63,7 +63,7 @@ class MainShellState extends State<MainShell> {
   }
 
   void _onBottomNavTap(int i) {
-    if (i == _homeIndex) {
+    if (i == _homeTabIndex) {
       goToTab(i);
       return;
     }
@@ -79,7 +79,8 @@ class MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final shellBackground = _currentIndex == _createIndex ? AppColors.bluUniverso : AppColors.biancoOttico;
+    final shellBackground =
+        _currentIndex == _createIndex ? AppColors.creaScreenBackground : AppColors.biancoOttico;
     return Scaffold(
       backgroundColor: shellBackground,
       body: IndexedStack(

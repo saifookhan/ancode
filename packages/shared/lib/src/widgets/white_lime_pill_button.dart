@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_fonts.dart';
 
-/// Primary create-page CTA: white pill, navy label (extra-bold), hard lime shadow.
+/// White pill CTA with hard lime “rail” (optional bottom-right extrusion like [WhiteLimePillSurface]).
 class WhiteLimePillButton extends StatelessWidget {
   const WhiteLimePillButton({
     super.key,
@@ -13,6 +13,12 @@ class WhiteLimePillButton extends StatelessWidget {
     this.height = 58,
     this.shadowDepth = 8,
     this.fontSize = 18,
+    this.extrusionDx = 0,
+    this.railColor,
+    this.outlineColor,
+    this.depthOutlined = false,
+    this.borderWidth = 1.5,
+    this.labelColor,
   });
 
   final VoidCallback? onPressed;
@@ -21,13 +27,22 @@ class WhiteLimePillButton extends StatelessWidget {
   final double height;
   final double shadowDepth;
   final double fontSize;
+  final double extrusionDx;
+  final Color? railColor;
+  final Color? outlineColor;
+  final bool depthOutlined;
+  final double borderWidth;
+  final Color? labelColor;
 
-  static const Color _outline = AppColors.bluUniversoDeep;
+  static const Color _defaultOutline = AppColors.bluUniversoDeep;
 
   @override
   Widget build(BuildContext context) {
     final busy = loading;
     final effectiveOnTap = (onPressed == null || busy) ? null : onPressed;
+    final rail = railColor ?? AppColors.limeCreateHard;
+    final outline = outlineColor ?? _defaultOutline;
+    final textColor = labelColor ?? outline;
 
     return SizedBox(
       width: double.infinity,
@@ -37,17 +52,20 @@ class WhiteLimePillButton extends StatelessWidget {
         children: [
           DecoratedBox(
             decoration: BoxDecoration(
-              color: AppColors.limeCreateHard,
+              color: rail,
               borderRadius: BorderRadius.circular(999),
+              border: depthOutlined
+                  ? Border.all(color: outline, width: borderWidth)
+                  : null,
             ),
           ),
           Padding(
-            padding: EdgeInsets.fromLTRB(0, 0, 0, shadowDepth),
+            padding: EdgeInsets.fromLTRB(0, 0, extrusionDx, shadowDepth),
             child: DecoratedBox(
               decoration: BoxDecoration(
                 color: AppColors.biancoOttico,
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: _outline, width: 1.5),
+                border: Border.all(color: outline, width: borderWidth),
               ),
               child: Material(
                 color: Colors.transparent,
@@ -63,7 +81,7 @@ class WhiteLimePillButton extends StatelessWidget {
                             width: 22,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.2,
-                              color: _outline,
+                              color: outline,
                             ),
                           )
                         : Text(
@@ -73,7 +91,7 @@ class WhiteLimePillButton extends StatelessWidget {
                               fontFamily: AppFonts.family,
                               fontWeight: FontWeight.w800,
                               fontSize: fontSize,
-                              color: _outline,
+                              color: textColor,
                               letterSpacing: 0.3,
                             ),
                           ),

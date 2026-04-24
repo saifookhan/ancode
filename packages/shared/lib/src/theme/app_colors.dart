@@ -6,8 +6,16 @@ class AppColors {
 
   /// Dark navy/purple – create screen background, theme primary surfaces
   static const Color bluUniverso = Color(0xFF1F1F47);
+  /// Crea screen body + top bar (mockup #130645)
+  static const Color creaScreenBackground = Color(0xFF130645);
   /// Deep navy for pill buttons on white (search landing – almost black blue)
   static const Color bluUniversoDeep = Color(0xFF101523);
+  /// Mockup landing / nav accent (dark slate navy)
+  static const Color slateNavy = Color(0xFF120A44);
+  /// Mockup lime fill and pill shadows
+  static const Color limeMockup = Color(0xFFCCFF80);
+  /// Slightly darker lime for extruded shadow (bottom pill / rails)
+  static const Color limeMockupDeep = Color(0xFFB8EB6A);
   /// Slightly lighter navy for create screen
   static const Color bluUniversoLight = Color(0xFF2C2C54);
   /// Logo and accent blue

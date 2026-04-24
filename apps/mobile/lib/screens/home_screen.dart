@@ -112,14 +112,14 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  static const double _logoSize = 160;
+  static const double _logoSize = 228;
 
   @override
   Widget build(BuildContext context) {
     final isPhone = MediaQuery.of(context).size.width < 600;
     final idleCentered = isPhone && _lastResult == null;
     final topGap = isPhone ? 28.0 : 72.0;
-    final logoSectionGap = isPhone ? 16.0 : 28.0;
+    final logoSectionGap = isPhone ? 28.0 : 36.0;
     final tailGap = isPhone ? 24.0 : 100.0;
     final hasUniqueMatch = _lastResult?.uniqueMatch != null;
 
@@ -128,87 +128,99 @@ class _HomeScreenState extends State<HomeScreen> {
         size: _logoSize,
         showName: true,
         logoAssetPath: 'assets/logo.png',
-        subtitle: 'CERCA O CREA',
-        subtitleFontSize: 22,
-        nameColor: AppColors.lavanda,
-        nameFontSize: 44,
+        nameColor: AppColors.slateNavy,
+        nameFontSize: 50,
       ),
       SizedBox(height: logoSectionGap),
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
-        decoration: BoxDecoration(
-          color: AppColors.biancoOttico,
-          borderRadius: BorderRadius.circular(26),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.07),
-              blurRadius: 24,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            WhiteLimePillSurface(
-              height: 58,
-              shadowDepth: 8,
-              child: TextField(
-                controller: _controller,
-                focusNode: _focusNode,
-                decoration: const InputDecoration(
-                  hintText: 'INSERISCI ANCODE',
-                  hintStyle: TextStyle(color: AppColors.placeholderGrey, fontSize: 16),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          WhiteLimePillSurface(
+            height: 58,
+            shadowDepth: 8,
+            borderWidth: 1.5,
+            outlineColor: AppColors.slateNavy,
+            railColor: AppColors.limeMockup,
+            extrusionDx: 4,
+            depthOutlined: true,
+            child: TextField(
+              controller: _controller,
+              focusNode: _focusNode,
+              decoration: const InputDecoration(
+                hintText: 'INSERISCI ANCODE',
+                hintStyle: TextStyle(
+                  color: AppColors.slateNavy,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w300,
                 ),
-                style: const TextStyle(color: AppColors.bluPolvere, fontSize: 18),
-                textCapitalization: TextCapitalization.characters,
-                autocorrect: false,
-                inputFormatters: const [_codeInputFormatter],
-                onChanged: _onCodeChanged,
-                onSubmitted: _onSearchSubmitted,
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 22, vertical: 14),
               ),
+              style: const TextStyle(
+                color: AppColors.slateNavy,
+                fontSize: 17,
+                fontWeight: FontWeight.w400,
+              ),
+              textCapitalization: TextCapitalization.characters,
+              autocorrect: false,
+              inputFormatters: const [_codeInputFormatter],
+              onChanged: _onCodeChanged,
+              onSubmitted: _onSearchSubmitted,
             ),
-            const SizedBox(height: 16),
-            LimeRailPillButton(
-              label: 'CERCA',
-              height: 58,
-              loading: _isSearching,
-              onPressed: _isSearching
-                  ? null
-                  : () => hasUniqueMatch ? _goToContent() : _onSearchSubmitted(_controller.text),
-            ),
-            const SizedBox(height: 12),
-            LimeFacePillButton(
-              label: 'Vai al contenuto',
-              height: 58,
-              onPressed: () {
-                final auth = context.read<AuthService>();
-                if (!auth.isLoggedIn) {
-                  Navigator.of(context).push<void>(
-                    MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-                  );
-                  return;
-                }
-                final shell = context.findAncestorStateOfType<MainShellState>();
-                if (shell != null) {
-                  shell.goToTab(MainShellState.createIndex);
-                  return;
-                }
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreateScreen(
-                      prefillCode: _normalizeCodeInput(_controller.text),
-                    ),
-                  ),
+          ),
+          const SizedBox(height: 16),
+          LimeRailPillButton(
+            label: 'CERCA',
+            height: 58,
+            loading: _isSearching,
+            fillColor: AppColors.slateNavy,
+            shadowFaceColor: AppColors.limeMockup,
+            extrusionDx: 4,
+            depthOutlined: true,
+            faceBorderColor: const Color(0xFF000000),
+            depthBorderColor: const Color(0xFF000000),
+            onPressed: _isSearching
+                ? null
+                : () => hasUniqueMatch ? _goToContent() : _onSearchSubmitted(_controller.text),
+          ),
+          const SizedBox(height: 16),
+          LimeFacePillButton(
+            label: 'Vai al contenuto',
+            height: 58,
+            showOutline: true,
+            outlineColor: AppColors.slateNavy,
+            outlineWidth: 1.5,
+            faceColor: AppColors.limeMockup,
+            shadowFaceColor: AppColors.limeMockup,
+            extrusionDx: 4,
+            depthOutlined: true,
+            depthOutlineColor: AppColors.slateNavy,
+            depthOutlineWidth: 1.5,
+            labelColor: AppColors.slateNavy,
+            onPressed: () {
+              final auth = context.read<AuthService>();
+              if (!auth.isLoggedIn) {
+                Navigator.of(context).push<void>(
+                  MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
                 );
-              },
-            ),
-          ],
-        ),
+                return;
+              }
+              final shell = context.findAncestorStateOfType<MainShellState>();
+              if (shell != null) {
+                shell.goToTab(MainShellState.createIndex);
+                return;
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => CreateScreen(
+                    prefillCode: _normalizeCodeInput(_controller.text),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     ];
 
@@ -225,7 +237,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? Align(
                         // Nudge block upward so space below the card (above bottom nav) is smaller
                         // than true vertical center (full-height Column + center caused a huge gap).
-                        alignment: const Alignment(0, -0.42),
+                        alignment: const Alignment(0, -0.38),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.stretch,
