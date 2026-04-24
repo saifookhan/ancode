@@ -18,6 +18,7 @@ class MainShell extends StatefulWidget {
 }
 
 class MainShellState extends State<MainShell> {
+  /// Opens on Home (search); tab order is Crea, Dashboard, Home, …
   int _currentIndex = 2;
 
   final GlobalKey<ProfileScreenState> _dashboardKey = GlobalKey<ProfileScreenState>();
@@ -25,6 +26,8 @@ class MainShellState extends State<MainShell> {
 
   static const int _homeTabIndex = 2;
   static const int _dashboardIndex = 1;
+  /// Bottom-nav index for Dashboard (same as [_dashboardIndex]).
+  static const int dashboardTabIndex = 1;
   static const int createIndex = 0;
   static const int _createIndex = 0;
 

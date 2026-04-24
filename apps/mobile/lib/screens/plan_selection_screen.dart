@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared/shared.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -49,7 +50,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       ),
     );
     try {
-      await Supabase.instance.client.from('profiles').upsert({'user_id': user.id, 'plan': planValue}, onConflict: 'user_id');
+      await upsertProfileForUserId(Supabase.instance.client, user.id, {'plan': planValue});
     } catch (_) {}
     try {
       await Supabase.instance.client.from('subscriptions').upsert({

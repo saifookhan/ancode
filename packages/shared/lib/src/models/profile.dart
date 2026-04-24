@@ -22,8 +22,9 @@ class Profile extends Equatable {
   bool get isAdmin => role == UserRole.admin;
 
   factory Profile.fromJson(Map<String, dynamic> json) {
+    final uid = json['user_id'] ?? json['id'];
     return Profile(
-      userId: json['user_id'] as String,
+      userId: uid is String ? uid : uid?.toString() ?? '',
       email: json['email'] as String? ?? '',
       name: json['name'] as String?,
       role: UserRole.values.firstWhere(

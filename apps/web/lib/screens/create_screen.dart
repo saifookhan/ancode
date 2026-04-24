@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:qr_flutter/qr_flutter.dart';
-import 'package:printing/printing.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:pdf/pdf.dart';
 
 import 'package:shared/shared.dart' hide AppTheme;
 
@@ -12,7 +8,6 @@ import '../theme/app_theme.dart';
 import 'auth/login_screen.dart';
 import 'main_shell.dart';
 import '../services/ancode_service.dart';
-import '../services/app_config.dart';
 import '../services/plan_mode_service.dart';
 
 class CreateScreen extends StatefulWidget {
@@ -39,7 +34,6 @@ class _CreateScreenState extends State<CreateScreen> {
   bool _isCreating = false;
   String? _error;
   List<_DraftCode> _drafts = [];
-  Ancode? _createdAncode;
 
   @override
   void initState() {
@@ -119,12 +113,11 @@ class _CreateScreenState extends State<CreateScreen> {
       }
       if (mounted) {
         setState(() {
-          _createdAncode =
-              _drafts.isNotEmpty ? _drafts.first.toAncodePlaceholder() : null;
           _drafts = [];
           _isCreating = false;
         });
-        context.findAncestorStateOfType<MainShellState>()?.refreshDashboard();
+        final shell = context.findAncestorStateOfType<MainShellState>();
+        shell?.goToTab(MainShellState.dashboardTabIndex);
       }
     } catch (e) {
       if (mounted) {
@@ -213,12 +206,6 @@ class _CreateScreenState extends State<CreateScreen> {
     final isFreePlan = currentPlan == PlanModeService.free;
     final isBusinessPlan = currentPlan == PlanModeService.business;
 
-    if (_createdAncode != null) {
-      return _OutputScreen(
-        ancode: _createdAncode!,
-        onDone: () => setState(() => _createdAncode = null),
-      );
-    }
     return Theme(
       data: AppTheme.dark,
       child: Scaffold(
@@ -775,17 +762,6 @@ class _DraftCode {
   final String? url;
   final String? noteText;
   final String municipalityId;
-
-  Ancode toAncodePlaceholder() => Ancode(
-        id: '',
-        code: code,
-        normalizedCode: code,
-        type: type,
-        url: url,
-        noteText: noteText,
-        municipalityId: municipalityId,
-        ownerUserId: '',
-      );
 }
 
 class _ComunePicker extends StatefulWidget {
@@ -972,242 +948,6 @@ class _ComunePickerState extends State<_ComunePicker> {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _OutputScreen extends StatelessWidget {
-  const _OutputScreen({
-    required this.ancode,
-    required this.onDone,
-  });
-
-  final Ancode ancode;
-  final VoidCallback onDone;
-
-  @override
-  Widget build(BuildContext context) {
-    final shortlink = AppConfig.shortlinkFor(ancode.normalizedCode);
-    final directTarget = ancode.type == AncodeType.link ? (ancode.url ?? shortlink) : shortlink;
-    final copyPayload = ancode.isLink
-        ? (AncodeQrPdf.normalizeHttpUri(directTarget)?.toString() ?? directTarget.trim())
-        : shortlink;
-    final qrPayload = ancode.isLink ? copyPayload : shortlink;
-    final user = Supabase.instance.client.auth.currentUser;
-    final plan = PlanModeService.currentPlan(user);
-    final subEnd = PlanModeService.subscriptionEnd(user);
-    final expirationMessage = PlanModeService.expirationLabel(
-      code: ancode,
-      plan: plan,
-      subscriptionEndDate: subEnd,
-    );
-    return Scaffold(
-      backgroundColor: const Color(0xFFF4F4F6),
-      appBar: AppBar(
-        title: const Text('ANCODE Print Layout'),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-          child: Column(
-            children: [
-              const Text(
-                'Print this page to share your code offline',
-                style: TextStyle(color: Color(0xFF707684), fontSize: 12),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                width: 360,
-                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE4E4E8)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.07),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Container(
-                      width: 140,
-                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF7F7F8),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: const Color(0xFFE3E3E6)),
-                      ),
-                      child: Column(
-                        children: [
-                          QrImageView(data: qrPayload, version: QrVersions.auto, size: 100),
-                          const SizedBox(height: 4),
-                          Text(
-                            ancode.isLink ? 'Scan to open link' : 'Scan to Access',
-                            style: const TextStyle(fontSize: 10, color: Color(0xFF676E7C)),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF262D3A),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        ancode.code.toUpperCase(),
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text('Your ANCODE', style: TextStyle(fontSize: 12, color: Color(0xFF4A5160))),
-                    const SizedBox(height: 12),
-                    _detailRow('Type', ancode.isLink ? 'link' : 'text'),
-                    _detailRow('Comune', ancode.municipality?.name ?? ancode.municipalityId),
-                    _detailRow('Duration', expirationMessage),
-                    _detailRow('Content', ancode.isLink ? (ancode.url ?? '') : (ancode.noteText ?? '')),
-                    const SizedBox(height: 8),
-                    Text(
-                      ancode.isLink
-                          ? 'Generic scanners open your URL directly.\nYou can still look up this code on ANCODE.'
-                          : 'Visit ancode.com and enter this code',
-                      style: const TextStyle(fontSize: 10, color: Color(0xFF6D7483)),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'ANCODE | Smart code system',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF4C5564), fontWeight: FontWeight.w600),
-                    ),
-                    const Text(
-                      'Memorable codes for instant access to\ndigital content',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 10, color: Color(0xFF808695)),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              LimeRailPillButton(
-                label: 'Download QR',
-                height: 58,
-                onPressed: () async {
-                  try {
-                    await Printing.layoutPdf(
-                      onLayout: (format) => AncodeQrPdf.build(
-                        format: format,
-                        ancode: ancode,
-                        shortlink: shortlink,
-                        qrEncodedPayload: qrPayload,
-                        expirationMessage: expirationMessage,
-                      ),
-                    );
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('QR export failed: $e')),
-                      );
-                    }
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              WhiteLimePillButton(
-                label: 'Copy',
-                height: 52,
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: copyPayload));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied')));
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              WhiteLimePillButton(
-                label: 'Share',
-                height: 52,
-                onPressed: () async {
-                  try {
-                    final pdfBytes = await AncodeQrPdf.build(
-                      format: PdfPageFormat.a4,
-                      ancode: ancode,
-                      shortlink: shortlink,
-                      qrEncodedPayload: qrPayload,
-                      expirationMessage: expirationMessage,
-                    );
-                    await Printing.sharePdf(
-                      bytes: pdfBytes,
-                      filename: 'ancode_${ancode.code.toUpperCase()}.pdf',
-                    );
-                  } catch (_) {
-                    await Clipboard.setData(ClipboardData(text: copyPayload));
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Could not open share menu. Link copied instead.')),
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              if (ancode.isLink && ancode.url != null)
-                WhiteLimePillButton(
-                  label: 'Test link',
-                  height: 52,
-                  onPressed: () async {
-                    if (ancode.id.isNotEmpty) {
-                      try {
-                        await Supabase.instance.client.from('clicks').insert({'ancode_id': ancode.id});
-                      } catch (_) {}
-                    }
-                    final uri = AncodeQrPdf.normalizeHttpUri(directTarget);
-                    if (uri == null) return;
-                    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                    if (!opened && context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Could not open link')),
-                      );
-                    }
-                  },
-                ),
-              const SizedBox(height: 8),
-              LimeRailPillButton(
-                label: 'Create another',
-                height: 52,
-                onPressed: onDone,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _detailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 70,
-            child: Text('$label:', style: const TextStyle(fontSize: 12, color: Color(0xFF6C7381))),
-          ),
-          Expanded(
-            child: Text(
-              value.isEmpty ? '—' : value,
-              textAlign: TextAlign.right,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF2A3140)),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

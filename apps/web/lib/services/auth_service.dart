@@ -79,10 +79,11 @@ class AuthService extends ChangeNotifier {
       return;
     }
     try {
+      final link = (await resolveProfilesAuthKey(client)).columnName;
       final res = await client
           .from('profiles')
           .select()
-          .eq('user_id', user.id)
+          .eq(link, user.id)
           .maybeSingle();
       if (res != null) {
         _state = AuthState(

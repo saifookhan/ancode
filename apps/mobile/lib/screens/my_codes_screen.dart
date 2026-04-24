@@ -4,13 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:shared/shared.dart';
 
 import '../services/app_config.dart';
 import '../services/ancode_service.dart';
-import 'code_resolve_screen.dart';
 import '../services/auth_service.dart';
 import '../services/plan_mode_service.dart';
 
@@ -35,7 +33,9 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
 
   Future<void> _load([String? forcedUserId]) async {
     final auth = context.read<AuthService>();
-    final userId = forcedUserId ?? Supabase.instance.client.auth.currentUser?.id ?? auth.profile?.userId;
+    final userId = forcedUserId ??
+        Supabase.instance.client.auth.currentUser?.id ??
+        auth.profile?.userId;
     if (userId == null || userId.isEmpty) {
       setState(() {
         _codes = [];
@@ -153,8 +153,13 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
     for (var i = 0; i < _codes.length; i++) {
       final code = _codes[i];
       try {
-        await Supabase.instance.client.from('codes').update({'priority_rank': i + 1}).eq('id', code.id);
-      } catch (_) {}
+        await Supabase.instance.client
+            .from('codes')
+            .update({'priority_rank': i + 1})
+            .eq('id', code.id);
+      } catch (_) {
+        // Backward compatible if priority column not available.
+      }
     }
   }
 

@@ -128,7 +128,7 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                       'Chatbot ANCODE',
                       style: TextStyle(
                         color: AppColors.bluUniversoDeep,
-                        fontSize: 40 / 2,
+                        fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

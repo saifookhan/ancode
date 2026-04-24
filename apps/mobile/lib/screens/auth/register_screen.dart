@@ -81,12 +81,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final newUser = authRes.user;
       if (newUser != null) {
         try {
-          await client.from('profiles').upsert({
-            'user_id': newUser.id,
+          await upsertProfileForUserId(client, newUser.id, {
             'email': _emailController.text.trim(),
             'name': '${_nameController.text.trim()} ${_surnameController.text.trim()}'.trim(),
             'plan': 'free',
-          }, onConflict: 'user_id');
+          });
         } catch (_) {
           // Trigger-based setups may already create this row.
         }

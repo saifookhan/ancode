@@ -161,6 +161,7 @@ class AncodeService {
     if (user == null) {
       throw Exception('Accedi per creare codici');
     }
+    await ensureProfileRowForUser(_client, user);
 
     final normalizedCode = normalizeCodeInput(code);
     if (normalizedCode.isEmpty || !isValidCodeFormat(normalizedCode)) {

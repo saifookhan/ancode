@@ -1,5 +1,6 @@
 library shared;
 
+export 'src/auth/profiles_auth.dart';
 export 'src/models/models.dart';
 export 'src/validators/validators.dart';
 export 'src/constants.dart';

@@ -27,6 +27,7 @@ DateTime? _parseSearchHistoryTimestamp(dynamic raw) {
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, this.onAppHeaderProfileTap});
 
+  /// Dashboard header: opens Profilo tab when set (wired from [MainShell]).
   final VoidCallback? onAppHeaderProfileTap;
 
   @override
@@ -87,6 +88,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     return normalizeCodeInput(raw.toString());
   }
 
+  /// Per-code totals and per-month counts for the chart (from [search_history].searched_at).
   Future<({Map<String, int> byCode, List<int> byMonthSlot})> _searchHistoryAggregatesForCodes(
     Iterable<String> normalizedCodes,
     List<DateTime> monthSlotStarts,
@@ -122,7 +124,9 @@ class ProfileScreenState extends State<ProfileScreen> {
             }
           }
         }
-      } catch (_) {}
+      } catch (_) {
+        // Chunk may fail if schema differs; continue with other chunks.
+      }
     }
     return (byCode: counts, byMonthSlot: byMonth);
   }
@@ -166,6 +170,7 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  /// Called when the Dashboard tab becomes active so stats stay in sync (e.g. after creating a code).
   Future<void> reloadDashboardStats() async {
     final auth = context.read<AuthService>();
     final userId = Supabase.instance.client.auth.currentUser?.id ?? auth.profile?.userId;

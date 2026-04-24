@@ -30,7 +30,9 @@ class HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _load([String? forcedUserId]) async {
     final auth = context.read<AuthService>();
-    final userId = forcedUserId ?? Supabase.instance.client.auth.currentUser?.id ?? auth.profile?.userId;
+    final userId = forcedUserId ??
+        Supabase.instance.client.auth.currentUser?.id ??
+        auth.profile?.userId;
     if (userId == null || userId.isEmpty) {
       setState(() {
         _history = [];
@@ -46,6 +48,7 @@ class HistoryScreenState extends State<HistoryScreen> {
           .eq('user_id', userId)
           .order('searched_at', ascending: false)
           .limit(50);
+      // Dedupe by code (keep most recent)
       final seen = <String>{};
       final deduped = <Map<String, dynamic>>[];
       for (final r in res as List) {
@@ -58,20 +61,16 @@ class HistoryScreenState extends State<HistoryScreen> {
           });
         }
       }
-      if (mounted) {
-        setState(() {
-          _history = deduped;
-          _loading = false;
-          _lastUserId = userId;
-        });
-      }
+      if (mounted) setState(() {
+        _history = deduped;
+        _loading = false;
+        _lastUserId = userId;
+      });
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _history = [];
-          _loading = false;
-        });
-      }
+      if (mounted) setState(() {
+        _history = [];
+        _loading = false;
+      });
     }
   }
 
