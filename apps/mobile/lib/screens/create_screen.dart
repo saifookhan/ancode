@@ -146,11 +146,13 @@ class _CreateScreenState extends State<CreateScreen> {
   Future<void> _createOne(_DraftCode d) async {
     final plan = PlanModeService.currentPlan(Supabase.instance.client.auth.currentUser);
     final isBusinessPlan = plan == PlanModeService.business;
+    final exclusiveItaly =
+        plan == PlanModeService.free ? false : _isExclusive;
     await AncodeService.createAncode(
       code: d.code,
       type: d.type,
       municipalityId: d.municipalityId,
-      isExclusiveItaly: _isExclusive,
+      isExclusiveItaly: exclusiveItaly,
       url: d.url,
       noteText: d.noteText,
       scheduleStart: isBusinessPlan ? _scheduleStart : null,
@@ -507,7 +509,8 @@ class _CreateScreenState extends State<CreateScreen> {
                         _ExclusiveCircleSelector(
                           fontFamily: _fontFamily,
                           isPhone: isPhone,
-                          selected: _isExclusive,
+                          enabled: !isFreePlan,
+                          selected: isFreePlan ? false : _isExclusive,
                           onChanged: (v) => setState(() => _isExclusive = v),
                         ),
                         if (_error != null) ...[
@@ -624,12 +627,14 @@ class _ExclusiveCircleSelector extends StatelessWidget {
   const _ExclusiveCircleSelector({
     required this.fontFamily,
     required this.isPhone,
+    required this.enabled,
     required this.selected,
     required this.onChanged,
   });
 
   final String fontFamily;
   final bool isPhone;
+  final bool enabled;
   final bool selected;
   final ValueChanged<bool> onChanged;
 
@@ -637,59 +642,81 @@ class _ExclusiveCircleSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Semantics(
       label: 'Rendi questo codice esclusivo',
-      hint: 'Attiva o disattiva',
-      toggled: selected,
+      hint: enabled ? 'Attiva o disattiva' : 'Non disponibile nel piano FREE',
+      toggled: selected && enabled,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => onChanged(!selected),
+          onTap: enabled ? () => onChanged(!selected) : null,
           borderRadius: BorderRadius.circular(14),
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 160),
-                    curve: Curves.easeOut,
-                    width: 22,
-                    height: 22,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.biancoOttico.withOpacity(0.52),
-                        width: 2,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 160),
+                        curve: Curves.easeOut,
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: AppColors.biancoOttico.withOpacity(enabled ? 0.52 : 0.28),
+                            width: 2,
+                          ),
+                          color: selected && enabled
+                              ? AppColors.biancoOttico
+                              : Colors.transparent,
+                        ),
+                        child: selected && enabled
+                            ? Center(
+                                child: Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: AppColors.slateNavy,
+                                  ),
+                                ),
+                              )
+                            : null,
                       ),
-                      color: selected ? AppColors.biancoOttico : Colors.transparent,
                     ),
-                    child: selected
-                        ? Center(
-                            child: Container(
-                              width: 10,
-                              height: 10,
-                              decoration: const BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: AppColors.slateNavy,
-                              ),
-                            ),
-                          )
-                        : null,
-                  ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        'Rendi questo codice esclusivo (previeni che venga usato in altre località)',
+                        style: TextStyle(
+                          fontFamily: fontFamily,
+                          color: AppColors.biancoOttico.withOpacity(enabled ? 0.78 : 0.42),
+                          fontSize: isPhone ? 12.5 : 15,
+                          height: 1.25,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    'Rendi questo codice esclusivo (previeni che venga usato in altre località)',
-                    style: TextStyle(
-                      fontFamily: fontFamily,
-                      color: AppColors.biancoOttico.withOpacity(0.78),
-                      fontSize: isPhone ? 12.5 : 15,
-                      height: 1.25,
+                if (!enabled) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 36),
+                    child: Text(
+                      'Disponibile con piano Pro o Business.',
+                      style: TextStyle(
+                        fontFamily: fontFamily,
+                        color: AppColors.biancoOttico.withOpacity(0.5),
+                        fontSize: isPhone ? 11.5 : 13,
+                        height: 1.2,
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
           ),

@@ -30,6 +30,46 @@ bool _isMissingColumnError(Object e, String column) {
   return t.contains('column $column does not exist');
 }
 
+/// PostgREST PGRST204 when a JSON key does not exist on [profiles] (remote schema drift).
+String? _missingProfilesColumnFromPostgrest(Object e) {
+  final t = e.toString();
+  if (!t.contains('profiles')) return null;
+  if (!t.contains('PGRST204') && !t.contains('Could not find the')) return null;
+  final specific = RegExp(
+    r"Could not find the '([^']+)' column of 'profiles'",
+  ).firstMatch(t);
+  if (specific != null) return specific.group(1);
+  if (t.contains('schema cache')) {
+    return RegExp(r"Could not find the '([^']+)' column").firstMatch(t)?.group(1);
+  }
+  return null;
+}
+
+Future<void> _profilesUpsertAdaptive(
+  SupabaseClient client,
+  String onConflictColumn,
+  Map<String, dynamic> row,
+) async {
+  final attempt = Map<String, dynamic>.from(row);
+  while (true) {
+    try {
+      await client.from('profiles').upsert(
+            attempt,
+            onConflict: onConflictColumn,
+          );
+      return;
+    } catch (e) {
+      final missing = _missingProfilesColumnFromPostgrest(e);
+      if (missing == null ||
+          missing == onConflictColumn ||
+          !attempt.containsKey(missing)) {
+        rethrow;
+      }
+      attempt.remove(missing);
+    }
+  }
+}
+
 /// Detects `user_id` vs `id` on [profiles] (PostgREST returns 42703 for unknown columns).
 Future<ProfilesAuthKey> resolveProfilesAuthKey(SupabaseClient client) async {
   final clientId = identityHashCode(client);
@@ -66,13 +106,10 @@ Future<void> upsertProfileForUserId(
 ) async {
   final key = await resolveProfilesAuthKey(client);
   final link = key.columnName;
-  await client.from('profiles').upsert(
-        {
-          link: userId,
-          ...fields,
-        },
-        onConflict: link,
-      );
+  await _profilesUpsertAdaptive(client, link, {
+    link: userId,
+    ...fields,
+  });
 }
 
 /// Ensures a row exists in `public.profiles` for [user].
@@ -106,13 +143,10 @@ Future<void> ensureProfileRowForUser(SupabaseClient client, User user) async {
       ? emailTrim
       : 'pending+${user.id}@users.local';
 
-  await client.from('profiles').upsert(
-        {
-          link: user.id,
-          'email': email,
-          if (combinedName.isNotEmpty) 'name': combinedName,
-          'plan': 'free',
-        },
-        onConflict: link,
-      );
+  await _profilesUpsertAdaptive(client, link, {
+    link: user.id,
+    'email': email,
+    if (combinedName.isNotEmpty) 'name': combinedName,
+    'plan': 'free',
+  });
 }

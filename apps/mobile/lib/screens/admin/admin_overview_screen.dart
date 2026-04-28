@@ -21,8 +21,12 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
 
   Future<void> _load() async {
     try {
-      final codesRes = await Supabase.instance.client.from('ancodes').select('id');
-      final blRes = await Supabase.instance.client.from('blacklist').select('id');
+      final codesRes = await Supabase.instance.client
+          .from('ancodes')
+          .select('id');
+      final blRes = await Supabase.instance.client
+          .from('blacklist')
+          .select('id');
       if (mounted) {
         setState(() {
           _totalAncodes = (codesRes as List).length;
@@ -30,7 +34,7 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
           _loading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
   }
@@ -47,7 +51,9 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
         children: [
           Text(
             'Overview',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
           ),
           const SizedBox(height: 24),
           Card(
@@ -56,10 +62,15 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('ANCODE totali', style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    'ANCODE totali',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   Text(
                     '$_totalAncodes',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ],
               ),
@@ -72,10 +83,15 @@ class _AdminOverviewScreenState extends State<AdminOverviewScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Blacklist', style: Theme.of(context).textTheme.titleMedium),
+                  Text(
+                    'Blacklist',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                   Text(
                     '$_blacklistCount',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
                 ],
               ),

@@ -101,7 +101,10 @@ class MainShellState extends State<MainShell> {
         _currentIndex == _createIndex ? AppColors.creaScreenBackground : AppColors.biancoOttico;
     return Scaffold(
       backgroundColor: shellBackground,
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: AncodeBottomNavBar(
         currentIndex: _currentIndex,
         onTap: _onBottomNavTap,
