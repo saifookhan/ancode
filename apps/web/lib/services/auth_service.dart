@@ -80,11 +80,19 @@ class AuthService extends ChangeNotifier {
     }
     try {
       final link = (await resolveProfilesAuthKey(client)).columnName;
-      final res = await client
+      var res = await client
           .from('profiles')
           .select()
           .eq(link, user.id)
           .maybeSingle();
+      if (res == null) {
+        await ensureProfileRowForUser(client, user);
+        res = await client
+            .from('profiles')
+            .select()
+            .eq(link, user.id)
+            .maybeSingle();
+      }
       if (res != null) {
         _state = AuthState(
           profile: Profile.fromJson(res),

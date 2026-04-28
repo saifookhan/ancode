@@ -9,7 +9,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app_navigator_key.dart';
 import 'screens/main_shell.dart';
 import 'services/auth_service.dart';
-import 'services/stripe_checkout_links.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});

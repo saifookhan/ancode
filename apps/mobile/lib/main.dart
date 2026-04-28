@@ -72,7 +72,7 @@ class _MobileBootstrapState extends State<_MobileBootstrap> {
     await AppConfig.initialize();
     await SiriShortcutService.instance.initialize();
     if (!mounted) return;
-    setState(() => _app = const AncodeMobileApp());
+    setState(() => _app = const AncodeMobileApp(supabaseConfigured: true));
   }
 
   @override
@@ -80,13 +80,17 @@ class _MobileBootstrapState extends State<_MobileBootstrap> {
 }
 
 class AncodeMobileApp extends StatelessWidget {
-  const AncodeMobileApp({super.key});
+  const AncodeMobileApp({super.key, required this.supabaseConfigured});
+
+  final bool supabaseConfigured;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(
+          create: (_) => AuthService(backendEnabled: supabaseConfigured),
+        ),
       ],
       child: MaterialApp(
         title: '*ANCODE',

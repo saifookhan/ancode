@@ -1,9 +1,14 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:shared/shared.dart';
 
 class AuthState {
-  AuthState({this.profile, this.isLoading = true, this.error});
+  AuthState({
+    this.profile,
+    this.isLoading = true,
+    this.error,
+  });
 
   final Profile? profile;
   final bool isLoading;
@@ -11,10 +16,11 @@ class AuthState {
 }
 
 class AuthService extends ChangeNotifier {
-  AuthService() {
+  AuthService({bool backendEnabled = true}) : _backendEnabled = backendEnabled {
     _init();
   }
 
+  final bool _backendEnabled;
   AuthState _state = AuthState();
   AuthState get state => _state;
 
@@ -24,6 +30,25 @@ class AuthService extends ChangeNotifier {
     return client.auth.currentUser != null;
   }
   Profile? get profile => _state.profile;
+
+  void _init() {
+    if (!_backendEnabled) {
+      _state = AuthState(profile: null, isLoading: false);
+      notifyListeners();
+      return;
+    }
+
+    _loadProfile();
+    _client?.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.signedIn ||
+          data.event == AuthChangeEvent.userUpdated) {
+        _loadProfile();
+      } else if (data.event == AuthChangeEvent.signedOut) {
+        _state = AuthState(profile: null, isLoading: false);
+        notifyListeners();
+      }
+    });
+  }
 
   Future<void> refreshProfile() => _loadProfile();
 
@@ -46,6 +71,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return;
     }
+
     final user = client.auth.currentUser;
     if (user == null) {
       _state = AuthState(profile: null, isLoading: false);
@@ -54,11 +80,19 @@ class AuthService extends ChangeNotifier {
     }
     try {
       final link = (await resolveProfilesAuthKey(client)).columnName;
-      final res = await client
+      var res = await client
           .from('profiles')
           .select()
           .eq(link, user.id)
           .maybeSingle();
+      if (res == null) {
+        await ensureProfileRowForUser(client, user);
+        res = await client
+            .from('profiles')
+            .select()
+            .eq(link, user.id)
+            .maybeSingle();
+      }
       if (res != null) {
         _state = AuthState(
           profile: Profile.fromJson(res),
@@ -68,22 +102,13 @@ class AuthService extends ChangeNotifier {
         _state = AuthState(profile: null, isLoading: false);
       }
     } catch (e) {
-      _state = AuthState(profile: null, isLoading: false, error: e.toString());
+      _state = AuthState(
+        profile: null,
+        isLoading: false,
+        error: e.toString(),
+      );
     }
     notifyListeners();
-  }
-
-  void _init() {
-    _loadProfile();
-    _client?.auth.onAuthStateChange.listen((data) {
-      if (data.event == AuthChangeEvent.signedIn ||
-          data.event == AuthChangeEvent.userUpdated) {
-        _loadProfile();
-      } else if (data.event == AuthChangeEvent.signedOut) {
-        _state = AuthState(profile: null, isLoading: false);
-        notifyListeners();
-      }
-    });
   }
 
   Future<void> signOut() async {

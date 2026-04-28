@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:shared/shared.dart';
+
+import '../services/ancode_service.dart';
+import '../services/plan_mode_service.dart';
 
 class ChatbotScreen extends StatefulWidget {
   const ChatbotScreen({super.key});
@@ -15,14 +17,20 @@ class ChatbotScreen extends StatefulWidget {
 class _ChatbotScreenState extends State<ChatbotScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<_ChatMessage> _messages = <_ChatMessage>[
-    _ChatMessage(
-      text: "Ciao! Sono l'assistente ANCODE. Come posso aiutarti oggi?",
-      isUser: false,
-      timestamp: '19:39',
-    ),
-  ];
+  late final List<_ChatMessage> _messages = <_ChatMessage>[];
   bool _isSending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _messages.add(
+      _ChatMessage(
+        text: "Ciao! Sono l'assistente ANCODE. Come posso aiutarti oggi?",
+        isUser: false,
+        timestamp: _nowTime(),
+      ),
+    );
+  }
 
   @override
   void dispose() {
@@ -31,53 +39,70 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     super.dispose();
   }
 
-  Future<String> _askAi(String prompt) async {
-    final key = (dotenv.env['GEMINI_API_KEY'] ?? const String.fromEnvironment('GEMINI_API_KEY')).trim();
-    if (key.isEmpty) {
-      return 'Imposta GEMINI_API_KEY nel file .env per attivare le risposte AI.';
-    }
-
-    final uri = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$key',
-    );
-    final response = await http.post(
-      uri,
-      headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'contents': [
-          {
-            'role': 'user',
-            'parts': [
-              {
-                'text': 'Sei ANCODE Assistant. Rispondi in italiano in modo breve e pratico.\n\nDomanda utente: $prompt',
-              },
-            ],
-          },
-        ],
-      }),
-    );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      return 'Errore AI (${response.statusCode}). Riprova tra poco.';
-    }
-    final decoded = jsonDecode(response.body) as Map<String, dynamic>;
-    final candidates = decoded['candidates'];
-    if (candidates is List && candidates.isNotEmpty) {
-      final first = candidates.first as Map<String, dynamic>;
-      final content = first['content'] as Map<String, dynamic>?;
-      final parts = content?['parts'];
-      if (parts is List && parts.isNotEmpty) {
-        final text = (parts.first as Map<String, dynamic>)['text']?.toString().trim();
-        if (text != null && text.isNotEmpty) return text;
-      }
-    }
-    return 'Non ho trovato una risposta utile, riprova con una domanda piu specifica.';
-  }
-
   String _nowTime() {
     final n = DateTime.now();
     final hh = n.hour.toString().padLeft(2, '0');
     final mm = n.minute.toString().padLeft(2, '0');
     return '$hh:$mm';
+  }
+
+  Future<String> _buildGrounding(String userMessage) async {
+    final parts = <String>[];
+    User? user;
+    try {
+      user = Supabase.instance.client.auth.currentUser;
+    } catch (_) {}
+    if (user == null) {
+      parts.add('Utente: non autenticato (nessun piano personale da metadata).');
+    } else {
+      final plan = PlanModeService.currentPlan(user);
+      final end = PlanModeService.subscriptionEnd(user);
+      parts.add(
+        'Utente autenticato. Piano (metadata profilo): $plan. '
+        'Scadenza abbonamento (se presente): ${end?.toUtc().toIso8601String() ?? "non indicata"}.',
+      );
+    }
+    final codes = extractPotentialNormalizedCodesForGrounding(userMessage);
+    for (final code in codes) {
+      try {
+        final res = await AncodeService.search(code);
+        if (res.uniqueMatch != null) {
+          final a = res.uniqueMatch!;
+          parts.add(
+            'DB ricerca pubblica per "$code": 1 risultato — '
+            'codice ${a.normalizedCode}, esclusivo_italia=${a.isExclusiveItaly}, '
+            'comune_id=${a.municipalityId}, tipo=${a.type.name}, stato=${a.status.name}'
+            '${a.expiresAt != null ? ", scadenza=${a.expiresAt!.toUtc().toIso8601String()}" : ""}.',
+          );
+        } else if ((res.multipleMatches ?? []).isNotEmpty) {
+          final list = res.multipleMatches!;
+          final desc = list
+              .map(
+                (e) =>
+                    '${e.normalizedCode}(comune:${e.municipalityId},escl:${e.isExclusiveItaly})',
+              )
+              .join('; ');
+          parts.add(
+            'DB ricerca pubblica per "$code": ${list.length} risultati — $desc.',
+          );
+        } else if ((res.similarCodes ?? []).isNotEmpty) {
+          parts.add(
+            'DB ricerca pubblica per "$code": nessun match esatto. '
+            'Codici simili (prefisso): ${res.similarCodes!.join(", ")}.',
+          );
+        } else {
+          parts.add(
+            'DB ricerca pubblica per "$code": ${res.error ?? "nessun dato"}.',
+          );
+        }
+      } catch (e) {
+        final msg = e.toString();
+        parts.add(
+          'DB ricerca per "$code": errore tecnico ${msg.length > 140 ? "${msg.substring(0, 140)}..." : msg}.',
+        );
+      }
+    }
+    return parts.join('\n');
   }
 
   Future<void> _sendMessage() async {
@@ -91,7 +116,17 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     });
     _scrollToBottom();
 
-    final aiText = await _askAi(text);
+    final key =
+        (dotenv.env['GEMINI_API_KEY'] ?? const String.fromEnvironment('GEMINI_API_KEY')).trim();
+    final grounding = await _buildGrounding(text);
+    final turns = _messages
+        .map((m) => AncodeChatTurn(isUser: m.isUser, text: m.text))
+        .toList(growable: false);
+    final aiText = await AncodeChatbotGeminiClient.complete(
+      apiKey: key,
+      messages: turns,
+      groundingForLastUser: grounding,
+    );
     if (!mounted) return;
     setState(() {
       _messages.add(_ChatMessage(text: aiText, isUser: false, timestamp: _nowTime()));
@@ -156,7 +191,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                             padding: EdgeInsets.only(left: 44, top: 6),
                             child: Text(
                               'ANCODE sta scrivendo...',
-                              style: TextStyle(color: Color(0xFF8A93A4), fontSize: 12, fontWeight: FontWeight.w500),
+                              style: TextStyle(
+                                color: Color(0xFF8A93A4),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           );
                         }
@@ -179,7 +218,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                                     children: [
                                       Text(
                                         msg.text,
-                                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
@@ -229,7 +272,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                                   children: [
                                     Text(
                                       msg.text,
-                                      style: const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.w500),
+                                      style: const TextStyle(
+                                        color: Colors.black,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                     const SizedBox(height: 6),
                                     Text(

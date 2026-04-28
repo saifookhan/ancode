@@ -1,5 +1,3 @@
-import 'dart:html' as html;
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared/shared.dart';
@@ -40,32 +38,26 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   }
 
   Future<void> _applyFreePlan(User user) async {
-    final planValue = 'free';
-    final subscriptionEnd = null;
+    const planValue = 'free';
     await Supabase.instance.client.auth.updateUser(
       UserAttributes(
         data: {
           'plan': planValue,
-          'subscription_end': subscriptionEnd,
+          'subscription_end': null,
         },
       ),
     );
-
     try {
       await upsertProfileForUserId(Supabase.instance.client, user.id, {'plan': planValue});
     } catch (_) {}
     try {
-      await Supabase.instance.client.from('subscriptions').upsert(
-        {
-          'user_id': user.id,
-          'plan': planValue,
-          'status': 'canceled',
-          'current_period_end': null,
-        },
-        onConflict: 'user_id',
-      );
+      await Supabase.instance.client.from('subscriptions').upsert({
+        'user_id': user.id,
+        'plan': planValue,
+        'status': 'canceled',
+        'current_period_end': null,
+      }, onConflict: 'user_id');
     } catch (_) {}
-
     await PlanModeService.enforcePlanRules(
       client: Supabase.instance.client,
       userId: user.id,
@@ -75,15 +67,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   }
 
   Future<void> _startStripeCheckout(User user, String planValue) async {
-    final origin = Uri.base.origin;
     final response = await Supabase.instance.client.functions.invoke(
       'create-checkout-session',
       body: {
         'plan': planValue,
         'userId': user.id,
         'email': user.email ?? '',
-        'successUrl': '$origin/?checkout=success&plan=$planValue&session_id={CHECKOUT_SESSION_ID}',
-        'cancelUrl': '$origin/?checkout=cancel',
+        'successUrl': StripeCheckoutLinks.successUrl(planValue),
+        'cancelUrl': StripeCheckoutLinks.cancelUrl,
       },
     );
     final data = response.data;
@@ -94,7 +85,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     if (checkoutUrl == null || checkoutUrl.isEmpty) {
       throw Exception('Invalid checkout URL');
     }
-    html.window.location.assign(checkoutUrl);
+    await StripeCheckoutLinks.openCheckoutPage(checkoutUrl);
   }
 
   Future<void> _savePlan() async {
@@ -104,32 +95,29 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       final user = Supabase.instance.client.auth.currentUser;
       if (user == null) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please login first.')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please login first.')));
         return;
       }
-
       final planValue = _selectedPlan.toLowerCase();
       if (planValue == 'free') {
         await _applyFreePlan(user);
       } else {
         await _startStripeCheckout(user, planValue);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Completa il pagamento su Stripe per attivare il piano.')),
+        );
         return;
       }
 
       if (!mounted) return;
       await context.read<AuthService>().refreshProfile();
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Plan updated successfully.')),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plan updated successfully.')));
       Navigator.of(context).pop();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -145,10 +133,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Select plan',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-              ),
+              const Text('Select plan', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _selectedPlan,
@@ -161,14 +146,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 ),
-                items: _plans
-                    .map(
-                      (plan) => DropdownMenuItem<String>(
-                        value: plan,
-                        child: Text(plan),
-                      ),
-                    )
-                    .toList(),
+                items: _plans.map((plan) => DropdownMenuItem<String>(value: plan, child: Text(plan))).toList(),
                 onChanged: (value) {
                   if (value == null) return;
                   setState(() => _selectedPlan = value);
@@ -185,11 +163,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 child: FilledButton(
                   onPressed: _isSaving ? null : _savePlan,
                   child: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                        )
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
                       : const Text('Save plan'),
                 ),
               ),

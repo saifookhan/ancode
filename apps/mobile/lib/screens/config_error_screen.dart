@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Shown when .env is missing (e.g. release without env in assets or dart-define).
+/// Shown when Supabase env is missing or init failed (web or mobile build).
 class ConfigErrorScreen extends StatelessWidget {
   const ConfigErrorScreen({super.key, this.message});
 
@@ -35,8 +35,9 @@ class ConfigErrorScreen extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   'Manca la configurazione Supabase per questa build.\n\n'
-                  'In sviluppo: crea apps/mobile/assets/.env (vedi .env.example).\n'
-                  'Su Codemagic: imposta SUPABASE_URL e SUPABASE_ANON_KEY nelle variabili d’ambiente del workflow.',
+                  '• Mobile: apps/mobile/assets/.env (vedi .env.example) oppure --dart-define.\n'
+                  '• Web: apps/web/assets/.env oppure variabili su Vercel / --dart-define.\n'
+                  '• CI: imposta SUPABASE_URL e SUPABASE_ANON_KEY nel workflow.',
                   style: theme.textTheme.bodyMedium,
                   textAlign: TextAlign.center,
                 ),

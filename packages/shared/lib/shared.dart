@@ -1,6 +1,7 @@
 library shared;
 
 export 'src/auth/profiles_auth.dart';
+export 'src/stripe/stripe_checkout_links.dart';
 export 'src/models/models.dart';
 export 'src/validators/validators.dart';
 export 'src/constants.dart';
@@ -17,3 +18,7 @@ export 'src/widgets/logo_profile_app_bar.dart';
 export 'src/widgets/ancode_create_top_bar.dart';
 export 'src/widgets/ancode_bottom_nav_bar.dart';
 export 'src/export/ancode_qr_pdf.dart';
+export 'src/chatbot/ancode_chatbot_code_utils.dart';
+export 'src/chatbot/ancode_chatbot_prompt.dart';
+export 'src/chatbot/ancode_chatbot_gemini.dart';
+export 'src/chatbot/ancode_chatbot_remote.dart';

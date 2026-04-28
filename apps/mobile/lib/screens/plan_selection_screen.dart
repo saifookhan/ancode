@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared/shared.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_service.dart';
 import '../services/plan_mode_service.dart';
-import '../services/stripe_checkout_links.dart';
 
 class PlanSelectionScreen extends StatefulWidget {
   const PlanSelectionScreen({super.key});
@@ -87,9 +85,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     if (checkoutUrl == null || checkoutUrl.isEmpty) {
       throw Exception('Invalid checkout URL');
     }
-    final uri = Uri.parse(checkoutUrl);
-    final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!ok) throw Exception('Cannot open checkout URL');
+    await StripeCheckoutLinks.openCheckoutPage(checkoutUrl);
   }
 
   Future<void> _savePlan() async {
