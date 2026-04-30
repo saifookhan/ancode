@@ -22,3 +22,4 @@ export 'src/chatbot/ancode_chatbot_code_utils.dart';
 export 'src/chatbot/ancode_chatbot_prompt.dart';
 export 'src/chatbot/ancode_chatbot_gemini.dart';
 export 'src/chatbot/ancode_chatbot_remote.dart';
+export 'src/chatbot/gemini_api_key.dart';

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -116,22 +117,36 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     });
     _scrollToBottom();
 
-    final key =
-        (dotenv.env['GEMINI_API_KEY'] ?? const String.fromEnvironment('GEMINI_API_KEY')).trim();
-    final grounding = await _buildGrounding(text);
-    final turns = _messages
-        .map((m) => AncodeChatTurn(isUser: m.isUser, text: m.text))
-        .toList(growable: false);
-    final aiText = await AncodeChatbotGeminiClient.complete(
-      apiKey: key,
-      messages: turns,
-      groundingForLastUser: grounding,
-    );
-    if (!mounted) return;
-    setState(() {
-      _messages.add(_ChatMessage(text: aiText, isUser: false, timestamp: _nowTime()));
-      _isSending = false;
-    });
+    final key = resolveGeminiApiKey(dotenvValue: dotenv.env['GEMINI_API_KEY']);
+    try {
+      final grounding = await _buildGrounding(text);
+      final turns = _messages
+          .map((m) => AncodeChatTurn(isUser: m.isUser, text: m.text))
+          .toList(growable: false);
+      final aiText = await AncodeChatbotGeminiClient.complete(
+        apiKey: key,
+        messages: turns,
+        groundingForLastUser: grounding,
+      );
+      if (!mounted) return;
+      setState(() {
+        _messages.add(_ChatMessage(text: aiText, isUser: false, timestamp: _nowTime()));
+        _isSending = false;
+      });
+    } catch (e, st) {
+      debugPrint('Chatbot: $e\n$st');
+      if (!mounted) return;
+      setState(() {
+        _messages.add(
+          _ChatMessage(
+            text: 'Connessione non riuscita. Controlla la rete o riprova tra poco.',
+            isUser: false,
+            timestamp: _nowTime(),
+          ),
+        );
+        _isSending = false;
+      });
+    }
     _scrollToBottom();
   }
 
