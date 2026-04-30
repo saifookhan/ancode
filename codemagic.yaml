@@ -19,7 +19,7 @@ workflows:
         - app_store_credentials
         # Create this group in Codemagic (Application settings → Environment variables):
         #   Group name must be exactly: supabase
-        #   SUPABASE_URL, SUPABASE_ANON_KEY (mark anon key as Secret). Optional: ANCODE_DOMAIN
+        #   SUPABASE_URL, SUPABASE_ANON_KEY (mark anon key as Secret). Optional: ANCODE_DOMAIN, GEMINI_API_KEY
         - supabase
       vars:
         FLUTTER_PROJECT_DIR: apps/mobile
@@ -73,12 +73,18 @@ workflows:
             if [ -n "${ANCODE_DOMAIN:-}" ]; then
               printf '%s\n' "ANCODE_DOMAIN=$ANCODE_DOMAIN" >> assets/.env
             fi
+            if [ -n "${GEMINI_API_KEY:-}" ]; then
+              printf '%s\n' "GEMINI_API_KEY=$GEMINI_API_KEY" >> assets/.env
+            fi
             DART_DEFINES+=(
               "--dart-define=SUPABASE_URL=$SUPABASE_URL_RESOLVED"
               "--dart-define=SUPABASE_ANON_KEY=$SUPABASE_KEY_RESOLVED"
             )
             if [ -n "${ANCODE_DOMAIN:-}" ]; then
               DART_DEFINES+=("--dart-define=ANCODE_DOMAIN=$ANCODE_DOMAIN")
+            fi
+            if [ -n "${GEMINI_API_KEY:-}" ]; then
+              DART_DEFINES+=("--dart-define=GEMINI_API_KEY=$GEMINI_API_KEY")
             fi
           else
             echo "----------------------------------------------------------------"
