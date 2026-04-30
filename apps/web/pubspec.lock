@@ -527,7 +527,7 @@ packages:
     dependency: transitive
     description:
       name: share_plus
-      sha256: "d7dc0630a923883c6328ca31b89aa682bacbf2f8304162d29f7c6aaff03a27a1"
+      sha256: d7dc0630a923883c6328ca31b89aa682bacbf2f8304162d29f7c6aaff03a27a1
       url: "https://pub.dev"
     source: hosted
     version: "11.1.0"
