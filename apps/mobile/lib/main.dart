@@ -12,6 +12,14 @@ import 'services/auth_service.dart';
 import 'services/app_config.dart';
 import 'services/siri_shortcut_service.dart';
 
+/// Injected before `assets/.env` lines so `--dart-define=GEMINI_API_KEY=...`
+/// works when the asset file is missing (CI) or dotfiles are omitted from the bundle.
+Map<String, String> _geminiDartDefineMerge() {
+  const g = String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+  final t = g.trim();
+  return t.isNotEmpty ? <String, String>{'GEMINI_API_KEY': t} : const {};
+}
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const _MobileBootstrap());
@@ -41,7 +49,11 @@ class _MobileBootstrapState extends State<_MobileBootstrap> {
 
   Future<void> _start() async {
     // Bundled env: must match a path declared under flutter.assets (see pubspec assets/).
-    await dotenv.load(fileName: 'assets/.env', isOptional: true);
+    await dotenv.load(
+      fileName: 'assets/.env',
+      isOptional: true,
+      mergeWith: _geminiDartDefineMerge(),
+    );
 
     const urlFromDefineRaw = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
     const keyFromDefineRaw = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');

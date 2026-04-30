@@ -28,6 +28,14 @@ Future<Map<String, dynamic>?> _fetchConfig(Uri uri) async {
   return map;
 }
 
+/// Merged before `.env` lines so `--dart-define=GEMINI_API_KEY=...` supplies the
+/// chatbot key when the asset bundle has no usable `GEMINI_API_KEY` entry.
+Map<String, String> _geminiDartDefineMerge() {
+  const g = String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+  final t = g.trim();
+  return t.isNotEmpty ? <String, String>{'GEMINI_API_KEY': t} : const {};
+}
+
 Future<bool> _prepareApp() async {
   String supabaseUrl = '';
   String supabaseAnonKey = '';
@@ -35,7 +43,7 @@ Future<bool> _prepareApp() async {
   // On web, flutter_dotenv loads from asset bundle (path is relative to assets/); use '.env' so it requests assets/.env not assets/assets/.env
   if (kIsWeb) {
     try {
-      await dotenv.load(fileName: '.env');
+      await dotenv.load(fileName: '.env', mergeWith: _geminiDartDefineMerge());
       supabaseUrl = dotenv.env['SUPABASE_URL']?.trim() ?? '';
       supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']?.trim() ?? '';
       loaded = true;
@@ -43,7 +51,7 @@ Future<bool> _prepareApp() async {
   }
   if (!loaded) {
     try {
-      await dotenv.load(fileName: '.env');
+      await dotenv.load(fileName: '.env', mergeWith: _geminiDartDefineMerge());
       supabaseUrl = dotenv.env['SUPABASE_URL']?.trim() ?? '';
       supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']?.trim() ?? '';
     } catch (_) {

@@ -88,15 +88,23 @@ class AncodeChatbotGeminiClient {
         'https://generativelanguage.googleapis.com/v1beta/models/'
         '$model:generateContent?key=$key',
       );
-      response = await http.post(
-        uri,
-        headers: const {'Content-Type': 'application/json'},
-        body: body,
-      );
+      response = await http
+          .post(
+            uri,
+            headers: const {'Content-Type': 'application/json'},
+            body: body,
+          )
+          .timeout(
+            const Duration(seconds: 90),
+            onTimeout: () => http.Response('', 408),
+          );
       if (response.statusCode != 404) break;
     }
     response = response!;
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      if (response.statusCode == 408) {
+        return 'Timeout della richiesta AI. Controlla la connessione e riprova.';
+      }
       final hint = response.statusCode == 404
           ? ' Modello non disponibile per questa chiave.'
           : '';
