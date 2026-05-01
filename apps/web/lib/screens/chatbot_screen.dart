@@ -119,7 +119,15 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
     final key = resolveGeminiApiKey(dotenvValue: dotenv.env['GEMINI_API_KEY']);
     try {
-      final grounding = await _buildGrounding(text);
+      var grounding = '';
+      try {
+        grounding = await _buildGrounding(text);
+      } catch (e, st) {
+        debugPrint('Chatbot grounding: $e\n$st');
+        grounding =
+            'Dati di contesto dal database non disponibili in questo momento '
+            '(il modello può comunque rispondere in modo generico).';
+      }
       final turns = _messages
           .map((m) => AncodeChatTurn(isUser: m.isUser, text: m.text))
           .toList(growable: false);
@@ -136,10 +144,15 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     } catch (e, st) {
       debugPrint('Chatbot: $e\n$st');
       if (!mounted) return;
+      final brief = e.toString();
+      final userHint = brief.contains('SocketException') || brief.contains('Failed host lookup')
+          ? 'Connessione non riuscita. Controlla la rete o riprova tra poco.'
+          : 'Non è stato possibile completare la richiesta. '
+              'Se manca GEMINI_API_KEY nell’ambiente, configurala e riprova.';
       setState(() {
         _messages.add(
           _ChatMessage(
-            text: 'Connessione non riuscita. Controlla la rete o riprova tra poco.',
+            text: userHint,
             isUser: false,
             timestamp: _nowTime(),
           ),

@@ -7,8 +7,9 @@ import '../constants.dart';
 /// punctuation, or dictation artifacts.
 String normalizeCodeInput(String input) {
   var s = input.trim();
-  s = s.replaceAll(RegExp(r'(?i)\basterisk\b'), '');
-  s = s.replaceAll(RegExp(r'(?i)\basterisco\b'), '');
+  // Dart RegExp does not support inline `(?i)`; use caseSensitive: false.
+  s = s.replaceAll(RegExp(r'\basterisk\b', caseSensitive: false), '');
+  s = s.replaceAll(RegExp(r'\basterisco\b', caseSensitive: false), '');
   final collapsed = s.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
   if (collapsed.length <= kMaxCodeLength) return collapsed;
   return collapsed.substring(0, kMaxCodeLength);
