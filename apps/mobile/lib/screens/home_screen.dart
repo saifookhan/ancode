@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import 'package:shared/shared.dart';
+
+import '../services/siri_shortcut_service.dart';
 
 import '../services/ancode_service.dart' show AncodeService, AncodeSearchResult;
 import '../services/auth_service.dart';
@@ -24,11 +28,9 @@ class _HomeScreenState extends State<HomeScreen> {
   final _focusNode = FocusNode();
   AncodeSearchResult? _lastResult;
   bool _isSearching = false;
+  StreamSubscription<String>? _siriSubscription;
 
-  String _normalizeCodeInput(String value) {
-    final cleaned = value.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
-    return cleaned.length > 30 ? cleaned.substring(0, 30) : cleaned;
-  }
+  String _normalizeCodeInput(String value) => normalizeCodeInput(value);
 
   void _onCodeChanged(String value) {
     final normalized = _normalizeCodeInput(value);
@@ -43,10 +45,26 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _controller.addListener(() => setState(() {}));
+    _siriSubscription = SiriShortcutService.instance.searchCodeStream.listen(_onSiriSearchCode);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      SiriShortcutService.instance.consumeDeferredSiriSearchCode(_onSiriSearchCode);
+    });
+  }
+
+  /// Applies a code from Siri / App Intents / URL handoff and runs public search.
+  void _onSiriSearchCode(String normalized) {
+    if (!mounted || normalized.isEmpty) return;
+    _controller.value = TextEditingValue(
+      text: normalized,
+      selection: TextSelection.collapsed(offset: normalized.length),
+    );
+    unawaited(_onSearchSubmitted(normalized));
   }
 
   @override
   void dispose() {
+    _siriSubscription?.cancel();
     _controller.removeListener(() => setState(() {}));
     _controller.dispose();
     _focusNode.dispose();

@@ -1,11 +1,17 @@
 import '../constants.dart';
 
-/// Normalize input: strip asterisk, uppercase, remove spaces
+/// Normalizes raw ANCODE input for lookup and storage.
+///
+/// Trims, removes spoken "asterisk" / "asterisco", strips symbols and spaces,
+/// uppercases, and clamps to [kMaxCodeLength]. Siri and URLs may include `*`,
+/// punctuation, or dictation artifacts.
 String normalizeCodeInput(String input) {
-  return input
-      .replaceAll(RegExp(r'[\s*]'), '')
-      .toUpperCase()
-      .trim();
+  var s = input.trim();
+  s = s.replaceAll(RegExp(r'(?i)\basterisk\b'), '');
+  s = s.replaceAll(RegExp(r'(?i)\basterisco\b'), '');
+  final collapsed = s.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+  if (collapsed.length <= kMaxCodeLength) return collapsed;
+  return collapsed.substring(0, kMaxCodeLength);
 }
 
 /// Check format: uppercase letters + digits only, max 30 chars
