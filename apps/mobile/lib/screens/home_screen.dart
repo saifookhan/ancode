@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  void _onSearchSubmitted(String value) async {
+  Future<void> _onSearchSubmitted(String value) async {
     final normalized = _normalizeCodeInput(value);
     if (normalized.isEmpty) return;
     if (_controller.text != normalized) {
@@ -126,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ).then((_) => _onCodeResolved());
     } else {
-      _onSearchSubmitted(_controller.text);
+      unawaited(_onSearchSubmitted(_controller.text));
     }
   }
 
@@ -183,7 +183,7 @@ class _HomeScreenState extends State<HomeScreen> {
               autocorrect: false,
               inputFormatters: const [_codeInputFormatter],
               onChanged: _onCodeChanged,
-              onSubmitted: _onSearchSubmitted,
+              onSubmitted: (String value) => unawaited(_onSearchSubmitted(value)),
             ),
           ),
           const SizedBox(height: 16),
@@ -199,7 +199,13 @@ class _HomeScreenState extends State<HomeScreen> {
             depthBorderColor: const Color(0xFF000000),
             onPressed: _isSearching
                 ? null
-                : () => hasUniqueMatch ? _goToContent() : _onSearchSubmitted(_controller.text),
+                : () {
+                    if (hasUniqueMatch) {
+                      _goToContent();
+                    } else {
+                      unawaited(_onSearchSubmitted(_controller.text));
+                    }
+                  },
           ),
           const SizedBox(height: 16),
           LimeFacePillButton(
