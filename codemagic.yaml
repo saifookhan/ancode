@@ -37,6 +37,8 @@ workflows:
       - name: Flutter pub get
         script: |
           cd "$FLUTTER_PROJECT_DIR"
+          # Path package `shared` changes are easy to miss in incremental builds; force a clean graph.
+          flutter clean
           flutter pub get
 
       # Do NOT use environment.ios_signing with bundle_identifier here — that only matches
@@ -110,7 +112,9 @@ workflows:
           while [ "${#BUILD_NUMBER}" -gt 18 ]; do
             BUILD_NUMBER="${BUILD_NUMBER#?}"
           done
-          flutter build ipa --release --build-name=1.0.1 --build-number="$BUILD_NUMBER" "${DART_DEFINES[@]}"
+          flutter clean
+          flutter pub get
+          flutter build ipa --release --build-name=1.0.2 --build-number="$BUILD_NUMBER" "${DART_DEFINES[@]}"
 
     artifacts:
       - apps/mobile/build/ios/ipa/*.ipa

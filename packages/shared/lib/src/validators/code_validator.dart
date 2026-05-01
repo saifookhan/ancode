@@ -38,11 +38,20 @@ String _removeWholeWordInsensitive(String haystack, String word) {
   return out.toString();
 }
 
-/// Collapse to A–Z / 0–9 only and clamp length (no spoken-word stripping).
+/// Collapse to A–Z / 0–9 only and clamp length (no RegExp — avoids any engine quirks).
 String _normalizeCodeInputAsciiFold(String input) {
-  final collapsed = input.trim().toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
-  if (collapsed.length <= kMaxCodeLength) return collapsed;
-  return collapsed.substring(0, kMaxCodeLength);
+  final upper = input.trim().toUpperCase();
+  final out = StringBuffer();
+  for (var i = 0; i < upper.length; i++) {
+    final c = upper.codeUnitAt(i);
+    final isDigit = c >= 0x30 && c <= 0x39;
+    final isUpper = c >= 0x41 && c <= 0x5a;
+    if (isDigit || isUpper) {
+      out.writeCharCode(c);
+      if (out.length >= kMaxCodeLength) break;
+    }
+  }
+  return out.toString();
 }
 
 /// Normalizes raw ANCODE input for lookup and storage.

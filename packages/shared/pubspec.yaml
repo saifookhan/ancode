@@ -1,6 +1,6 @@
 name: shared
 description: Shared models, API clients, validators, and UI kit for ANCODE
-version: 1.0.0
+version: 1.0.1
 environment:
   sdk: '>=3.4.0 <4.0.0'
 

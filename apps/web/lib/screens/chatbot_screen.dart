@@ -144,15 +144,14 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
     } catch (e, st) {
       debugPrint('Chatbot: $e\n$st');
       if (!mounted) return;
-      final brief = e.toString();
-      final userHint = brief.contains('SocketException') || brief.contains('Failed host lookup')
-          ? 'Connessione non riuscita. Controlla la rete o riprova tra poco.'
-          : 'Non è stato possibile completare la richiesta. '
-              'Se manca GEMINI_API_KEY nell’ambiente, configurala e riprova.';
+      final detail = e.toString();
+      final clipped = detail.length > 220 ? '${detail.substring(0, 220)}…' : detail;
       setState(() {
         _messages.add(
           _ChatMessage(
-            text: userHint,
+            text:
+                'Si è verificato un errore imprevisto.\n\n$clipped\n\n'
+                'Esegui un refresh completo o `flutter clean` + rebuild se stai sviluppando.',
             isUser: false,
             timestamp: _nowTime(),
           ),
