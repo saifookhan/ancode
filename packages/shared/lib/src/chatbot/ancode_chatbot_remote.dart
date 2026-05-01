@@ -54,14 +54,44 @@ class AncodeChatbotGeminiClient {
   }
 
   /// Returns assistant text or a localized error / empty fallback.
+  ///
+  /// Never throws: callers (e.g. Flutter UI) should not need a catch for transport/JSON errors.
   static Future<String> complete({
     required String apiKey,
     required List<AncodeChatTurn> messages,
     String groundingForLastUser = '',
   }) async {
+    try {
+      return await _completeInner(
+        apiKey: apiKey,
+        messages: messages,
+        groundingForLastUser: groundingForLastUser,
+      );
+    } on Object catch (e) {
+      final msg = e.toString();
+      if (msg.contains('SocketException') ||
+          msg.contains('Failed host lookup') ||
+          msg.contains('ClientException') ||
+          msg.contains('HandshakeException')) {
+        return 'Connessione non riuscita verso il servizio AI. '
+            'Controlla la rete o riprova tra poco.';
+      }
+      return 'Servizio AI temporaneamente non disponibile. Riprova tra poco. '
+          '(dettaglio tecnico: ${msg.length > 120 ? "${msg.substring(0, 120)}..." : msg})';
+    }
+  }
+
+  static Future<String> _completeInner({
+    required String apiKey,
+    required List<AncodeChatTurn> messages,
+    required String groundingForLastUser,
+  }) async {
     final key = apiKey.trim();
     if (key.isEmpty) {
-      return 'Imposta GEMINI_API_KEY nel file .env per attivare le risposte AI.';
+      return 'Per le risposte AI serve la chiave Gemini.\n\n'
+          'Sviluppo: aggiungi GEMINI_API_KEY in assets/.env (o variabile d’ambiente).\n'
+          'Release iOS/Android: passa --dart-define=GEMINI_API_KEY=... nella build '
+          '(es. Codemagic).';
     }
     final contents = buildContents(
       messages: messages,
