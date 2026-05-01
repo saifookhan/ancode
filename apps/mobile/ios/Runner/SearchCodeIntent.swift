@@ -7,8 +7,18 @@ struct SearchCodeIntent: AppIntent {
   static var description = IntentDescription("Search an ANCODE code in the app.")
   static var openAppWhenRun: Bool = true
 
-  @Parameter(title: "Code")
+  /// Plain `String` cannot appear in App Shortcut spoken phrases (only `AppEntity` / `AppEnum`).
+  /// Shortcuts and Siri collect this value after the user picks the action or when prompted.
+  @Parameter(
+    title: "Code",
+    description: "The ANCODE to look up.",
+    requestValueDialog: IntentDialog("Which code do you want to search?")
+  )
   var code: String
+
+  static var parameterSummary: some ParameterSummary {
+    Summary("Search for \(\.$code)")
+  }
 
   func perform() async throws -> some IntentResult {
     let cleanedCode = code.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -27,37 +37,32 @@ struct AncodeShortcutsProvider: AppShortcutsProvider {
     AppShortcut(
       intent: SearchCodeIntent(),
       phrases: [
-        // Parameter slots use `\.$param` (projected `@Parameter`), not `\(.param)` — see AppShortcutPhrase.
-        // English — natural phrasing with app name and shorter “on ANCODE” variants
-        "Search \(\.$code) in \(.applicationName)",
-        "Open \(\.$code) in \(.applicationName)",
-        "Show \(\.$code) in \(.applicationName)",
-        "Go to \(\.$code) in \(.applicationName)",
-        "Search \(\.$code) on \(.applicationName)",
-        "Open \(\.$code) on \(.applicationName)",
-        "Show \(\.$code) on \(.applicationName)",
-        "Go to \(\.$code) on \(.applicationName)",
-        "Search \(\.$code) on ANCODE",
-        "Open \(\.$code) on ANCODE",
-        "Show \(\.$code) on ANCODE",
-        "Go to \(\.$code) on ANCODE",
-        "Search code in \(.applicationName)",
-        "Find a code in \(.applicationName)",
+        // App Store validation: only `AppEntity` / `AppEnum` may appear in phrases besides
+        // `\(.applicationName)`, and every utterance must include `\(.applicationName)` exactly once.
+        "Search for a code in \(.applicationName)",
         "Look up a code in \(.applicationName)",
+        "Find a code in \(.applicationName)",
+        "Open a code in \(.applicationName)",
+        "Show a code in \(.applicationName)",
+        "Go to a code in \(.applicationName)",
+        "Search ANCODE in \(.applicationName)",
+        "Open ANCODE in \(.applicationName)",
+        "Show ANCODE in \(.applicationName)",
+        "Go to ANCODE in \(.applicationName)",
+        "Search the ANCODE app in \(.applicationName)",
+        "Open the ANCODE app in \(.applicationName)",
         // Italian
-        "Cerca \(\.$code) in \(.applicationName)",
-        "Apri \(\.$code) in \(.applicationName)",
-        "Mostra \(\.$code) in \(.applicationName)",
-        "Vai a \(\.$code) in \(.applicationName)",
-        "Cerca \(\.$code) su \(.applicationName)",
-        "Apri \(\.$code) su \(.applicationName)",
-        "Mostra \(\.$code) su \(.applicationName)",
-        "Vai a \(\.$code) su \(.applicationName)",
-        "Cerca \(\.$code) su ANCODE",
-        "Apri \(\.$code) su ANCODE",
         "Cerca un codice in \(.applicationName)",
         "Trova un codice in \(.applicationName)",
-        "Cerca codice su \(.applicationName)",
+        "Cerca codice in \(.applicationName)",
+        "Apri un codice in \(.applicationName)",
+        "Mostra un codice in \(.applicationName)",
+        "Vai al codice in \(.applicationName)",
+        "Cerca ANCODE in \(.applicationName)",
+        "Apri ANCODE in \(.applicationName)",
+        "Mostra ANCODE in \(.applicationName)",
+        "Vai a ANCODE in \(.applicationName)",
+        "Cerca con ANCODE in \(.applicationName)",
       ],
       shortTitle: "Search Code",
       systemImageName: "magnifyingglass"
