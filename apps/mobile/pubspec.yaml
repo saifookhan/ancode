@@ -20,6 +20,8 @@ dependencies:
   pdf: ^3.10.7
   share_plus: ^11.1.0
   app_links: ^6.3.3
+  image_picker: ^1.1.2
+  file_picker: ^8.1.4
 
 flutter:
   uses-material-design: true

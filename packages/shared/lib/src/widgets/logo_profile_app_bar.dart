@@ -10,6 +10,7 @@ class LogoProfileAppBar extends StatelessWidget {
     this.logoSize = 40,
     this.profileIconSize = 24,
     this.ringSize = 42,
+    this.onLogoTap,
     this.onProfileTap,
     this.padding = const EdgeInsets.fromLTRB(20, 8, 20, 12),
   });
@@ -18,6 +19,7 @@ class LogoProfileAppBar extends StatelessWidget {
   final double logoSize;
   final double profileIconSize;
   final double ringSize;
+  final VoidCallback? onLogoTap;
   final VoidCallback? onProfileTap;
   final EdgeInsetsGeometry padding;
 
@@ -50,18 +52,35 @@ class LogoProfileAppBar extends StatelessWidget {
             ),
           );
 
+    final logoImage = Image.asset(
+      logoAssetPath,
+      width: logoSize,
+      height: logoSize,
+      fit: BoxFit.contain,
+      errorBuilder: (_, __, ___) =>
+          Icon(Icons.star_rounded, size: logoSize * 0.9, color: AppColors.azzurroCiano),
+    );
+
+    final logoControl = onLogoTap == null
+        ? logoImage
+        : Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onLogoTap,
+              borderRadius: BorderRadius.circular(logoSize),
+              child: Padding(
+                padding: const EdgeInsets.all(4),
+                child: logoImage,
+              ),
+            ),
+          );
+
     return Padding(
       padding: padding,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Image.asset(
-            logoAssetPath,
-            width: logoSize,
-            height: logoSize,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Icon(Icons.star_rounded, size: logoSize * 0.9, color: AppColors.azzurroCiano),
-          ),
+          logoControl,
           profileControl,
         ],
       ),

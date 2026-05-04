@@ -9,28 +9,41 @@ import 'auth/login_screen.dart';
 import 'plan_selection_screen.dart';
 
 class ProfilePlaceholderScreen extends StatefulWidget {
-  const ProfilePlaceholderScreen({super.key});
+  const ProfilePlaceholderScreen({
+    super.key,
+    this.onAppHeaderLogoTap,
+    this.onAppHeaderProfileTap,
+  });
+
+  final VoidCallback? onAppHeaderLogoTap;
+  final VoidCallback? onAppHeaderProfileTap;
 
   @override
-  State<ProfilePlaceholderScreen> createState() => _ProfilePlaceholderScreenState();
+  ProfilePlaceholderScreenState createState() => ProfilePlaceholderScreenState();
 }
 
-class _ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
+class ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
   int _activeCodesCount = 0;
   bool _loadingCodesCount = false;
   String? _lastLoadedUserId;
 
-  Future<void> _loadCodesCount() async {
+  /// Refetch active code count (e.g. after creating a code or opening Profilo).
+  Future<void> reloadCodesCount() => _loadCodesCount(force: true);
+
+  Future<void> _loadCodesCount({bool force = false}) async {
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    if (userId == null || userId.isEmpty || userId == _lastLoadedUserId) return;
+    if (userId == null || userId.isEmpty) return;
+    if (!force && userId == _lastLoadedUserId) return;
     setState(() => _loadingCodesCount = true);
     try {
-      final activeRows = await Supabase.instance.client.from('codes').select('id').eq('status', 'active');
+      final count = await countActiveCodesForUser(Supabase.instance.client, userId);
       if (!mounted) return;
       setState(() {
-        _activeCodesCount = (activeRows as List).length;
+        _activeCodesCount = count;
         _lastLoadedUserId = userId;
       });
+    } catch (_) {
+      if (mounted) setState(() => _activeCodesCount = 0);
     } finally {
       if (mounted) setState(() => _loadingCodesCount = false);
     }
@@ -70,6 +83,8 @@ class _ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
         final surname = metadata['surname']?.toString().trim() ?? '';
         final fullName = '$name $surname'.trim().isEmpty ? 'Utente ANCODE' : '$name $surname'.trim();
         final email = user.email ?? '';
+        final avatarUrl = metadata['avatar_url']?.toString().trim();
+        final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
         final rawPlan = user.userMetadata?['plan']?.toString().toLowerCase() ?? 'free';
         final displayPlan = rawPlan.isEmpty ? 'Free' : '${rawPlan[0].toUpperCase()}${rawPlan.substring(1)}';
         final maxCodes = _planCodeLimit(rawPlan);
@@ -77,7 +92,7 @@ class _ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
         final progress = _progressValue(currentCount, maxCodes);
 
         if (_lastLoadedUserId != user.id && !_loadingCodesCount) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _loadCodesCount());
+          WidgetsBinding.instance.addPostFrameCallback((_) => _loadCodesCount(force: false));
         }
 
         return Scaffold(
@@ -86,8 +101,10 @@ class _ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const LogoProfileAppBar(
-                  padding: EdgeInsets.fromLTRB(14, 4, 14, 4),
+                LogoProfileAppBar(
+                  onLogoTap: widget.onAppHeaderLogoTap,
+                  onProfileTap: widget.onAppHeaderProfileTap,
+                  padding: const EdgeInsets.fromLTRB(14, 4, 14, 4),
                 ),
                 Expanded(
                   child: SingleChildScrollView(
@@ -113,11 +130,31 @@ class _ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
                             color: AppColors.bluUniversoDeep,
                             border: Border.all(color: AppColors.limeCreateHard, width: 2.5),
                           ),
+                          clipBehavior: Clip.antiAlias,
                           alignment: Alignment.center,
-                          child: Text(
-                            fullName.characters.first.toUpperCase(),
-                            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w500),
-                          ),
+                          child: hasAvatar
+                              ? Image.network(
+                                  avatarUrl!,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Text(
+                                    fullName.characters.first.toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  fullName.characters.first.toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -198,7 +235,7 @@ class _ProfilePlaceholderScreenState extends State<ProfilePlaceholderScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'Codici creati',
+                              'Codici attivi',
                               style: TextStyle(
                                 fontSize: 15,
                                 color: AppColors.bluUniversoDeep,

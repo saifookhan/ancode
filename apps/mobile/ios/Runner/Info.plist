@@ -79,5 +79,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>ANCODE usa la galleria per impostare la foto del profilo.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>ANCODE può usare la fotocamera per aggiornare la foto del profilo.</string>
 </dict>
 </plist>

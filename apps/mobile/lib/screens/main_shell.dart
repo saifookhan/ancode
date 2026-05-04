@@ -10,6 +10,7 @@ import 'auth/login_screen.dart';
 import 'chatbot_screen.dart';
 import 'create_screen.dart';
 import 'home_screen.dart';
+import 'edit_profile_screen.dart';
 import 'profile_screen.dart';
 import 'profile_placeholder_screen.dart';
 
@@ -26,6 +27,8 @@ class MainShellState extends State<MainShell> {
   StreamSubscription<String>? _siriSubscription;
 
   final GlobalKey<ProfileScreenState> _dashboardKey = GlobalKey<ProfileScreenState>();
+  final GlobalKey<ProfilePlaceholderScreenState> _profileKey =
+      GlobalKey<ProfilePlaceholderScreenState>();
   late final List<Widget> _screens;
 
   /// Tab index for [HomeScreen] (guest + Siri shortcut).
@@ -33,6 +36,8 @@ class MainShellState extends State<MainShell> {
   static const int _dashboardIndex = 1;
   /// Bottom-nav index for Dashboard (same as [_dashboardIndex]).
   static const int dashboardTabIndex = 1;
+  /// Bottom-nav index for Profilo ([ProfilePlaceholderScreen]).
+  static const int profileTabIndex = 4;
   static const int createIndex = 0;
   static const int _createIndex = 0;
 
@@ -45,6 +50,12 @@ class MainShellState extends State<MainShell> {
         _dashboardKey.currentState?.reloadDashboardStats();
       });
     }
+    if (index == profileTabIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        unawaited(_profileKey.currentState?.reloadCodesCount() ?? Future<void>.value());
+      });
+    }
   }
 
   /// Refetch Dashboard codici + chart (e.g. after creating a code on the Crea tab).
@@ -53,6 +64,25 @@ class MainShellState extends State<MainShell> {
       if (!mounted) return;
       _dashboardKey.currentState?.reloadDashboardStats();
     });
+  }
+
+  /// Refetch Profilo "Codici attivi" counter (e.g. after creating a code).
+  void refreshProfileCodesUsage() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_profileKey.currentState?.reloadCodesCount() ?? Future<void>.value());
+    });
+  }
+
+  void _goHomeFromHeader() => goToTab(_homeTabIndex);
+
+  void _openEditProfileFromHeader() {
+    if (!mounted) return;
+    unawaited(
+      Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(builder: (_) => const EditProfileScreen()),
+      ),
+    );
   }
 
   void _onBottomNavTap(int i) {
@@ -77,11 +107,16 @@ class MainShellState extends State<MainShell> {
       const CreateScreen(),
       ProfileScreen(
         key: _dashboardKey,
-        onAppHeaderProfileTap: () => goToTab(4),
+        onAppHeaderLogoTap: _goHomeFromHeader,
+        onAppHeaderProfileTap: _openEditProfileFromHeader,
       ),
       const HomeScreen(),
       const ChatbotScreen(),
-      const ProfilePlaceholderScreen(),
+      ProfilePlaceholderScreen(
+        key: _profileKey,
+        onAppHeaderLogoTap: _goHomeFromHeader,
+        onAppHeaderProfileTap: _openEditProfileFromHeader,
+      ),
     ];
     _siriSubscription = SiriShortcutService.instance.searchCodeStream.listen((_) {
       if (!mounted || _currentIndex == _homeTabIndex) return;

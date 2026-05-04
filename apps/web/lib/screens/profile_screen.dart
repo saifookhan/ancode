@@ -25,9 +25,16 @@ DateTime? _parseSearchHistoryTimestamp(dynamic raw) {
 }
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key, this.onAppHeaderProfileTap});
+  const ProfileScreen({
+    super.key,
+    this.onAppHeaderLogoTap,
+    this.onAppHeaderProfileTap,
+  });
 
-  /// Dashboard header: opens Profilo tab when set (wired from [MainShell]).
+  /// Dashboard header: logo tap (e.g. switch to Home tab).
+  final VoidCallback? onAppHeaderLogoTap;
+
+  /// Dashboard header: profile icon tap (e.g. open edit profile).
   final VoidCallback? onAppHeaderProfileTap;
 
   @override
@@ -38,50 +45,6 @@ class ProfileScreenState extends State<ProfileScreen> {
   List<_DashboardCodeItem> _activeCodes = const [];
   List<int> _monthlyScanCounts = List<int>.filled(6, 0);
   bool _loadingStats = false;
-
-  Future<List<Map<String, dynamic>>> _fetchCodesRowsForUser(String userId) async {
-    Future<List<Map<String, dynamic>>?> tryQuery(Future<dynamic> Function() query) async {
-      try {
-        final res = await query();
-        return List<Map<String, dynamic>>.from(res as List);
-      } catch (_) {
-        return null;
-      }
-    }
-
-    final byOwner = await tryQuery(() => Supabase.instance.client
-        .from('codes')
-        .select('*')
-        .eq('owner_user_id', userId)
-        .order('created_at', ascending: false));
-    if (byOwner != null) return byOwner;
-
-    final byCreated = await tryQuery(() => Supabase.instance.client
-        .from('codes')
-        .select('*')
-        .eq('created_by', userId)
-        .order('created_at', ascending: false));
-    if (byCreated != null) return byCreated;
-
-    try {
-      final res = await Supabase.instance.client
-          .from('codes')
-          .select('*')
-          .eq('created_by', userId)
-          .order('priority_rank', ascending: true)
-          .order('created_at', ascending: false);
-      return List<Map<String, dynamic>>.from(res as List);
-    } catch (_) {}
-
-    final fromAncodes = await tryQuery(() => Supabase.instance.client
-        .from('ancodes')
-        .select('*, municipality:municipalities(*)')
-        .eq('owner_user_id', userId)
-        .order('created_at', ascending: false));
-    if (fromAncodes != null) return fromAncodes;
-
-    return [];
-  }
 
   String _normalizedCodeKey(Map<String, dynamic> row) {
     final raw = row['normalized_code'] ?? row['title'] ?? '';
@@ -139,15 +102,11 @@ class ProfileScreenState extends State<ProfileScreen> {
     }
     setState(() => _loadingStats = true);
     try {
-      final userCodes = await _fetchCodesRowsForUser(userId);
+      final userCodes =
+          await fetchCodeRowsForUser(Supabase.instance.client, userId);
       if (!mounted) return;
 
-      bool rowIsActive(Map<String, dynamic> r) {
-        final s = (r['status']?.toString().toLowerCase() ?? 'active');
-        return s == 'active' || s == 'scheduled' || s == 'grace';
-      }
-
-      final activeList = userCodes.where(rowIsActive).toList();
+      final activeList = userCodes.where(codeRowIsActiveForPlan).toList();
       final codeKeys = userCodes.map(_normalizedCodeKey).where((k) => k.isNotEmpty);
       final monthSlots = _januaryThroughJuneStarts();
       final historyAgg = await _searchHistoryAggregatesForCodes(codeKeys, monthSlots);
@@ -207,6 +166,7 @@ class ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 LogoProfileAppBar(
+                  onLogoTap: widget.onAppHeaderLogoTap,
                   onProfileTap: widget.onAppHeaderProfileTap,
                   padding: const EdgeInsets.fromLTRB(24, 4, 24, 0),
                 ),

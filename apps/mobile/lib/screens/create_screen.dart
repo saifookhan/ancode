@@ -118,6 +118,7 @@ class _CreateScreenState extends State<CreateScreen> {
         });
         final shell = context.findAncestorStateOfType<MainShellState>();
         shell?.goToTab(MainShellState.dashboardTabIndex);
+        shell?.refreshProfileCodesUsage();
       }
     } catch (e) {
       if (mounted) {
