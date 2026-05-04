@@ -105,7 +105,7 @@ class AncodeMobileApp extends StatelessWidget {
         ),
       ],
       child: MaterialApp(
-        title: '*ANCODE',
+        title: 'ANCODE',
         navigatorKey: appNavigatorKey,
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,

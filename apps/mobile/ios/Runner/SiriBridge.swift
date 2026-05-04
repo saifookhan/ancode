@@ -37,6 +37,15 @@ enum SiriBridge {
     }
   }
 
+  /// When an App Intent runs while Flutter is already alive, push the code on the channel
+  /// so search runs without waiting for `getInitialSiriCode` / lifecycle resume.
+  static func notifyIntentSearchCode(_ code: String) {
+    guard let ch = methodChannel else { return }
+    UserDefaults.standard.removeObject(forKey: persistedCodeKey)
+    pendingCode = nil
+    ch.invokeMethod("onSiriSearch", arguments: code)
+  }
+
   static func handleIncomingURL(_ url: URL) -> Bool {
     guard
       url.scheme?.lowercased() == "ancode",
