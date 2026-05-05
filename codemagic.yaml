@@ -10,9 +10,8 @@ workflows:
 
     environment:
       flutter: stable
-      # Xcode 26.4 + current stable Flutter can fail archiving with bitcode_strip on
-      # libswift_Concurrency.dylib (signal 0). Pin until Flutter/toolchain catches up.
-      xcode: 16.2
+      # App Store Connect requires iOS 26 SDK (Xcode 26+). Xcode 16.x builds are rejected at upload.
+      xcode: latest
       # app_store_credentials must include:
       #   APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID
       # Plus CERTIFICATE_PRIVATE_KEY (RSA PEM) — required for fetch-signing-files --create; see Codemagic
