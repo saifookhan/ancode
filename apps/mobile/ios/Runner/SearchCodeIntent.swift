@@ -136,14 +136,16 @@ private enum AncodeSearchShortcutPhrases {
 
 @available(iOS 16.0, *)
 struct AncodeShortcutsProvider: AppShortcutsProvider {
-  /// `AppShortcutsBuilder` is a result builder struct — return type must be `[AppShortcut]`, not `some AppShortcutsBuilder`.
-  @AppShortcutsBuilder
+  /// Do not use `@AppShortcutsBuilder` here: Xcode 26.4 archive fails with
+  /// "'LocalizedStringResource' must be initialized…" on the builder line (macro expansion).
   static var appShortcuts: [AppShortcut] {
-    AppShortcut(
-      intent: SearchCodeIntent(),
-      phrases: AncodeSearchShortcutPhrases.merged,
-      shortTitle: "Search code",
-      systemImageName: "magnifyingglass"
-    )
+    [
+      AppShortcut(
+        intent: SearchCodeIntent(),
+        phrases: AncodeSearchShortcutPhrases.merged,
+        shortTitle: LocalizedStringResource(stringLiteral: "Search code"),
+        systemImageName: "magnifyingglass"
+      ),
+    ]
   }
 }
