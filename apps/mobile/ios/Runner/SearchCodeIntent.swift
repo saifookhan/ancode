@@ -49,17 +49,19 @@ struct SearchCodeIntent: AppIntent {
   @Parameter(
     title: "Code",
     description: "The ANCODE to look up.",
-    default: SearchableCodeEntity(id: ""),
     requestValueDialog: IntentDialog("Which code do you want to search?")
   )
-  var code: SearchableCodeEntity
+  var code: SearchableCodeEntity?
 
   static var parameterSummary: some ParameterSummary {
     Summary("Search for \(\.$code)")
   }
 
   func perform() async throws -> some IntentResult {
-    let cleanedCode = code.id.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard let entity = code else {
+      throw $code.needsValueError("Please provide a code to search.")
+    }
+    let cleanedCode = entity.id.trimmingCharacters(in: .whitespacesAndNewlines)
     guard !cleanedCode.isEmpty else {
       throw $code.needsValueError("Please provide a code to search.")
     }
