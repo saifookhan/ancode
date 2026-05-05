@@ -9,8 +9,9 @@ workflows:
       app_store_connect: ancode_asc
 
     environment:
-      flutter: stable
-      # App Store Connect requires iOS 26 SDK (Xcode 26+). Xcode 16.x builds are rejected at upload.
+      # Pin stable so CI matches a known-good toolchain for Xcode 26 archives (see flutter/flutter#175469).
+      flutter: 3.41.9
+      # App Store Connect requires iOS 26 SDK (Xcode 26+).
       xcode: latest
       # app_store_credentials must include:
       #   APP_STORE_CONNECT_PRIVATE_KEY, APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_ISSUER_ID
@@ -37,6 +38,7 @@ workflows:
     scripts:
       - name: Flutter pub get
         script: |
+          echo "CM_BUILD_DIR commit: $(git -C "${CM_BUILD_DIR}" rev-parse HEAD 2>/dev/null) $(git -C "${CM_BUILD_DIR}" log -1 --oneline 2>/dev/null)"
           cd "$FLUTTER_PROJECT_DIR"
           # Path package `shared` changes are easy to miss in incremental builds; force a clean graph.
           flutter clean
@@ -66,6 +68,8 @@ workflows:
       - name: Build iOS IPA for TestFlight
         script: |
           cd "$FLUTTER_PROJECT_DIR"
+          echo "Repo HEAD: $(git -C "${CM_BUILD_DIR:-..}" rev-parse HEAD 2>/dev/null || true) $(git -C "${CM_BUILD_DIR:-..}" log -1 --oneline 2>/dev/null || true)"
+          flutter --version
           # Resolve common alternate variable names (Codemagic / other tooling).
           SUPABASE_URL_RESOLVED="${SUPABASE_URL:-${SUPABASE_PROJECT_URL:-}}"
           SUPABASE_KEY_RESOLVED="${SUPABASE_ANON_KEY:-${SUPABASE_KEY:-${SUPABASE_PUBLIC_ANON_KEY:-}}}"
