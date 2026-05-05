@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:shared/shared.dart';
@@ -56,6 +57,16 @@ class SiriShortcutService with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       unawaited(_pullPendingSiriCode());
     }
+  }
+
+  /// Feeds iOS `suggestedEntities()` so Siri can resolve codes you already searched in-app.
+  Future<void> rememberLookupCodeForSiri(String code) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
+    final normalized = normalizeCodeInput(code);
+    if (normalized.isEmpty) return;
+    try {
+      await _channel.invokeMethod<void>('rememberRecentCode', normalized);
+    } catch (_) {}
   }
 
   Future<void> _pullPendingSiriCode() async {

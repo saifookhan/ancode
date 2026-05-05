@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -88,6 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
           _lastResult = result;
           _isSearching = false;
         });
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS) {
+          unawaited(SiriShortcutService.instance.rememberLookupCodeForSiri(normalized));
+        }
         if (result.uniqueMatch != null) {
           Navigator.push(
             context,
