@@ -9,7 +9,7 @@ import Foundation
 struct SearchableCodeEntity: AppEntity {
   /// Avoid the same label as the app name token so Siri does not treat this slot as “the app”.
   static var typeDisplayRepresentation: TypeDisplayRepresentation {
-    TypeDisplayRepresentation(name: LocalizedStringResource(stringLiteral: "Lookup code"))
+    TypeDisplayRepresentation(name: LocalizedStringResource("Lookup code"))
   }
 
   static var defaultQuery = SearchableCodeEntityQuery()
@@ -18,8 +18,8 @@ struct SearchableCodeEntity: AppEntity {
 
   var displayRepresentation: DisplayRepresentation {
     DisplayRepresentation(
-      title: LocalizedStringResource(stringLiteral: id),
-      subtitle: LocalizedStringResource(stringLiteral: "Letters or digits")
+      title: "\(id)",
+      subtitle: "Letters or digits"
     )
   }
 }
@@ -142,13 +142,13 @@ struct AncodeShortcutsProvider: AppShortcutsProvider {
     AppShortcut(
       intent: SearchCodeIntent(),
       phrases: AncodeSearchShortcutPhrases.inlineList(),
-      shortTitle: "Search code",
+      shortTitle: LocalizedStringResource("Search code"),
       systemImageName: "magnifyingglass"
     )
     AppShortcut(
       intent: SearchCodeIntent(),
       phrases: AncodeSearchShortcutPhrases.promptOnlyList(),
-      shortTitle: "Pick code",
+      shortTitle: LocalizedStringResource("Pick code"),
       systemImageName: "list.bullet"
     )
   }
