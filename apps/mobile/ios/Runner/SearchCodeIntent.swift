@@ -16,12 +16,10 @@ struct SearchableCodeEntity: AppEntity {
 
   var id: String
 
-  /// Static copy only: dynamic `"\(id)"` in `DisplayRepresentation` interacts badly with Xcode 26
-  /// archive + App Intents macros (`LocalizedStringResource` diagnostics). The resolved `id` is still
-  /// the entity value Siri binds; this only affects Shortcuts-picker labels.
+  /// `String.LocalizationValue` interpolation for the spoken code (not `LocalizedStringResource = "\\(id)"`).
   var displayRepresentation: DisplayRepresentation {
     DisplayRepresentation(
-      title: "Code",
+      title: "\(id)",
       subtitle: "Letters or digits"
     )
   }
@@ -87,25 +85,63 @@ struct SearchCodeIntent: AppIntent {
 
 // MARK: - Shortcuts
 
-/// `AppShortcutsProvider` requires `@AppShortcutsBuilder` and `[AppShortcut]` (see Apple docs). Omitting
-/// the attribute makes a raw `[AppShortcut]` literal fail to match the protocol (`AppShortcut` vs array).
-/// Phrases are kept smaller + inlined to reduce Xcode 26 `LocalizedStringResource` macro failures.
+/// Full phrase list as a single compile-time `static let` (referenced from `@AppShortcutsBuilder`) so
+/// phrases stay maintainable and macros see stable `AppShortcutPhrase` sources.
+@available(iOS 16.0, *)
+private enum AncodeSearchShortcutPhrases {
+  typealias Phrase = AppShortcutPhrase<SearchCodeIntent>
+
+  static let merged: [Phrase] = [
+    "Search \(\.$code) on \(.applicationName)",
+    "Search \(\.$code) in \(.applicationName)",
+    "Look up \(\.$code) on \(.applicationName)",
+    "Look up \(\.$code) in \(.applicationName)",
+    "Find \(\.$code) on \(.applicationName)",
+    "Find \(\.$code) in \(.applicationName)",
+    "Open \(\.$code) on \(.applicationName)",
+    "Open \(\.$code) in \(.applicationName)",
+    "Show \(\.$code) on \(.applicationName)",
+    "Show \(\.$code) in \(.applicationName)",
+    "Go to \(\.$code) on \(.applicationName)",
+    "Go to \(\.$code) in \(.applicationName)",
+    "Search \(\.$code) on the \(.applicationName) app",
+    "Open \(\.$code) on the \(.applicationName) app",
+    "Show \(\.$code) on the \(.applicationName) app",
+    "Go to \(\.$code) on the \(.applicationName) app",
+    "Cerca \(\.$code) su \(.applicationName)",
+    "Cerca \(\.$code) in \(.applicationName)",
+    "Trova \(\.$code) su \(.applicationName)",
+    "Trova \(\.$code) in \(.applicationName)",
+    "Apri \(\.$code) su \(.applicationName)",
+    "Apri \(\.$code) in \(.applicationName)",
+    "Mostra \(\.$code) su \(.applicationName)",
+    "Mostra \(\.$code) in \(.applicationName)",
+    "Vai a \(\.$code) su \(.applicationName)",
+    "Vai a \(\.$code) in \(.applicationName)",
+    "Search for a code in \(.applicationName)",
+    "Look up a code in \(.applicationName)",
+    "Find a code in \(.applicationName)",
+    "Open a code in \(.applicationName)",
+    "Show a code in \(.applicationName)",
+    "Go to a code in \(.applicationName)",
+    "Cerca un codice in \(.applicationName)",
+    "Trova un codice in \(.applicationName)",
+    "Cerca codice in \(.applicationName)",
+    "Apri un codice in \(.applicationName)",
+    "Mostra un codice in \(.applicationName)",
+    "Vai al codice in \(.applicationName)",
+  ]
+}
+
+/// Apple: `@AppShortcutsBuilder static var appShortcuts: [AppShortcut]`. Use one `AppShortcut` inside the
+/// builder (no raw `[AppShortcut]` literal without the attribute).
 @available(iOS 16.0, *)
 struct AncodeShortcutsProvider: AppShortcutsProvider {
   @AppShortcutsBuilder
   static var appShortcuts: [AppShortcut] {
     AppShortcut(
       intent: SearchCodeIntent(),
-      phrases: [
-        "Search \(\.$code) on \(.applicationName)",
-        "Search \(\.$code) in \(.applicationName)",
-        "Look up \(\.$code) on \(.applicationName)",
-        "Look up \(\.$code) in \(.applicationName)",
-        "Open \(\.$code) on \(.applicationName)",
-        "Open \(\.$code) in \(.applicationName)",
-        "Search \(\.$code) on the \(.applicationName) app",
-        "Search for a code in \(.applicationName)",
-      ],
+      phrases: AncodeSearchShortcutPhrases.merged,
       shortTitle: "Search code",
       systemImageName: "magnifyingglass"
     )
