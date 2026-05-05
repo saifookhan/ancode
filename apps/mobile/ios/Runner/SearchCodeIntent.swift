@@ -16,7 +16,14 @@ struct SearchableCodeEntity: AppEntity {
 
   var id: String
 
-  /// Use default entity presentation (`id`); do not use `"\(id)"` for `LocalizedStringResource` (Xcode 26).
+  /// `AppEntity` requires `InstanceDisplayRepresentable`; use `String.LocalizationValue` interpolation
+  /// (not `LocalizedStringResource = "\\(id)"`) so Xcode 26 accepts the dynamic title.
+  var displayRepresentation: DisplayRepresentation {
+    DisplayRepresentation(
+      title: "\(id)",
+      subtitle: "Letters or digits"
+    )
+  }
 }
 
 @available(iOS 16.0, *)
@@ -129,14 +136,14 @@ private enum AncodeSearchShortcutPhrases {
 
 @available(iOS 16.0, *)
 struct AncodeShortcutsProvider: AppShortcutsProvider {
-  static var appShortcuts: [AppShortcut] {
-    [
-      AppShortcut(
-        intent: SearchCodeIntent(),
-        phrases: AncodeSearchShortcutPhrases.merged,
-        shortTitle: LocalizedStringResource(stringLiteral: "Search code"),
-        systemImageName: "magnifyingglass"
-      ),
-    ]
+  /// Xcode 26 / current SDK: `appShortcuts` is a result builder, not `[AppShortcut]`.
+  @AppShortcutsBuilder
+  static var appShortcuts: some AppShortcutsBuilder {
+    AppShortcut(
+      intent: SearchCodeIntent(),
+      phrases: AncodeSearchShortcutPhrases.merged,
+      shortTitle: "Search code",
+      systemImageName: "magnifyingglass"
+    )
   }
 }
