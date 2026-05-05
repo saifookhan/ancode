@@ -49,6 +49,7 @@ struct SearchCodeIntent: AppIntent {
   @Parameter(
     title: "Code",
     description: "The ANCODE to look up.",
+    default: SearchableCodeEntity(id: ""),
     requestValueDialog: IntentDialog("Which code do you want to search?")
   )
   var code: SearchableCodeEntity
@@ -73,27 +74,27 @@ struct SearchCodeIntent: AppIntent {
 struct AncodeShortcutsProvider: AppShortcutsProvider {
   static var appShortcuts: [AppShortcut] {
     AppShortcut(
-      intent: SearchCodeIntent(code: SearchableCodeEntity(id: "")),
+      intent: SearchCodeIntent(),
       phrases: [
         // `\(.applicationName)` must appear exactly once per phrase (App Store / NLU rules).
-        // `\(.code)` is allowed because `SearchableCodeEntity` is an `AppEntity`.
-        "Search \(.code) on \(.applicationName)",
-        "Search \(.code) in \(.applicationName)",
-        "Look up \(.code) on \(.applicationName)",
-        "Look up \(.code) in \(.applicationName)",
-        "Find \(.code) on \(.applicationName)",
-        "Find \(.code) in \(.applicationName)",
-        "Open \(.code) on \(.applicationName)",
-        "Open \(.code) in \(.applicationName)",
-        "Show \(.code) on \(.applicationName)",
-        "Show \(.code) in \(.applicationName)",
-        "Go to \(.code) on \(.applicationName)",
-        "Go to \(.code) in \(.applicationName)",
+        // Parameter slots use `\(\.$code)` (Xcode 16+); `\(.code)` is not valid on `AppShortcutPhraseToken`.
+        "Search \(\.$code) on \(.applicationName)",
+        "Search \(\.$code) in \(.applicationName)",
+        "Look up \(\.$code) on \(.applicationName)",
+        "Look up \(\.$code) in \(.applicationName)",
+        "Find \(\.$code) on \(.applicationName)",
+        "Find \(\.$code) in \(.applicationName)",
+        "Open \(\.$code) on \(.applicationName)",
+        "Open \(\.$code) in \(.applicationName)",
+        "Show \(\.$code) on \(.applicationName)",
+        "Show \(\.$code) in \(.applicationName)",
+        "Go to \(\.$code) on \(.applicationName)",
+        "Go to \(\.$code) in \(.applicationName)",
         // Natural English with “the … app” (still one `\(.applicationName)` token).
-        "Search \(.code) on the \(.applicationName) app",
-        "Open \(.code) on the \(.applicationName) app",
-        "Show \(.code) on the \(.applicationName) app",
-        "Go to \(.code) on the \(.applicationName) app",
+        "Search \(\.$code) on the \(.applicationName) app",
+        "Open \(\.$code) on the \(.applicationName) app",
+        "Show \(\.$code) on the \(.applicationName) app",
+        "Go to \(\.$code) on the \(.applicationName) app",
         // Phrases that collect the code in a follow-up prompt (no inline entity)
         "Search for a code in \(.applicationName)",
         "Look up a code in \(.applicationName)",
@@ -102,16 +103,16 @@ struct AncodeShortcutsProvider: AppShortcutsProvider {
         "Show a code in \(.applicationName)",
         "Go to a code in \(.applicationName)",
         // Italian — inline code
-        "Cerca \(.code) su \(.applicationName)",
-        "Cerca \(.code) in \(.applicationName)",
-        "Trova \(.code) su \(.applicationName)",
-        "Trova \(.code) in \(.applicationName)",
-        "Apri \(.code) su \(.applicationName)",
-        "Apri \(.code) in \(.applicationName)",
-        "Mostra \(.code) su \(.applicationName)",
-        "Mostra \(.code) in \(.applicationName)",
-        "Vai a \(.code) su \(.applicationName)",
-        "Vai a \(.code) in \(.applicationName)",
+        "Cerca \(\.$code) su \(.applicationName)",
+        "Cerca \(\.$code) in \(.applicationName)",
+        "Trova \(\.$code) su \(.applicationName)",
+        "Trova \(\.$code) in \(.applicationName)",
+        "Apri \(\.$code) su \(.applicationName)",
+        "Apri \(\.$code) in \(.applicationName)",
+        "Mostra \(\.$code) su \(.applicationName)",
+        "Mostra \(\.$code) in \(.applicationName)",
+        "Vai a \(\.$code) su \(.applicationName)",
+        "Vai a \(\.$code) in \(.applicationName)",
         // Italian — prompt for code
         "Cerca un codice in \(.applicationName)",
         "Trova un codice in \(.applicationName)",
