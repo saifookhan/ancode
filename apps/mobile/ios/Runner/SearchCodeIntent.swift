@@ -136,9 +136,9 @@ private enum AncodeSearchShortcutPhrases {
 
 @available(iOS 16.0, *)
 struct AncodeShortcutsProvider: AppShortcutsProvider {
-  /// Xcode 26 / current SDK: `appShortcuts` is a result builder, not `[AppShortcut]`.
+  /// `AppShortcutsBuilder` is a result builder struct — return type must be `[AppShortcut]`, not `some AppShortcutsBuilder`.
   @AppShortcutsBuilder
-  static var appShortcuts: some AppShortcutsBuilder {
+  static var appShortcuts: [AppShortcut] {
     AppShortcut(
       intent: SearchCodeIntent(),
       phrases: AncodeSearchShortcutPhrases.merged,
