@@ -9,7 +9,7 @@ import Foundation
 struct SearchableCodeEntity: AppEntity {
   /// Avoid the same label as the app name token so Siri does not treat this slot as “the app”.
   static var typeDisplayRepresentation: TypeDisplayRepresentation {
-    TypeDisplayRepresentation(name: LocalizedStringResource("Lookup code"))
+    TypeDisplayRepresentation(name: "Lookup code")
   }
 
   static var defaultQuery = SearchableCodeEntityQuery()
@@ -17,8 +17,9 @@ struct SearchableCodeEntity: AppEntity {
   var id: String
 
   var displayRepresentation: DisplayRepresentation {
-    DisplayRepresentation(
-      title: "\(id)",
+    let title: LocalizedStringResource = "\(id)"
+    return DisplayRepresentation(
+      title: title,
       subtitle: "Letters or digits"
     )
   }
@@ -137,19 +138,20 @@ enum AncodeSearchShortcutPhrases {
 
 @available(iOS 16.0, *)
 struct AncodeShortcutsProvider: AppShortcutsProvider {
-  @AppShortcutsBuilder
   static var appShortcuts: [AppShortcut] {
-    AppShortcut(
-      intent: SearchCodeIntent(),
-      phrases: AncodeSearchShortcutPhrases.inlineList(),
-      shortTitle: LocalizedStringResource("Search code"),
-      systemImageName: "magnifyingglass"
-    )
-    AppShortcut(
-      intent: SearchCodeIntent(),
-      phrases: AncodeSearchShortcutPhrases.promptOnlyList(),
-      shortTitle: LocalizedStringResource("Pick code"),
-      systemImageName: "list.bullet"
-    )
+    [
+      AppShortcut(
+        intent: SearchCodeIntent(),
+        phrases: AncodeSearchShortcutPhrases.inlineList(),
+        shortTitle: "Search code",
+        systemImageName: "magnifyingglass"
+      ),
+      AppShortcut(
+        intent: SearchCodeIntent(),
+        phrases: AncodeSearchShortcutPhrases.promptOnlyList(),
+        shortTitle: "Pick code",
+        systemImageName: "list.bullet"
+      ),
+    ]
   }
 }
