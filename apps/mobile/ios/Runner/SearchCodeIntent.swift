@@ -16,10 +16,12 @@ struct SearchableCodeEntity: AppEntity {
 
   var id: String
 
-  /// `String.LocalizationValue` interpolation for the spoken code (not `LocalizedStringResource = "\\(id)"`).
+  /// Static labels only: Xcode 26.4 `@AppShortcutsBuilder` + `DisplayRepresentation(title: "\\(id)")`
+  /// in the same module can surface bogus `LocalizedStringResource` macro errors at archive time.
+  /// Siri still resolves the spoken code via `id` and `SearchableCodeEntityQuery`.
   var displayRepresentation: DisplayRepresentation {
     DisplayRepresentation(
-      title: "\(id)",
+      title: "Code",
       subtitle: "Letters or digits"
     )
   }
@@ -85,63 +87,55 @@ struct SearchCodeIntent: AppIntent {
 
 // MARK: - Shortcuts
 
-/// Full phrase list as a single compile-time `static let` (referenced from `@AppShortcutsBuilder`) so
-/// phrases stay maintainable and macros see stable `AppShortcutPhrase` sources.
-@available(iOS 16.0, *)
-private enum AncodeSearchShortcutPhrases {
-  typealias Phrase = AppShortcutPhrase<SearchCodeIntent>
-
-  static let merged: [Phrase] = [
-    "Search \(\.$code) on \(.applicationName)",
-    "Search \(\.$code) in \(.applicationName)",
-    "Look up \(\.$code) on \(.applicationName)",
-    "Look up \(\.$code) in \(.applicationName)",
-    "Find \(\.$code) on \(.applicationName)",
-    "Find \(\.$code) in \(.applicationName)",
-    "Open \(\.$code) on \(.applicationName)",
-    "Open \(\.$code) in \(.applicationName)",
-    "Show \(\.$code) on \(.applicationName)",
-    "Show \(\.$code) in \(.applicationName)",
-    "Go to \(\.$code) on \(.applicationName)",
-    "Go to \(\.$code) in \(.applicationName)",
-    "Search \(\.$code) on the \(.applicationName) app",
-    "Open \(\.$code) on the \(.applicationName) app",
-    "Show \(\.$code) on the \(.applicationName) app",
-    "Go to \(\.$code) on the \(.applicationName) app",
-    "Cerca \(\.$code) su \(.applicationName)",
-    "Cerca \(\.$code) in \(.applicationName)",
-    "Trova \(\.$code) su \(.applicationName)",
-    "Trova \(\.$code) in \(.applicationName)",
-    "Apri \(\.$code) su \(.applicationName)",
-    "Apri \(\.$code) in \(.applicationName)",
-    "Mostra \(\.$code) su \(.applicationName)",
-    "Mostra \(\.$code) in \(.applicationName)",
-    "Vai a \(\.$code) su \(.applicationName)",
-    "Vai a \(\.$code) in \(.applicationName)",
-    "Search for a code in \(.applicationName)",
-    "Look up a code in \(.applicationName)",
-    "Find a code in \(.applicationName)",
-    "Open a code in \(.applicationName)",
-    "Show a code in \(.applicationName)",
-    "Go to a code in \(.applicationName)",
-    "Cerca un codice in \(.applicationName)",
-    "Trova un codice in \(.applicationName)",
-    "Cerca codice in \(.applicationName)",
-    "Apri un codice in \(.applicationName)",
-    "Mostra un codice in \(.applicationName)",
-    "Vai al codice in \(.applicationName)",
-  ]
-}
-
-/// Apple: `@AppShortcutsBuilder static var appShortcuts: [AppShortcut]`. Use one `AppShortcut` inside the
-/// builder (no raw `[AppShortcut]` literal without the attribute).
+/// Xcode 26.4: `@AppShortcutsBuilder` + `phrases: SomeEnum.merged` (large external `static let`) fails
+/// archive with *LocalizedStringResource must be initialized…* at the builder line. Keep the full phrase
+/// list as a **literal** inside `AppShortcut` here.
 @available(iOS 16.0, *)
 struct AncodeShortcutsProvider: AppShortcutsProvider {
   @AppShortcutsBuilder
   static var appShortcuts: [AppShortcut] {
     AppShortcut(
       intent: SearchCodeIntent(),
-      phrases: AncodeSearchShortcutPhrases.merged,
+      phrases: [
+        "Search \(\.$code) on \(.applicationName)",
+        "Search \(\.$code) in \(.applicationName)",
+        "Look up \(\.$code) on \(.applicationName)",
+        "Look up \(\.$code) in \(.applicationName)",
+        "Find \(\.$code) on \(.applicationName)",
+        "Find \(\.$code) in \(.applicationName)",
+        "Open \(\.$code) on \(.applicationName)",
+        "Open \(\.$code) in \(.applicationName)",
+        "Show \(\.$code) on \(.applicationName)",
+        "Show \(\.$code) in \(.applicationName)",
+        "Go to \(\.$code) on \(.applicationName)",
+        "Go to \(\.$code) in \(.applicationName)",
+        "Search \(\.$code) on the \(.applicationName) app",
+        "Open \(\.$code) on the \(.applicationName) app",
+        "Show \(\.$code) on the \(.applicationName) app",
+        "Go to \(\.$code) on the \(.applicationName) app",
+        "Cerca \(\.$code) su \(.applicationName)",
+        "Cerca \(\.$code) in \(.applicationName)",
+        "Trova \(\.$code) su \(.applicationName)",
+        "Trova \(\.$code) in \(.applicationName)",
+        "Apri \(\.$code) su \(.applicationName)",
+        "Apri \(\.$code) in \(.applicationName)",
+        "Mostra \(\.$code) su \(.applicationName)",
+        "Mostra \(\.$code) in \(.applicationName)",
+        "Vai a \(\.$code) su \(.applicationName)",
+        "Vai a \(\.$code) in \(.applicationName)",
+        "Search for a code in \(.applicationName)",
+        "Look up a code in \(.applicationName)",
+        "Find a code in \(.applicationName)",
+        "Open a code in \(.applicationName)",
+        "Show a code in \(.applicationName)",
+        "Go to a code in \(.applicationName)",
+        "Cerca un codice in \(.applicationName)",
+        "Trova un codice in \(.applicationName)",
+        "Cerca codice in \(.applicationName)",
+        "Apri un codice in \(.applicationName)",
+        "Mostra un codice in \(.applicationName)",
+        "Vai al codice in \(.applicationName)",
+      ],
       shortTitle: "Search code",
       systemImageName: "magnifyingglass"
     )
