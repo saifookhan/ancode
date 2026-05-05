@@ -138,20 +138,19 @@ enum AncodeSearchShortcutPhrases {
 
 @available(iOS 16.0, *)
 struct AncodeShortcutsProvider: AppShortcutsProvider {
+  @AppShortcutsBuilder
   static var appShortcuts: [AppShortcut] {
-    [
-      AppShortcut(
-        intent: SearchCodeIntent(),
-        phrases: AncodeSearchShortcutPhrases.inlineList(),
-        shortTitle: "Search code",
-        systemImageName: "magnifyingglass"
-      ),
-      AppShortcut(
-        intent: SearchCodeIntent(),
-        phrases: AncodeSearchShortcutPhrases.promptOnlyList(),
-        shortTitle: "Pick code",
-        systemImageName: "list.bullet"
-      ),
-    ]
+    AppShortcut(
+      intent: SearchCodeIntent(),
+      phrases: AncodeSearchShortcutPhrases.inlineList(),
+      shortTitle: "Search code",
+      systemImageName: "magnifyingglass"
+    )
+    AppShortcut(
+      intent: SearchCodeIntent(),
+      phrases: AncodeSearchShortcutPhrases.promptOnlyList(),
+      shortTitle: "Pick code",
+      systemImageName: "list.bullet"
+    )
   }
 }
