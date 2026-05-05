@@ -89,6 +89,11 @@ struct AncodeShortcutsProvider: AppShortcutsProvider {
         "Show \(.code) in \(.applicationName)",
         "Go to \(.code) on \(.applicationName)",
         "Go to \(.code) in \(.applicationName)",
+        // Natural English with “the … app” (still one `\(.applicationName)` token).
+        "Search \(.code) on the \(.applicationName) app",
+        "Open \(.code) on the \(.applicationName) app",
+        "Show \(.code) on the \(.applicationName) app",
+        "Go to \(.code) on the \(.applicationName) app",
         // Phrases that collect the code in a follow-up prompt (no inline entity)
         "Search for a code in \(.applicationName)",
         "Look up a code in \(.applicationName)",
