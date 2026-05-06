@@ -20,7 +20,7 @@ class AppTheme {
           outline: AppColors.bluPolvere,
           tertiary: AppColors.verdeCosmico,
         ),
-        textTheme: _textTheme,
+        textTheme: _textTheme.apply(fontFamily: AppFonts.family),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: AppColors.biancoOttico,
@@ -51,7 +51,7 @@ class AppTheme {
           ),
         ),
       ).copyWith(
-        textTheme: _textTheme,
+        textTheme: _textTheme.apply(fontFamily: AppFonts.family),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -81,6 +81,7 @@ class AppTheme {
         ),
         scaffoldBackgroundColor: AppColors.bluUniverso,
         textTheme: _textTheme.apply(
+          fontFamily: AppFonts.family,
           bodyColor: AppColors.biancoOttico,
           displayColor: AppColors.biancoOttico,
         ),
@@ -102,6 +103,7 @@ class AppTheme {
         ),
       ).copyWith(
         textTheme: _textTheme.apply(
+          fontFamily: AppFonts.family,
           bodyColor: AppColors.biancoOttico,
           displayColor: AppColors.biancoOttico,
         ),

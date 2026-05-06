@@ -39,6 +39,8 @@ Map<String, String> _geminiDartDefineMerge() {
 Future<bool> _prepareApp() async {
   String supabaseUrl = '';
   String supabaseAnonKey = '';
+  const urlFromDefine = String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  const anonKeyFromDefine = String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
   bool loaded = false;
   // On web, flutter_dotenv loads from asset bundle (path is relative to assets/); use '.env' so it requests assets/.env not assets/assets/.env
   if (kIsWeb) {
@@ -58,11 +60,11 @@ Future<bool> _prepareApp() async {
       // .env missing or not in bundle (web) – use dart-define or show config screen
     }
   }
-  if (supabaseUrl.isEmpty) {
-    supabaseUrl = const String.fromEnvironment('SUPABASE_URL', defaultValue: '');
+  if (urlFromDefine.trim().isNotEmpty) {
+    supabaseUrl = urlFromDefine.trim();
   }
-  if (supabaseAnonKey.isEmpty) {
-    supabaseAnonKey = const String.fromEnvironment('SUPABASE_ANON_KEY', defaultValue: '');
+  if (anonKeyFromDefine.trim().isNotEmpty) {
+    supabaseAnonKey = anonKeyFromDefine.trim();
   }
 
   // On web, if still empty (e.g. deployed on Vercel with env vars only in Vercel), fetch from /api/config

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:shared/shared.dart';
 
 import '../services/ancode_service.dart' show AncodeService, AncodeSearchResult;
+import '../services/app_config.dart';
 import '../services/auth_service.dart';
-import 'auth/login_screen.dart';
 import 'code_resolve_screen.dart';
-import 'create_screen.dart';
-import 'main_shell.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,6 +23,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   AncodeSearchResult? _lastResult;
+  Ancode? _selectedMatch;
   bool _isSearching = false;
 
   String _normalizeCodeInput(String value) {
@@ -32,6 +33,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onCodeChanged(String value) {
     final normalized = _normalizeCodeInput(value);
+    if (_lastResult != null || _selectedMatch != null) {
+      setState(() {
+        _lastResult = null;
+        _selectedMatch = null;
+      });
+    }
     if (normalized == value) return;
     _controller.value = TextEditingValue(
       text: normalized,
@@ -68,24 +75,15 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         setState(() {
           _lastResult = result;
+          _selectedMatch = result.uniqueMatch;
           _isSearching = false;
         });
-        if (result.uniqueMatch != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => CodeResolveScreen(
-                code: result.uniqueMatch!.normalizedCode,
-                ancode: result.uniqueMatch,
-              ),
-            ),
-          ).then((_) => _onCodeResolved());
-        }
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _lastResult = AncodeSearchResult(error: e.toString());
+          _selectedMatch = null;
           _isSearching = false;
         });
       }
@@ -93,23 +91,109 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onCodeResolved() {
-    setState(() => _lastResult = null);
+    setState(() {
+      _lastResult = null;
+      _selectedMatch = null;
+    });
   }
 
-  void _goToContent() {
-    if (_lastResult?.uniqueMatch != null) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => CodeResolveScreen(
-            code: _lastResult!.uniqueMatch!.normalizedCode,
-            ancode: _lastResult!.uniqueMatch,
+  /// Opens user-supplied URLs in the browser; avoids treating arbitrary note text as a host.
+  static bool _looksLikeExplicitUrl(String value) {
+    final t = value.trim().toLowerCase();
+    return t.startsWith('http://') ||
+        t.startsWith('https://') ||
+        t.startsWith('www.');
+  }
+
+  /// Target string for an external open, or null to show in-app note content instead.
+  String? _externalUrlRaw(Ancode match) {
+    final u = match.url?.trim();
+    if (u != null && u.isNotEmpty) return u;
+    if (match.isLink) return AppConfig.shortlinkFor(match.normalizedCode);
+    final note = match.noteText?.trim();
+    if (note != null && note.isNotEmpty && _looksLikeExplicitUrl(note)) return note;
+    return null;
+  }
+
+  Future<void> _openExternalFromMatch(Ancode match, String raw) async {
+    if (match.status == AncodeStatus.grace) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Collegamento non disponibile durante il periodo di grazia.')),
+      );
+      return;
+    }
+    final uri = AncodeQrPdf.normalizeHttpUri(raw);
+    if (uri == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Formato del collegamento non valido.')),
+      );
+      return;
+    }
+    if (match.id.isNotEmpty) {
+      try {
+        await Supabase.instance.client.from('clicks').insert({'ancode_id': match.id});
+      } catch (_) {}
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossibile aprire il collegamento.')),
+      );
+    }
+  }
+
+  Future<void> _showNoteContentDialog(Ancode match) async {
+    if (!mounted) return;
+    final body = (match.noteText ?? '').trim();
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        title: Text(
+          match.code.toUpperCase(),
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            color: AppColors.bluUniversoDeep,
+            fontSize: 18,
           ),
         ),
-      ).then((_) => _onCodeResolved());
-    } else {
-      _onSearchSubmitted(_controller.text);
+        content: SingleChildScrollView(
+          child: SelectableText(
+            body.isEmpty ? '—' : body,
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.4,
+              color: AppColors.bluPolvere,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Chiudi', style: TextStyle(fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openContent(Ancode match) async {
+    final raw = _externalUrlRaw(match);
+    if (raw != null) {
+      await _openExternalFromMatch(match, raw);
+      return;
     }
+    await _showNoteContentDialog(match);
+  }
+
+  String _municipalityLabel(Ancode match) {
+    if (match.isExclusiveItaly) return 'Italia';
+    final name = match.municipality?.name.trim();
+    if (name != null && name.isNotEmpty) return name;
+    return match.municipalityId;
   }
 
   static const double _logoSize = 228;
@@ -121,7 +205,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final topGap = isPhone ? 28.0 : 72.0;
     final logoSectionGap = isPhone ? 28.0 : 36.0;
     final tailGap = isPhone ? 24.0 : 100.0;
-    final hasUniqueMatch = _lastResult?.uniqueMatch != null;
+    final matches = <Ancode>[
+      if (_lastResult?.uniqueMatch != null) _lastResult!.uniqueMatch!,
+      ...?_lastResult?.multipleMatches,
+    ];
+    final hasContentMatch = matches.isNotEmpty;
+    final hasMultipleMatches = (_lastResult?.multipleMatches?.length ?? 0) > 1;
 
     final logoAndCard = <Widget>[
       const AncodeLogo(
@@ -179,47 +268,39 @@ class _HomeScreenState extends State<HomeScreen> {
             depthOutlined: true,
             faceBorderColor: const Color(0xFF000000),
             depthBorderColor: const Color(0xFF000000),
-            onPressed: _isSearching
-                ? null
-                : () => hasUniqueMatch ? _goToContent() : _onSearchSubmitted(_controller.text),
+            onPressed: _isSearching ? null : () => _onSearchSubmitted(_controller.text),
           ),
-          const SizedBox(height: 16),
-          LimeFacePillButton(
-            label: 'Vai al contenuto',
-            height: 58,
-            showOutline: true,
-            outlineColor: AppColors.slateNavy,
-            outlineWidth: 1.5,
-            faceColor: AppColors.limeMockup,
-            shadowFaceColor: AppColors.limeMockup,
-            extrusionDx: 4,
-            depthOutlined: true,
-            depthOutlineColor: AppColors.slateNavy,
-            depthOutlineWidth: 1.5,
-            labelColor: AppColors.slateNavy,
-            onPressed: () {
-              final auth = context.read<AuthService>();
-              if (!auth.isLoggedIn) {
-                Navigator.of(context).push<void>(
-                  MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-                );
-                return;
-              }
-              final shell = context.findAncestorStateOfType<MainShellState>();
-              if (shell != null) {
-                shell.goToTab(MainShellState.createIndex);
-                return;
-              }
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => CreateScreen(
-                    prefillCode: _normalizeCodeInput(_controller.text),
-                  ),
-                ),
-              );
-            },
-          ),
+          if (hasMultipleMatches) ...[
+            const SizedBox(height: 16),
+            _CommuneDropdown(
+              matches: _lastResult!.multipleMatches!,
+              selectedMatch: _selectedMatch,
+              labelFor: _municipalityLabel,
+              onChanged: (match) => setState(() => _selectedMatch = match),
+            ),
+          ],
+          if (hasContentMatch) ...[
+            const SizedBox(height: 16),
+            LimeFacePillButton(
+              label: 'Vai al contenuto',
+              height: 58,
+              showOutline: true,
+              outlineColor: AppColors.slateNavy,
+              outlineWidth: 1.5,
+              faceColor: AppColors.limeMockup,
+              shadowFaceColor: AppColors.limeMockup,
+              extrusionDx: 4,
+              depthOutlined: true,
+              depthOutlineColor: AppColors.slateNavy,
+              depthOutlineWidth: 1.5,
+              labelColor: AppColors.slateNavy,
+              onPressed: _selectedMatch == null
+                  ? null
+                  : () async {
+                      await _openContent(_selectedMatch!);
+                    },
+            ),
+          ],
         ],
       ),
     ];
@@ -254,22 +335,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 24),
                             Text(_lastResult!.error!, style: const TextStyle(color: AppColors.bluPolvere)),
                           ],
-                          if (_lastResult?.multipleMatches != null && _lastResult!.multipleMatches!.isNotEmpty) ...[
-                            const SizedBox(height: 24),
-                            ..._lastResult!.multipleMatches!.map(
-                              (a) => ListTile(
-                                title: Text(a.code, style: const TextStyle(color: AppColors.bluPolvere)),
-                                subtitle: Text(a.municipality?.name ?? '', style: const TextStyle(color: AppColors.placeholderGrey)),
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => CodeResolveScreen(
-                                      code: a.normalizedCode,
-                                      ancode: a,
-                                    ),
-                                  ),
-                                ).then((_) => _onCodeResolved()),
+                          if (hasMultipleMatches) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'Questo ANCODE esiste in più comuni. Scegli il comune per aprire il contenuto corretto.',
+                              style: AppTypography.bodyRegular(
+                                color: AppColors.placeholderGrey,
+                                fontSize: 14,
                               ),
+                              textAlign: TextAlign.center,
                             ),
                           ],
                           if (_lastResult != null &&
@@ -327,6 +401,67 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommuneDropdown extends StatelessWidget {
+  const _CommuneDropdown({
+    required this.matches,
+    required this.selectedMatch,
+    required this.labelFor,
+    required this.onChanged,
+  });
+
+  final List<Ancode> matches;
+  final Ancode? selectedMatch;
+  final String Function(Ancode match) labelFor;
+  final ValueChanged<Ancode?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return WhiteLimePillSurface(
+      height: 64,
+      shadowDepth: 8,
+      borderWidth: 1.5,
+      outlineColor: AppColors.slateNavy,
+      railColor: AppColors.limeMockup,
+      extrusionDx: 4,
+      depthOutlined: true,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<Ancode>(
+          value: selectedMatch,
+          hint: const Text(
+            'Scegli il comune',
+            style: TextStyle(
+              color: AppColors.placeholderGrey,
+              fontSize: 16,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+          isExpanded: true,
+          icon: const Padding(
+            padding: EdgeInsets.only(right: 18),
+            child: Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.slateNavy),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          dropdownColor: AppColors.biancoOttico,
+          style: const TextStyle(
+            color: AppColors.slateNavy,
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+          ),
+          items: matches
+              .map(
+                (match) => DropdownMenuItem<Ancode>(
+                  value: match,
+                  child: Text(labelFor(match), overflow: TextOverflow.ellipsis),
+                ),
+              )
+              .toList(),
+          onChanged: onChanged,
         ),
       ),
     );

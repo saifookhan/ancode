@@ -289,14 +289,7 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
     }
   }
 
-  Future<void> _editCodeDetails(Ancode code, String currentPlan) async {
-    if (currentPlan == PlanModeService.free) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nel piano FREE i codici non sono modificabili')),
-      );
-      return;
-    }
-
+  Future<void> _editCodeDetails(Ancode code) async {
     final codeController = TextEditingController(text: code.code);
     final contentController = TextEditingController(text: code.isLink ? (code.url ?? '') : (code.noteText ?? ''));
     final citySearchController = TextEditingController(text: code.municipalityId);
@@ -665,7 +658,6 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
                       )
                     else
                       ..._codes.map((c) {
-                        final canEdit = currentPlan == PlanModeService.pro || currentPlan == PlanModeService.business;
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
@@ -726,7 +718,7 @@ class _MyCodesScreenState extends State<MyCodesScreen> {
                                     child: _CodeActionButton(
                                       label: 'Edit',
                                       icon: Icons.edit_rounded,
-                                      onPressed: canEdit ? () => _editCodeDetails(c, currentPlan) : null,
+                                      onPressed: () => _editCodeDetails(c),
                                     ),
                                   ),
                                   const SizedBox(width: 10),

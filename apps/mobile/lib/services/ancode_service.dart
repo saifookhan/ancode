@@ -641,11 +641,6 @@ class AncodeService {
     if (user == null) {
       throw Exception('Accedi per modificare il codice');
     }
-    final plan = PlanModeService.currentPlan(user);
-    if (plan == PlanModeService.free) {
-      throw Exception('Nel piano FREE i codici non sono modificabili');
-    }
-
     final normalizedCode = normalizeCodeInput(code);
     if (normalizedCode.isEmpty || !isValidCodeFormat(normalizedCode)) {
       throw Exception('Codice non valido');
@@ -664,8 +659,14 @@ class AncodeService {
     final values = <String, dynamic>{
       // Keep update payload compatible with minimal/legacy schemas.
       'title': normalizedCode,
+      'code': normalizedCode,
+      'normalized_code': normalizedCode,
+      'type': type == AncodeType.link ? 'link' : 'note',
       'content_type': type == AncodeType.link ? 'link' : 'text',
       'area': type == AncodeType.link ? url?.trim() : noteText?.trim(),
+      'content': type == AncodeType.link ? url?.trim() : noteText?.trim(),
+      'url': type == AncodeType.link ? url?.trim() : null,
+      'note_text': type == AncodeType.note ? noteText?.trim() : null,
       'municipality_id': normalizedMunicipality,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     };

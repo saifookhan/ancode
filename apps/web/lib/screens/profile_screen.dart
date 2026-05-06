@@ -8,6 +8,7 @@ import 'package:shared/shared.dart';
 
 import '../services/auth_service.dart';
 import 'auth/login_screen.dart';
+import 'my_codes_screen.dart';
 
 const _dashboardChartMonthLabels = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu'];
 
@@ -139,6 +140,14 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _refreshDashboard() => reloadDashboardStats();
 
+  Future<void> _openCodeManager() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const MyCodesScreen()),
+    );
+    if (!mounted) return;
+    await reloadDashboardStats();
+  }
+
   @override
   void initState() {
     super.initState();
@@ -195,6 +204,10 @@ class ProfileScreenState extends State<ProfileScreen> {
                             inactive: false,
                             viewportMaxRows: 4,
                           ),
+                          if (_activeCodes.isNotEmpty) ...[
+                            const SizedBox(height: 10),
+                            _DashboardEditCodesButton(onPressed: _openCodeManager),
+                          ],
                           const SizedBox(height: 14),
                           _ScansTrendCard(values: _monthlyScanCounts, monthLabels: _dashboardChartMonthLabels),
                           const SizedBox(height: 12),
@@ -481,6 +494,30 @@ class _CodesSection extends StatelessWidget {
                 child: _CodeRowCard(item: item, inactive: inactive),
               )),
       ],
+    );
+  }
+}
+
+class _DashboardEditCodesButton extends StatelessWidget {
+  const _DashboardEditCodesButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.edit_rounded, size: 18),
+        label: const Text('Modifica codici'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.bluUniversoDeep,
+          side: const BorderSide(color: AppColors.bluUniversoDeep, width: 1.2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+      ),
     );
   }
 }

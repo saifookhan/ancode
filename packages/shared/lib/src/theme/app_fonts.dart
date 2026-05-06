@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Registered in [pubspec.yaml] as bundled rounded sans (see fonts/NOTICE.txt).
+/// Registered from this package as bundled rounded sans (see fonts/NOTICE.txt).
 abstract final class AppFonts {
   AppFonts._();
 
-  static const String family = 'KitRounded';
+  static const String family = 'packages/shared/KitRounded';
 }
 
 /// KIT Rounded roles (weights map to bundled KitRounded-* assets).

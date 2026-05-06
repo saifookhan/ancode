@@ -37,7 +37,7 @@ class AppTheme {
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
-        textTheme: _textTheme,
+        textTheme: _textTheme.apply(fontFamily: AppFonts.family),
       );
 
   static ThemeData get dark => ThemeData(
@@ -55,6 +55,7 @@ class AppTheme {
         ),
         scaffoldBackgroundColor: AppColors.bluUniverso,
         textTheme: _textTheme.apply(
+          fontFamily: AppFonts.family,
           bodyColor: AppColors.biancoOttico,
           displayColor: AppColors.biancoOttico,
         ),

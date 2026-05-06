@@ -1,7 +1,7 @@
 [api]
 enabled = true
 port = 54321
-schemas = ["public"]
+schemas = ["public", "graphql_public"]
 
 [db]
 port = 54322
@@ -12,4 +12,19 @@ port = 54323
 
 [auth]
 enabled = true
-site_url = "http://localhost:3000"
+site_url = "https://ancode-delta.vercel.app"
+additional_redirect_urls = [
+  "http://localhost:3000",
+  "http://localhost:62523",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:62523",
+  "https://ancode-delta.vercel.app",
+  "https://ancode.vercel.app",
+]
+
+[auth.email]
+max_frequency = "1m0s"
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true

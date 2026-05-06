@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_colors.dart';
+import '../theme/app_fonts.dart';
 
 /// Narrow strip with white mark (Crea screen header); defaults to same fill as the Crea body ([AppColors.bluUniverso]).
 class AncodeCreateTopBar extends StatelessWidget {
@@ -39,6 +40,7 @@ class AncodeCreateTopBar extends StatelessWidget {
                 errorBuilder: (_, __, ___) => Text(
                   '*',
                   style: TextStyle(
+                    fontFamily: AppFonts.family,
                     color: Colors.white,
                     fontSize: logoHeight * 1.1,
                     fontWeight: FontWeight.w800,
